@@ -41,8 +41,8 @@ public sealed class EventEditModel(CurrentUser me, ContentService content) : Sta
         Event.Airports = string.Join(' ', (airports ?? "").ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));
         Event.Body = (body ?? "").Trim();
         Event.Published = published;
-        if (Event.Title.Length < 3) Error = "Укажите название";
-        else if (start == null || end == null || end <= start) Error = "Проверьте время начала и окончания";
+        if (Event.Title.Length < 3) Error = "Enter a title";
+        else if (start == null || end == null || end <= start) Error = "Check the start and end times";
         if (Error != null) return Page();
         Event.StartsAt = start!.Value;
         Event.EndsAt = end!.Value;

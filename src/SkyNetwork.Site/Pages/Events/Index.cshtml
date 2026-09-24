@@ -1,17 +1,17 @@
 @page "/events"
 @inject ContentService Site
 @{
-    ViewData["Title"] = "Мероприятия";
+    ViewData["Title"] = L["Events"];
     var events = Site.UpcomingEvents(60);
 }
 <div class="wrap page">
   <div class="page-head">
-    <h1>Мероприятия</h1>
-    <p>Дни усиленного трафика, fly-in и открытые позиции. На мероприятиях диспетчеры работают полным составом — лучшее время для первого полёта.</p>
+    <h1>@L["Events"]</h1>
+    <p>@L["Busy traffic days, fly-ins and open positions. Controllers are fully staffed during events — the best time for a first flight."]</p>
   </div>
   @if (events.Count == 0)
   {
-    <div class="empty">Ближайших мероприятий нет. Следите за <a href="/news">новостями</a>.</div>
+    <div class="empty">@L["No upcoming events. Keep an eye on the"] <a href="/news">@L["news"]</a>.</div>
   }
   else
   {

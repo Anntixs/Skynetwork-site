@@ -7,25 +7,25 @@
 }
 <div class="staff-bar">
   <div class="wrap">
-    <b>Управление сетью</b>
-    <span>· @Me.Member!.Name, @Me.Member.RatingShort@(Me.Roles.Count > 0 ? " · " + string.Join(", ", Me.Roles.Select(r => Permissions.Roles[r])) : "")</span>
+    <b>@L["Network management"]</b>
+    <span>· @Me.Member!.Name, @Me.Member.RatingShort@(Me.Roles.Count > 0 ? " · " + string.Join(", ", Me.Roles.Select(r => L[Permissions.Roles[r]])) : "")</span>
   </div>
 </div>
 <div class="wrap page with-side">
-  <nav class="side" aria-label="Управление">
-    <div class="side-title">Сеть</div>
-    <a href="/staff" class="@A("/staff")">Обзор</a>
-    @if (Me.Has(Perm.ViewMembers)) { <a href="/staff/members" class="@A("/staff/members")">Участники</a> }
-    <a href="/staff/team" class="@A("/staff/team")">Команда</a>
-    @if (Me.Has(Perm.Online)) { <a href="/staff/online" class="@A("/staff/online")">В эфире</a> }
-    @if (Me.Has(Perm.Tickets) || Me.Has(Perm.Training)) { <div class="side-title">Работа</div> }
-    @if (Me.Has(Perm.Tickets)) { <a href="/staff/tickets" class="@A("/staff/tickets")">Обращения @if (openTickets > 0) { <span class="count">@openTickets</span> }</a> }
-    @if (Me.Has(Perm.Training)) { <a href="/staff/training" class="@A("/staff/training")">Обучение @if (openTraining > 0) { <span class="count">@openTraining</span> }</a> }
-    @if (Me.Has(Perm.Events) || Me.Has(Perm.News) || Me.Has(Perm.Bookings)) { <div class="side-title">Сайт</div> }
-    @if (Me.Has(Perm.Events)) { <a href="/staff/events" class="@A("/staff/events")">Мероприятия</a> }
-    @if (Me.Has(Perm.News)) { <a href="/staff/news" class="@A("/staff/news")">Новости</a> }
-    @if (Me.Has(Perm.Bookings)) { <a href="/staff/bookings" class="@A("/staff/bookings")">Бронирования</a> }
-    @if (Me.Has(Perm.Audit)) { <div class="side-title">Контроль</div><a href="/staff/audit" class="@A("/staff/audit")">Журнал действий</a> }
+  <nav class="side" aria-label="@L["Management"]">
+    <div class="side-title">@L["Network"]</div>
+    <a href="/staff" class="@A("/staff")">@L["Overview"]</a>
+    @if (Me.Has(Perm.ViewMembers)) { <a href="/staff/members" class="@A("/staff/members")">@L["Members"]</a> }
+    <a href="/staff/team" class="@A("/staff/team")">@L["Team"]</a>
+    @if (Me.Has(Perm.Online)) { <a href="/staff/online" class="@A("/staff/online")">@L["On the air"]</a> }
+    @if (Me.Has(Perm.Tickets) || Me.Has(Perm.Training)) { <div class="side-title">@L["Work"]</div> }
+    @if (Me.Has(Perm.Tickets)) { <a href="/staff/tickets" class="@A("/staff/tickets")">@L["Support tickets"] @if (openTickets > 0) { <span class="count">@openTickets</span> }</a> }
+    @if (Me.Has(Perm.Training)) { <a href="/staff/training" class="@A("/staff/training")">@L["Training"] @if (openTraining > 0) { <span class="count">@openTraining</span> }</a> }
+    @if (Me.Has(Perm.Events) || Me.Has(Perm.News) || Me.Has(Perm.Bookings)) { <div class="side-title">@L["Website"]</div> }
+    @if (Me.Has(Perm.Events)) { <a href="/staff/events" class="@A("/staff/events")">@L["Events"]</a> }
+    @if (Me.Has(Perm.News)) { <a href="/staff/news" class="@A("/staff/news")">@L["News"]</a> }
+    @if (Me.Has(Perm.Bookings)) { <a href="/staff/bookings" class="@A("/staff/bookings")">@L["Bookings"]</a> }
+    @if (Me.Has(Perm.Audit)) { <div class="side-title">@L["Oversight"]</div><a href="/staff/audit" class="@A("/staff/audit")">@L["Audit log"]</a> }
   </nav>
   <div>
     @RenderBody()

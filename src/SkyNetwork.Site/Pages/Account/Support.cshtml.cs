@@ -18,7 +18,7 @@ public sealed class SupportModel(CurrentUser me, SupportService support) : PageM
     {
         if (Subject.Trim().Length < 3 || Body.Trim().Length < 10)
         {
-            Error = "Опишите вопрос подробнее";
+            Error = "Please describe your question in more detail";
             OnGet();
             return Page();
         }

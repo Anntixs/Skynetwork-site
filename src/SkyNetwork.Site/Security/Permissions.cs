@@ -21,6 +21,8 @@ public enum Perm
     Online = 1 << 11,
     Notes = 1 << 12,
     ResetPasswords = 1 << 13,
+    /// <summary>Pilot and military ratings (site only).</summary>
+    PilotRatings = 1 << 14,
     All = ~0,
 }
 
@@ -33,16 +35,17 @@ public static class Permissions
 {
     public static readonly IReadOnlyDictionary<string, string> Roles = new Dictionary<string, string>
     {
-        ["events"] = "Мероприятия",
-        ["news"] = "Новости",
-        ["support"] = "Поддержка",
-        ["training"] = "Обучение",
+        ["events"] = "Events",
+        ["news"] = "News",
+        ["support"] = "Support",
+        ["training"] = "Training",
     };
 
     private const Perm Supervisor = Perm.StaffArea | Perm.ViewMembers | Perm.Suspend | Perm.Notes | Perm.Tickets | Perm.Online |
-                                    Perm.Bookings | Perm.Audit | Perm.Training | Perm.Events | Perm.News;
+                                    Perm.Bookings | Perm.Audit | Perm.Training | Perm.Events | Perm.News | Perm.PilotRatings;
 
-    private const Perm Instructor = Perm.StaffArea | Perm.ViewMembers | Perm.Notes | Perm.Training | Perm.EditRatings | Perm.Online;
+    private const Perm Instructor = Perm.StaffArea | Perm.ViewMembers | Perm.Notes | Perm.Training | Perm.EditRatings | Perm.Online |
+                                    Perm.PilotRatings;
 
     public static Perm For(int rating, IEnumerable<string> roles)
     {
@@ -76,4 +79,12 @@ public static class Permissions
         if (actorRating == Ratings.ADM) return true;
         return from <= Ratings.C3 && to <= Ratings.C3;
     }
+
+    /// <summary>
+    /// Who may suspend whom: nobody themselves, administrators anyone else, supervisors only members
+    /// below supervisor (not other supervisors or administrators).
+    /// </summary>
+    public static bool CanSuspend(Member actor, Perm actorPerms, Member target) =>
+        actorPerms.HasFlag(Perm.Suspend) && actor.Cid != target.Cid &&
+        (actor.Rating == Ratings.ADM || target.Rating < Ratings.SUP);
 }

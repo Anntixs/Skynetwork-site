@@ -22,21 +22,24 @@ public sealed class AuditService(Database db)
             """, new { limit, target }).ToList();
     }
 
+    /// <summary>English title of an action; pages translate it.</summary>
     public static string Title(string action) => action switch
     {
-        "rating" => "Рейтинг",
-        "suspend" => "Блокировка",
-        "unsuspend" => "Разблокировка",
-        "password-reset" => "Сброс пароля",
-        "roles" => "Роли",
-        "note" => "Заметка",
-        "event" => "Мероприятие",
-        "event-delete" => "Удаление мероприятия",
-        "news" => "Новость",
-        "news-delete" => "Удаление новости",
-        "booking-delete" => "Удаление бронирования",
-        "ticket" => "Обращение",
-        "training" => "Обучение",
+        "rating" => "Rating",
+        "pilot-rating" => "Pilot rating",
+        "military-rating" => "Military rating",
+        "suspend" => "Suspension",
+        "unsuspend" => "Suspension lifted",
+        "password-reset" => "Password reset",
+        "roles" => "Roles",
+        "note" => "Note",
+        "event" => "Event",
+        "event-delete" => "Event deleted",
+        "news" => "News",
+        "news-delete" => "News deleted",
+        "booking-delete" => "Booking deleted",
+        "ticket" => "Support ticket",
+        "training" => "Training",
         _ => action,
     };
 }

@@ -33,7 +33,7 @@ public sealed class NewsEditModel(CurrentUser me, ContentService content) : Staf
         Post.Published = published;
         if (Post.Title.Length < 3 || Post.Body.Length < 3)
         {
-            Error = "Заполните заголовок и текст";
+            Error = "Fill in the headline and text";
             return Page();
         }
         long saved = content.SavePost(Me.Cid, Post);

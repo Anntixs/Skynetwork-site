@@ -1,10 +1,10 @@
 @page "/staff/news"
 @model SkyNetwork.Site.Pages.Staff.NewsModel
-@{ ViewData["Title"] = "Новости"; }
-<div class="section-head"><h1 style="font-size:30px;margin:0">Новости</h1><a class="btn btn-primary" href="/staff/news/new">Написать новость</a></div>
+@{ ViewData["Title"] = L["News"]; }
+<div class="section-head"><h1 style="font-size:30px;margin:0">@L["News"]</h1><a class="btn btn-primary" href="/staff/news/new">@L["Write a post"]</a></div>
 <div class="table-wrap">
   <table>
-    <thead><tr><th>Заголовок</th><th>Автор</th><th>Дата</th><th>Статус</th></tr></thead>
+    <thead><tr><th>@L["Headline"]</th><th>@L["Author"]</th><th>@L["Date"]</th><th>@L["Status"]</th></tr></thead>
     <tbody>
     @foreach (var n in Model.List)
     {
@@ -12,10 +12,10 @@
         <td><a href="/staff/news/@n.Id">@n.Title</a></td>
         <td>@n.AuthorName</td>
         <td>@Format.Date(n.Created)</td>
-        <td>@if (n.Published) { <span class="badge ok">опубликовано</span> } else { <span class="badge">черновик</span> }</td>
+        <td>@if (n.Published) { <span class="badge ok">@L["published"]</span> } else { <span class="badge">@L["draft"]</span> }</td>
       </tr>
     }
-    @if (Model.List.Count == 0) { <tr><td colspan="4" class="muted">Новостей нет</td></tr> }
+    @if (Model.List.Count == 0) { <tr><td colspan="4" class="muted">@L["No news yet."]</td></tr> }
     </tbody>
   </table>
 </div>

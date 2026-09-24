@@ -15,10 +15,10 @@ public static class ApiEndpoints
         app.MapGet("/api/flightplans/latest", (long cid, FlightPlanService plans) =>
             plans.Latest(cid) is { } p ? Results.Ok(PlanDto(p)) : Results.NotFound()).RequireCors("api");
 
-        app.MapGet("/tiles/{z:int}/{x:int}/{y:int}.png", async (int z, int x, int y, TileProxy tiles, HttpContext ctx) =>
+        app.MapGet("/tiles/{style}/{z:int}/{x:int}/{y:int}.png", async (string style, int z, int x, int y, TileProxy tiles, HttpContext ctx) =>
         {
             ctx.Response.Headers.CacheControl = "public, max-age=604800";
-            return await tiles.GetAsync(z, x, y, ctx.RequestAborted);
+            return await tiles.GetAsync(style, z, x, y, ctx.RequestAborted);
         });
 
         var v1 = app.MapGroup("/api/v1").RequireCors("api");
@@ -72,7 +72,10 @@ public static class ApiEndpoints
             var h = sessions.Hours(cid);
             return Results.Ok(new
             {
-                m.Cid, m.Name, rating = m.RatingShort, ratingName = m.RatingLong, registered = m.Registered,
+                m.Cid, m.Name, rating = m.RatingShort, ratingName = m.RatingLong,
+                pilotRating = PilotRatings.Pilot.Short(m.PilotRating), pilotRatingName = PilotRatings.Pilot.Long(m.PilotRating),
+                militaryRating = PilotRatings.Military.Short(m.MilitaryRating), militaryRatingName = PilotRatings.Military.Long(m.MilitaryRating),
+                registered = m.Registered,
                 pilotHours = Math.Round(h.PilotHours, 1), atcHours = Math.Round(h.AtcHours, 1), suspended = m.Suspended,
             });
         });

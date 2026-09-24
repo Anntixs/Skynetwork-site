@@ -50,16 +50,16 @@ public sealed partial class FlightPlanModel(CurrentUser me, FlightPlanService pl
 
     private static string? Validate(FlightPlan p)
     {
-        if (!Callsign().IsMatch(p.Callsign)) return "Позывной — 2–10 латинских букв и цифр";
-        if (p.Aircraft.Length < 2 || p.Aircraft.Length > 8) return "Укажите ICAO-код типа ВС";
-        if (p.CruiseSpeed is < 30 or > 3000) return "Скорость — от 30 до 3000 узлов";
-        if (!Icao().IsMatch(p.Departure) || !Icao().IsMatch(p.Destination)) return "Аэродромы — 4-буквенные коды ICAO";
-        if (p.Alternate.Length > 0 && !Icao().IsMatch(p.Alternate)) return "Запасной аэродром — 4-буквенный код ICAO";
-        if (!Hhmm().IsMatch(p.DepartureTime)) return "Время вылета — ЧЧММ по UTC, например 1200";
-        if (!Level().IsMatch(p.CruiseAltitude)) return "Эшелон — например FL350 или 9000";
-        if (p.EnrouteMinutes is < 1 or > 2400 || p.FuelMinutes is < 1 or > 3000) return "Проверьте время в пути и запас топлива";
-        if (p.FuelMinutes < p.EnrouteMinutes) return "Топлива меньше, чем времени в пути";
-        if (p.Route.Length == 0 || p.Route.Contains(':') || p.Remarks.Contains(':')) return "Маршрут и примечания без двоеточий";
+        if (!Callsign().IsMatch(p.Callsign)) return "Callsign: 2–10 Latin letters and digits";
+        if (p.Aircraft.Length < 2 || p.Aircraft.Length > 8) return "Enter the ICAO aircraft type code";
+        if (p.CruiseSpeed is < 30 or > 3000) return "Speed: 30 to 3000 knots";
+        if (!Icao().IsMatch(p.Departure) || !Icao().IsMatch(p.Destination)) return "Airports: 4-letter ICAO codes";
+        if (p.Alternate.Length > 0 && !Icao().IsMatch(p.Alternate)) return "Alternate: a 4-letter ICAO code";
+        if (!Hhmm().IsMatch(p.DepartureTime)) return "Departure time: HHMM in UTC, for example 1200";
+        if (!Level().IsMatch(p.CruiseAltitude)) return "Cruise level: for example FL350 or 9000";
+        if (p.EnrouteMinutes is < 1 or > 2400 || p.FuelMinutes is < 1 or > 3000) return "Check the en route time and fuel";
+        if (p.FuelMinutes < p.EnrouteMinutes) return "Less fuel than en route time";
+        if (p.Route.Length == 0 || p.Route.Contains(':') || p.Remarks.Contains(':')) return "Route and remarks cannot contain colons";
         return null;
     }
 }

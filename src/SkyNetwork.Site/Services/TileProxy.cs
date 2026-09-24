@@ -11,15 +11,17 @@ public sealed class TileProxy(IHttpClientFactory http, IOptions<SiteOptions> opt
 {
     private static readonly TimeSpan MaxAge = TimeSpan.FromDays(7);
 
-    public async Task<IResult> GetAsync(int z, int x, int y, CancellationToken ct)
+    /// <param name="style">"light" or "dark" (the site theme).</param>
+    public async Task<IResult> GetAsync(string style, int z, int x, int y, CancellationToken ct)
     {
-        if (z < 0 || z > 18 || x < 0 || y < 0 || x >= 1 << z || y >= 1 << z) return Results.NotFound();
-        string file = Path.Combine(CacheDir, z.ToString(), x.ToString(), y + ".png");
+        if (style is not ("light" or "dark") || z < 0 || z > 18 || x < 0 || y < 0 || x >= 1 << z || y >= 1 << z) return Results.NotFound();
+        string file = Path.Combine(CacheDir, style, z.ToString(), x.ToString(), y + ".png");
         var info = new FileInfo(file);
         if (info.Exists && DateTime.UtcNow - info.LastWriteTimeUtc < MaxAge) return Tile(file);
 
         var client = http.CreateClient("tiles");
-        var sources = options.Value.TileSources is { Length: > 0 } configured ? configured : SiteOptions.DefaultTileSources;
+        var configured = style == "dark" ? options.Value.DarkTileSources : options.Value.TileSources;
+        var sources = configured is { Length: > 0 } ? configured : style == "dark" ? SiteOptions.DefaultDarkTileSources : SiteOptions.DefaultTileSources;
         foreach (var source in sources)
         {
             string url = source.Replace("{z}", z.ToString()).Replace("{x}", x.ToString()).Replace("{y}", y.ToString());

@@ -9,32 +9,33 @@
     <div class="avatar">@Format.Initials(m.Name)</div>
     <div>
       <h1 style="font-size:30px;margin:0">@m.Name</h1>
-      <div class="muted">CID <span class="mono">@m.Cid</span> · <span class="badge accent">@m.RatingShort</span> @m.RatingLong
-        @if (m.Registered is { } r) { <span> · с @Format.Date(r)</span> }</div>
+      <div class="muted">CID <span class="mono">@m.Cid</span>
+        @if (m.Registered is { } r) { <span> · @L["member since"] @Format.Date(r)</span> }</div>
     </div>
-    @if (Me.Has(Perm.ViewMembers)) { <a class="btn btn-small" style="margin-left:auto" href="/staff/members/@m.Cid">Открыть в управлении</a> }
+    @if (Me.Has(Perm.ViewMembers)) { <a class="btn btn-small" style="margin-left:auto" href="/staff/members/@m.Cid">@L["Open in management"]</a> }
   </div>
+  <partial name="_RatingBadges" model="m" />
   <div class="stats">
-    <div class="stat"><b>@Format.Hours(Model.Hours.PilotHours)</b><span>в воздухе</span></div>
-    <div class="stat"><b>@Format.Hours(Model.Hours.AtcHours)</b><span>на позициях</span></div>
-    <div class="stat"><b>@Model.Hours.PilotSessions</b><span>полётов</span></div>
-    <div class="stat"><b>@Model.Hours.AtcSessions</b><span>дежурств</span></div>
+    <div class="stat"><b>@Format.Hours(Model.Hours.PilotHours)</b><span>@L["flying"]</span></div>
+    <div class="stat"><b>@Format.Hours(Model.Hours.AtcHours)</b><span>@L["on position"]</span></div>
+    <div class="stat"><b>@Model.Hours.PilotSessions</b><span>@L["flights"]</span></div>
+    <div class="stat"><b>@Model.Hours.AtcSessions</b><span>@L["controlling sessions"]</span></div>
   </div>
-  <h2 style="font-size:20px">Последние подключения</h2>
+  <h2 style="font-size:20px">@L["Recent connections"]</h2>
   @if (Model.Sessions.Count == 0)
   {
-    <div class="empty">Подключений ещё не было.</div>
+    <div class="empty">@L["No connections yet."]</div>
   }
   else
   {
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Позывной</th><th>Роль</th><th>Начало</th><th>Длительность</th></tr></thead>
+        <thead><tr><th>@L["Callsign"]</th><th>@L["Role"]</th><th>@L["Start"]</th><th>@L["Duration"]</th></tr></thead>
         <tbody>
         @foreach (var s in Model.Sessions)
         {
-          <tr><td class="mono">@s.Callsign</td><td>@(s.Kind == "atc" ? "диспетчер" : "пилот")</td><td>@Format.Utc(s.Start)</td>
-              <td>@Format.Duration(s.Duration)@(s.EndedAt == null ? " · в эфире" : "")</td></tr>
+          <tr><td class="mono">@s.Callsign</td><td>@(s.Kind == "atc" ? L["controller"] : L["pilot"])</td><td>@Format.Utc(s.Start)</td>
+              <td>@Format.Duration(s.Duration)@(s.EndedAt == null ? " · " + L["on the air"] : "")</td></tr>
         }
         </tbody>
       </table>

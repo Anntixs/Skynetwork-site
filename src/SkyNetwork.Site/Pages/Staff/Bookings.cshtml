@@ -1,11 +1,11 @@
 @page "/staff/bookings"
 @model SkyNetwork.Site.Pages.Staff.BookingsModel
-@{ ViewData["Title"] = "Бронирования"; }
-<h1 style="font-size:30px">Бронирования</h1>
-<p class="muted">Удаляйте бронирования, если позиция занята не по рейтингу или участник не выходит в эфир. Удаление попадает в журнал.</p>
+@{ ViewData["Title"] = L["Bookings"]; }
+<h1 style="font-size:30px">@L["Bookings"]</h1>
+<p class="muted">@L["Delete bookings for positions above the member's rating or when the member does not show up. Deletions are logged."]</p>
 <div class="table-wrap">
   <table>
-    <thead><tr><th>Позиция</th><th>Когда</th><th>Диспетчер</th><th>Рейтинг</th><th></th></tr></thead>
+    <thead><tr><th>@L["Position"]</th><th>@L["When"]</th><th>@L["Controller"]</th><th>@L["Rating"]</th><th></th></tr></thead>
     <tbody>
     @foreach (var b in Model.List)
     {
@@ -14,10 +14,10 @@
         <td>@Format.Span(b.Start, b.End)</td>
         <td><a href="/staff/members/@b.Cid">@b.Name</a></td>
         <td>@Ratings.Short(b.Rating)</td>
-        <td><form method="post"><input type="hidden" name="id" value="@b.Id"><button class="btn btn-small btn-danger" type="submit">Удалить</button></form></td>
+        <td><form method="post"><input type="hidden" name="id" value="@b.Id"><button class="btn btn-small btn-danger" type="submit">@L["Delete"]</button></form></td>
       </tr>
     }
-    @if (Model.List.Count == 0) { <tr><td colspan="5" class="muted">Бронирований нет</td></tr> }
+    @if (Model.List.Count == 0) { <tr><td colspan="5" class="muted">@L["No bookings."]</td></tr> }
     </tbody>
   </table>
 </div>

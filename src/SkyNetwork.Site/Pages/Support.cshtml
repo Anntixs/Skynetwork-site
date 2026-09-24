@@ -1,18 +1,18 @@
 @page "/support"
 @model SupportModel
-@{ ViewData["Title"] = "Поддержка"; }
+@{ ViewData["Title"] = L["Support"]; }
 <div class="wrap page">
   <div class="auth-box" style="max-width:560px">
-    <h1 style="font-size:34px">Поддержка</h1>
-    <p class="muted">Напишите, если не получается войти, забыли CID или пароль, или хотите сообщить о нарушении. Ответим на почту.</p>
-    @if (Model.Sent) { <div class="alert ok">Обращение отправлено. Мы ответим на указанную почту.</div> }
-    @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+    <h1 style="font-size:34px">@L["Support"]</h1>
+    <p class="muted">@L["Write to us if you cannot sign in, forgot your CID or password, or want to report a rule violation. We will reply by email."]</p>
+    @if (Model.Sent) { <div class="alert ok">@L["Your request has been sent. We will reply to the email you gave."]</div> }
+    @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
     <form method="post" class="form">
-      <label>Электронная почта<input name="Email" type="email" value="@Model.Email" required maxlength="120"></label>
-      <label>CID, если есть<input name="Cid" value="@Model.Cid" class="mono" inputmode="numeric" maxlength="10"></label>
-      <label>Тема<input name="Subject" value="@Model.Subject" required maxlength="120"></label>
-      <label>Сообщение<textarea name="Body" required maxlength="5000">@Model.Body</textarea></label>
-      <div><button class="btn btn-primary" type="submit">Отправить обращение</button></div>
+      <label>@L["Email"]<input name="Email" type="email" value="@Model.Email" required maxlength="120"></label>
+      <label>@L["CID, if you have one"]<input name="Cid" value="@Model.Cid" class="mono" inputmode="numeric" maxlength="10"></label>
+      <label>@L["Subject"]<input name="Subject" value="@Model.Subject" required maxlength="120"></label>
+      <label>@L["Message"]<textarea name="Body" required maxlength="5000">@Model.Body</textarea></label>
+      <div><button class="btn btn-primary" type="submit">@L["Send"]</button></div>
     </form>
   </div>
 </div>

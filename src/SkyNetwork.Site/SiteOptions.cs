@@ -25,6 +25,14 @@ public sealed class SiteOptions
         "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
         "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     ];
+    /// <summary>Tile sources for the dark theme (empty: <see cref="DefaultDarkTileSources"/>).</summary>
+    public string[] DarkTileSources { get; set; } = [];
+    public static readonly string[] DefaultDarkTileSources =
+    [
+        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    ];
     /// <summary>Tile cache directory; empty means "tiles" next to the database.</summary>
     public string TileCache { get; set; } = "";
     /// <summary>Behind nginx or another reverse proxy: trust its X-Forwarded-For / X-Forwarded-Proto headers.</summary>

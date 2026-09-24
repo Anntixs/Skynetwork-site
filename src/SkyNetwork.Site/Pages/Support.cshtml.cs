@@ -26,10 +26,10 @@ public sealed class SupportModel(SupportService support) : PageModel
 
     public IActionResult OnPost()
     {
-        if (!MailAddress.TryCreate(Email.Trim(), out _)) Error = "Проверьте адрес почты";
-        else if (Subject.Trim().Length < 3 || Body.Trim().Length < 10) Error = "Опишите вопрос подробнее";
+        if (!MailAddress.TryCreate(Email.Trim(), out _)) Error = "Check the email address";
+        else if (Subject.Trim().Length < 3 || Body.Trim().Length < 10) Error = "Please describe your question in more detail";
         if (Error != null) return Page();
-        string body = Body.Trim() + (Cid.Trim().Length > 0 ? $"\n\nУказанный CID: {Cid.Trim()}" : "");
+        string body = Body.Trim() + (Cid.Trim().Length > 0 ? $"\n\nCID: {Cid.Trim()}" : "");
         support.OpenTicket(null, Email.Trim(), Subject.Trim(), body);
         return Redirect("/support?sent=1");
     }

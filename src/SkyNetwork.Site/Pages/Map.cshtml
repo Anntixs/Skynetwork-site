@@ -1,17 +1,18 @@
 @page "/map"
 @{
-    ViewData["Title"] = "Карта";
+    ViewData["Title"] = L["Map"];
     ViewData["HideFooter"] = true;
 }
 @section Head {
   <link rel="stylesheet" href="~/lib/leaflet/leaflet.css">
 }
 <div class="map-page">
-  <div id="map" aria-label="Карта трафика"></div>
+  <div id="map" aria-label="@L["Traffic map"]"
+       data-updated="@L["Updated"]" data-offline="@L["Server not responding"]"></div>
   <div class="map-panel">
-    <div class="eyebrow" style="margin:0 0 4px">В эфире</div>
-    <div><b id="pilot-count">—</b> <span class="muted">пилотов</span> · <b id="atc-count">—</b> <span class="muted">диспетчеров</span></div>
-    <div class="muted small" id="map-updated">Загрузка…</div>
+    <div class="eyebrow" style="margin:0 0 4px">@L["On the air"]</div>
+    <div><b id="pilot-count">—</b> <span class="muted">@L["pilots"]</span> · <b id="atc-count">—</b> <span class="muted">@L["controllers"]</span></div>
+    <div class="muted small" id="map-updated">@L["Loading…"]</div>
   </div>
 </div>
 @section Scripts {

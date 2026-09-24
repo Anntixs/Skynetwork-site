@@ -40,17 +40,18 @@ public class TileProxyTests
         {
             for (int i = 0; i < 2; i++)
             {
-                var r = await c.GetAsync("/tiles/3/5/2.png");
+                var r = await c.GetAsync("/tiles/light/3/5/2.png");
                 Assert.Equal(HttpStatusCode.OK, r.StatusCode);
                 Assert.Equal("image/png", r.Content.Headers.ContentType!.MediaType);
                 Assert.Equal("PNG", await r.Content.ReadAsStringAsync());
             }
             // First source failed, second answered, the repeat came from the cache.
             lock (hits) Assert.Equal(["/down/3/5/2.png", "/up/3/5/2.png"], hits);
-            Assert.True(File.Exists(Path.Combine(cache, "3", "5", "2.png")));
+            Assert.True(File.Exists(Path.Combine(cache, "light", "3", "5", "2.png")));
 
-            Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/tiles/3/8/0.png")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/tiles/19/0/0.png")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/tiles/light/3/8/0.png")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/tiles/light/19/0/0.png")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/tiles/sepia/3/5/2.png")).StatusCode);
         }
         finally
         {

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.RateLimiting;
 using SkyNetwork.Site.Data;
+using SkyNetwork.Site.Localization;
 using SkyNetwork.Site.Security;
 
 namespace SkyNetwork.Site.Pages;
@@ -22,10 +23,15 @@ public sealed class LoginModel(MemberService members) : PageModel
         var m = members.Authenticate(Cid, Password);
         if (m == null)
         {
-            // Only someone who knows the password learns that the account is suspended.
-            Error = members.IsSuspended(Cid) && members.PasswordMatches(Cid, Password)
-                ? "Учётная запись заблокирована. Подробности — в поддержке"
-                : "Неверный CID или пароль";
+            // Only someone who knows the password learns that the account is suspended, and why.
+            if (members.IsSuspended(Cid) && members.PasswordMatches(Cid, Password) && members.Find(Cid) is { } s)
+            {
+                string reason = s.SuspensionReason.Length > 0 ? s.SuspensionReason : this.T("not given");
+                Error = s.SuspensionEnds is { } until
+                    ? this.T("Your account is suspended until {0}. Reason: {1}", Format.Utc(until), reason)
+                    : this.T("Your account is suspended. Reason: {0}", reason);
+            }
+            else Error = "Wrong CID or password";
             return Page();
         }
         await HttpContext.SignInMemberAsync(m, Remember);

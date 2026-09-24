@@ -1,4 +1,5 @@
 using SkyNetwork.Site.Data;
+using SkyNetwork.Site.Localization;
 using SkyNetwork.Site.Security;
 
 namespace SkyNetwork.Site.Pages.Staff;
@@ -25,19 +26,24 @@ public sealed class TrainingModel(CurrentUser me, SupportService support, Member
             if (promote)
             {
                 // Promotion completes the request; only allowed within the actor's rating powers.
-                if (r.Cid == Me.Cid || !Permissions.CanSetRating(Me.Member!.Rating, Me.Permissions, r.Rating, r.TargetRating))
-                    Error = "Присвоить этот рейтинг вы не можете";
-                else
+                bool allowed = r.Cid != Me.Cid && (r.Track == "atc"
+                    ? Permissions.CanSetRating(Me.Member!.Rating, Me.Permissions, r.Rating, r.TargetRating)
+                    : Me.Has(Perm.PilotRatings));
+                if (!allowed) Error = "You cannot grant this rating";
+                else if (members.Find(r.Cid) is { } m)
                 {
-                    members.SetRating(Me.Cid, r.Cid, r.TargetRating);
+                    if (r.Track == "atc") members.SetRating(Me.Cid, r.Cid, r.TargetRating);
+                    else members.SetPilotRatings(Me.Cid, r.Cid,
+                        r.Track == "pilot" ? r.TargetRating : m.PilotRating,
+                        r.Track == "military" ? r.TargetRating : m.MilitaryRating);
                     status = "completed";
-                    Message = $"{r.Name}: присвоен {Ratings.Short(r.TargetRating)}";
+                    Message = this.T("{0}: {1} granted", r.Name, r.TargetShort);
                 }
             }
             if (Error == null)
             {
                 support.UpdateTraining(Me.Cid, id, status, (comment ?? "").Trim());
-                Message ??= "Заявка обновлена";
+                Message ??= "Request updated";
             }
         }
         OnGet(null);
