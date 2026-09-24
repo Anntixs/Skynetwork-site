@@ -11,15 +11,19 @@ public sealed class TileProxy(IHttpClientFactory http, IOptions<SiteOptions> opt
 {
     private static readonly TimeSpan MaxAge = TimeSpan.FromDays(7);
 
-    public async Task<IResult> GetAsync(int z, int x, int y, CancellationToken ct)
+    /// <param name="labels">The label layer instead of the base map.</param>
+    public async Task<IResult> GetAsync(bool labels, int z, int x, int y, CancellationToken ct)
     {
         if (z < 0 || z > 18 || x < 0 || y < 0 || x >= 1 << z || y >= 1 << z) return Results.NotFound();
-        string file = Path.Combine(CacheDir, z.ToString(), x.ToString(), y + ".png");
+        string dir = labels ? Path.Combine(CacheDir, "labels") : CacheDir;
+        string file = Path.Combine(dir, z.ToString(), x.ToString(), y + ".png");
         var info = new FileInfo(file);
         if (info.Exists && DateTime.UtcNow - info.LastWriteTimeUtc < MaxAge) return Tile(file);
 
         var client = http.CreateClient("tiles");
-        var sources = options.Value.TileSources is { Length: > 0 } configured ? configured : SiteOptions.DefaultTileSources;
+        var sources = labels
+            ? options.Value.TileLabelSources is { Length: > 0 } l ? l : SiteOptions.DefaultTileLabelSources
+            : options.Value.TileSources is { Length: > 0 } b ? b : SiteOptions.DefaultTileSources;
         foreach (var source in sources)
         {
             string url = source.Replace("{z}", z.ToString()).Replace("{x}", x.ToString()).Replace("{y}", y.ToString());

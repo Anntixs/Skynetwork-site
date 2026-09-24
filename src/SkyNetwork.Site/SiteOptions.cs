@@ -25,6 +25,12 @@ public sealed class SiteOptions
         "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
         "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     ];
+    /// <summary>Transparent city and country labels drawn over the base tiles (empty: <see cref="DefaultTileLabelSources"/>).</summary>
+    public string[] TileLabelSources { get; set; } = [];
+    public static readonly string[] DefaultTileLabelSources =
+    [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+    ];
     /// <summary>Tile cache directory; empty means "tiles" next to the database.</summary>
     public string TileCache { get; set; } = "";
     /// <summary>Behind nginx or another reverse proxy: trust its X-Forwarded-For / X-Forwarded-Proto headers.</summary>

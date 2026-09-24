@@ -10,6 +10,7 @@
     maxZoom: 18, maxNativeZoom: 16,
     attribution: '&copy; Esri, HERE, Garmin, &copy; OpenStreetMap'
   }).addTo(map);
+  L.tileLayer('/tiles/labels/{z}/{x}/{y}.png', { maxZoom: 18, maxNativeZoom: 16 }).addTo(map);
 
   const layer = L.layerGroup().addTo(map);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

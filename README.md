@@ -64,6 +64,7 @@ dotnet run --project src/SkyNetwork.Site -- --Site:Database=/srv/skynetwork/skyn
 | `FsdHost`, `FsdPort` | `127.0.0.1`, `6809` | адрес сервера на страницах «Как начать» |
 | `FirstCid` | `1` | CID первого зарегистрированного; дальше по порядку: 1, 2, 3… |
 | `TileSources` | Esri Light Gray, затем OpenStreetMap | источники подложки карты `{z}/{x}/{y}`, по порядку; сайт скачивает их сам |
+| `TileLabelSources` | Esri Light Gray Reference | подписи городов и стран поверх подложки, `/tiles/labels/…` |
 | `TileCache` | папка `tiles` рядом с базой | кэш подложки карты, обновляется раз в неделю |
 | `BehindProxy` | `false` | за nginx: доверять `X-Forwarded-For/Proto` |
 | `AuthAttemptsPerMinute` | `10` | попыток входа и регистрации в минуту с одного адреса |
