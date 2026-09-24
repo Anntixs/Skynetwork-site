@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <!-- Bundled waypoint and airway files (see Nav/LICENSE.txt). -->
-    <Content Include="Nav**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Nav/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
