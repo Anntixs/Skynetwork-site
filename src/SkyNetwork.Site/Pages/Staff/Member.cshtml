@@ -87,7 +87,8 @@
         </label>
       }
       <p class="muted small">@(m.Suspended ? L["The member will be able to sign in to the website and the network again."] : L["The member is signed out of the website, disconnected from the network within 10 seconds and cannot reconnect until the suspension ends."])</p>
-      <input type="hidden" name="suspend" value="@(!m.Suspended)">
+      @* A string, not a bool: Razor writes value="value" for true and drops the attribute for false. *@
+      <input type="hidden" name="suspend" value="@(m.Suspended ? "false" : "true")">
       <div><button class="btn @(m.Suspended ? "btn-primary" : "btn-danger")" type="submit">@(m.Suspended ? L["Lift suspension"] : L["Suspend"])</button></div>
     </form>
   }

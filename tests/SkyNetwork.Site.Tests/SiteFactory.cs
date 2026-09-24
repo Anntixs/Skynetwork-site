@@ -55,6 +55,27 @@ public static class BrowserExtensions
         return await c.PostAsync(action ?? page, new FormUrlEncodedContent(data));
     }
 
+    /// <summary>
+    /// Submits the form of a page handler the way a browser would: its own hidden fields (and
+    /// antiforgery token) as rendered, plus the fields a user fills in.
+    /// </summary>
+    public static async Task<HttpResponseMessage> SubmitPageFormAsync(this HttpClient c, string page, string handler, IDictionary<string, string> filled)
+    {
+        var html = await (await c.GetAsync(page)).Content.ReadAsStringAsync();
+        var form = Regex.Match(html, $@"<form[^>]*action=""[^""]*handler={handler}""[^>]*>(.*?)</form>", RegexOptions.Singleline);
+        Assert.True(form.Success, $"no {handler} form on {page}");
+        var data = new Dictionary<string, string>();
+        foreach (Match input in Regex.Matches(form.Groups[1].Value, @"<input[^>]*type=""hidden""[^>]*>"))
+        {
+            var name = Regex.Match(input.Value, @"name=""([^""]+)""");
+            var value = Regex.Match(input.Value, @"value=""([^""]*)""");
+            if (name.Success) data[name.Groups[1].Value] = WebUtility.HtmlDecode(value.Success ? value.Groups[1].Value : "");
+        }
+        foreach (var (k, v) in filled) data[k] = v;
+        var action = WebUtility.HtmlDecode(Regex.Match(form.Value, @"action=""([^""]+)""").Groups[1].Value);
+        return await c.PostAsync(action, new FormUrlEncodedContent(data));
+    }
+
     public static async Task LoginAsync(this HttpClient c, long cid, string password = "password1")
     {
         var r = await c.SubmitAsync("/login", new Dictionary<string, string> { ["Cid"] = cid.ToString(), ["Password"] = password });

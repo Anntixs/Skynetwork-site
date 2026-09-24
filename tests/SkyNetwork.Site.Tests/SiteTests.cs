@@ -192,8 +192,7 @@ public class StaffAreaTests
 
         var s = site.Browser();
         await s.LoginAsync(sup);
-        var r = await s.SubmitAsync($"/staff/members/{bad}", new Dictionary<string, string> { ["suspend"] = "true", ["reason"] = "Blocking the frequency", ["days"] = "0" },
-            $"/staff/members/{bad}?handler=Suspend");
+        var r = await s.SubmitPageFormAsync($"/staff/members/{bad}", "Suspend", new Dictionary<string, string> { ["reason"] = "Blocking the frequency", ["days"] = "0" });
         Assert.Contains("Member suspended", await r.Content.ReadAsStringAsync());
         Assert.True(site.Get<MemberService>().IsSuspended(bad));
 
