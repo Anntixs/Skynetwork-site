@@ -110,5 +110,17 @@ public sealed class Database
                 instructor_cid INTEGER, staff_comment TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
             """);
+        // Columns added after the first release.
+        AddColumn(c, "member_profiles", "suspended_until", "INTEGER");
+        AddColumn(c, "member_profiles", "pilot_rating", "INTEGER NOT NULL DEFAULT 0");
+        AddColumn(c, "member_profiles", "military_rating", "INTEGER NOT NULL DEFAULT 0");
+        AddColumn(c, "training_requests", "track", "TEXT NOT NULL DEFAULT 'atc'");
+    }
+
+    private static void AddColumn(SqliteConnection c, string table, string column, string type)
+    {
+        var columns = c.Query<string>($"SELECT name FROM pragma_table_info('{table}')");
+        if (!columns.Contains(column, StringComparer.OrdinalIgnoreCase))
+            c.Execute($"ALTER TABLE {table} ADD COLUMN {column} {type}");
     }
 }

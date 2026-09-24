@@ -1,6 +1,6 @@
 @page "/staff/audit"
 @model SkyNetwork.Site.Pages.Staff.AuditModel
-@{ ViewData["Title"] = "Журнал действий"; }
-<h1 style="font-size:30px">Журнал действий</h1>
-<p class="muted">Каждое действие команды: рейтинги, блокировки, роли, сбросы паролей, изменения на сайте. Записи не удаляются.</p>
+@{ ViewData["Title"] = L["Audit log"]; }
+<h1 style="font-size:30px">@L["Audit log"]</h1>
+<p class="muted">@L["Every team action: ratings, suspensions, roles, password resets, changes to the website. Entries are never deleted."]</p>
 <partial name="_AuditTable" model="Model.Entries" />

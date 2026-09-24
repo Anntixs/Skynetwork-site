@@ -1,27 +1,27 @@
 @page "/account/support"
 @model SkyNetwork.Site.Pages.Account.SupportModel
-@{ ViewData["Title"] = "Обращения"; }
+@{ ViewData["Title"] = L["Support tickets"]; }
 <div class="wrap page with-side">
   <partial name="_AccountNav" />
   <div>
-    <h1 style="font-size:30px">Обращения в поддержку</h1>
-    <p class="muted">Вопросы по сети, жалобы на участников, смена имени — ответит команда сети.</p>
-    @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+    <h1 style="font-size:30px">@L["Support tickets"]</h1>
+    <p class="muted">@L["Questions about the network, complaints about members, a name change — the network team will answer."]</p>
+    @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
     <form method="post" class="form" style="margin-bottom:36px">
-      <label>Тема<input name="Subject" value="@Model.Subject" required maxlength="120"></label>
-      <label>Сообщение<textarea name="Body" required maxlength="5000">@Model.Body</textarea></label>
-      <div><button class="btn btn-primary" type="submit">Отправить обращение</button></div>
+      <label>@L["Subject"]<input name="Subject" value="@Model.Subject" required maxlength="120"></label>
+      <label>@L["Message"]<textarea name="Body" required maxlength="5000">@Model.Body</textarea></label>
+      <div><button class="btn btn-primary" type="submit">@L["Send"]</button></div>
     </form>
     @if (Model.Tickets.Count > 0)
     {
       <div class="table-wrap">
         <table>
-          <thead><tr><th>№</th><th>Тема</th><th>Статус</th><th>Обновлено</th></tr></thead>
+          <thead><tr><th>#</th><th>@L["Subject"]</th><th>@L["Status"]</th><th>@L["Updated"]</th></tr></thead>
           <tbody>
           @foreach (var t in Model.Tickets)
           {
             <tr><td class="mono">@t.Id</td><td><a href="/account/support/@t.Id">@t.Subject</a></td>
-                <td><span class="badge @(t.Status == "answered" ? "ok" : t.Status == "open" ? "warn" : "")">@SupportService.TicketStatuses[t.Status]</span></td>
+                <td><span class="badge @(t.Status == "answered" ? "ok" : t.Status == "open" ? "warn" : "")">@L[SupportService.TicketStatuses[t.Status]]</span></td>
                 <td>@Format.Utc(t.Updated)</td></tr>
           }
           </tbody>

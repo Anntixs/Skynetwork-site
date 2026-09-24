@@ -1,14 +1,15 @@
 @page "/staff/members"
 @model SkyNetwork.Site.Pages.Staff.MembersModel
-@{ ViewData["Title"] = "Участники"; }
-<h1 style="font-size:30px">Участники</h1>
+@{ ViewData["Title"] = L["Members"]; }
+<h1 style="font-size:30px">@L["Members"]</h1>
 <form method="get" class="inline-form" style="margin-bottom:20px">
-  <label>Поиск<input name="q" value="@Model.Query" placeholder="CID, имя или почта" style="width:320px"></label>
-  <button class="btn" type="submit">Найти</button>
+  <label>@L["Search"]<input name="q" value="@Model.Query" placeholder="@L["CID, name or email"]" style="width:320px"></label>
+  <label class="check" style="align-self:center"><input type="checkbox" name="suspended" value="1" checked="@Model.SuspendedOnly"> <span>@L["Suspended only"]</span></label>
+  <button class="btn" type="submit">@L["Search"]</button>
 </form>
 <div class="table-wrap">
   <table>
-    <thead><tr><th>CID</th><th>Имя</th><th>Почта</th><th>Рейтинг</th><th>Регистрация</th><th>Статус</th></tr></thead>
+    <thead><tr><th>CID</th><th>@L["Name"]</th><th>@L["Email"]</th><th>@L["Ratings"]</th><th>@L["Registered"]</th><th>@L["Status"]</th></tr></thead>
     <tbody>
     @foreach (var m in Model.Results)
     {
@@ -16,12 +17,17 @@
         <td class="mono"><a href="/staff/members/@m.Cid">@m.Cid</a></td>
         <td>@m.Name</td>
         <td class="small">@m.Email</td>
-        <td>@m.RatingShort</td>
+        <td class="mono small">@m.RatingShort · @PilotRatings.Pilot.Short(m.PilotRating) · @PilotRatings.Military.Short(m.MilitaryRating)</td>
         <td>@(m.Registered is { } r ? Format.Date(r) : "—")</td>
-        <td>@if (m.Suspended) { <span class="badge danger">заблокирован</span> } else { <span class="badge ok">активен</span> }</td>
+        <td>@if (m.Suspended)
+            {
+              <span class="badge danger">@L["suspended"]</span>
+              @if (m.SuspensionEnds is { } until) { <span class="muted small"> @L["until"] @Format.Utc(until)</span> }
+            }
+            else { <span class="badge ok">@L["active"]</span> }</td>
       </tr>
     }
-    @if (Model.Results.Count == 0) { <tr><td colspan="6" class="muted">Никого не нашли</td></tr> }
+    @if (Model.Results.Count == 0) { <tr><td colspan="6" class="muted">@L["No one found"]</td></tr> }
     </tbody>
   </table>
 </div>

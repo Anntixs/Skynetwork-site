@@ -1,12 +1,12 @@
 @page "/staff/online"
 @model SkyNetwork.Site.Pages.Staff.OnlineModel
-@{ ViewData["Title"] = "В эфире"; var s = Model.Online; }
-<h1 style="font-size:30px">В эфире</h1>
-<p class="muted">@(s.Available ? $"Сервер {s.Server}, данные на {Format.Time(s.Updated)}." : "Сервер не отвечает.") Чтобы отключить нарушителя, заблокируйте его в карточке участника — он не сможет переподключиться.</p>
-<h2 style="font-size:20px">Диспетчеры · @s.Controllers.Count</h2>
+@{ ViewData["Title"] = L["On the air"]; var s = Model.Online; }
+<h1 style="font-size:30px">@L["On the air"]</h1>
+<p class="muted">@(s.Available ? L.F("Server {0}, data as of {1}.", s.Server, Format.Time(s.Updated)) : L["The server is not responding."]) @L["To remove an offender, suspend them on their member page: the server disconnects them within 10 seconds and they cannot reconnect."]</p>
+<h2 style="font-size:20px">@L["Controllers"] · @s.Controllers.Count</h2>
 <div class="table-wrap" style="margin-bottom:28px">
   <table>
-    <thead><tr><th>Позывной</th><th>CID</th><th>Имя</th><th>Рейтинг</th><th>Частота</th><th>Дальность</th><th>С</th></tr></thead>
+    <thead><tr><th>@L["Callsign"]</th><th>CID</th><th>@L["Name"]</th><th>@L["Rating"]</th><th>@L["Frequency"]</th><th>@L["Range"]</th><th>@L["Since"]</th></tr></thead>
     <tbody>
     @foreach (var c in s.Controllers)
     {
@@ -16,7 +16,7 @@
         <td class="mono">@c.Callsign</td>
         <td class="mono"><a href="/staff/members/@c.Cid">@c.Cid</a></td>
         <td>@c.Name</td>
-        <td>@c.Rating @if (mismatch) { <span class="badge danger">выше рейтинга участника</span> }</td>
+        <td>@c.Rating @if (mismatch) { <span class="badge danger">@L["above the member's rating"]</span> }</td>
         <td class="mono">@c.Frequency</td>
         <td class="num">@c.VisualRange NM</td>
         <td>@Format.Time(c.LogonTime)</td>
@@ -25,10 +25,10 @@
     </tbody>
   </table>
 </div>
-<h2 style="font-size:20px">Пилоты · @s.Pilots.Count</h2>
+<h2 style="font-size:20px">@L["Pilots"] · @s.Pilots.Count</h2>
 <div class="table-wrap">
   <table>
-    <thead><tr><th>Позывной</th><th>CID</th><th>Имя</th><th>План</th><th>Высота</th><th>Код</th><th>С</th></tr></thead>
+    <thead><tr><th>@L["Callsign"]</th><th>CID</th><th>@L["Name"]</th><th>@L["Plan"]</th><th>@L["Altitude"]</th><th>@L["Squawk"]</th><th>@L["Since"]</th></tr></thead>
     <tbody>
     @foreach (var p in s.Pilots)
     {
@@ -36,7 +36,7 @@
         <td class="mono">@p.Callsign</td>
         <td class="mono"><a href="/staff/members/@p.Cid">@p.Cid</a></td>
         <td>@p.Name</td>
-        <td class="mono small">@(p.FlightPlan is { } fp ? $"{fp.Rules} {fp.Aircraft} {fp.Departure}→{fp.Destination} {fp.CruiseAltitude}" : "нет плана")</td>
+        <td class="mono small">@(p.FlightPlan is { } fp ? $"{fp.Rules} {fp.Aircraft} {fp.Departure}→{fp.Destination} {fp.CruiseAltitude}" : L["no plan"])</td>
         <td class="num">@p.Altitude</td>
         <td class="mono">@p.Transponder</td>
         <td>@Format.Time(p.LogonTime)</td>

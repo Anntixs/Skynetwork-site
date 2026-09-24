@@ -1,16 +1,16 @@
 @model IReadOnlyList<AuditEntry>
 <div class="table-wrap">
   <table>
-    <thead><tr><th>Когда</th><th>Кто</th><th>Действие</th><th>Объект</th><th>Подробности</th></tr></thead>
+    <thead><tr><th>@L["When"]</th><th>@L["Who"]</th><th>@L["Action"]</th><th>@L["Target"]</th><th>@L["Details"]</th></tr></thead>
     <tbody>
     @foreach (var a in Model)
     {
       <tr>
         <td>@Format.Utc(a.Created)</td>
-        <td><a href="/staff/members/@a.ActorCid">@a.ActorName</a></td>
-        <td>@AuditService.Title(a.Action)</td>
+        <td>@if (a.ActorCid == 0) { <span class="muted">@L["System"]</span> } else { <a href="/staff/members/@a.ActorCid">@a.ActorName</a> }</td>
+        <td>@L[AuditService.Title(a.Action)]</td>
         <td class="mono">@a.Target</td>
-        <td>@a.Details</td>
+        <td>@L[a.Details]</td>
       </tr>
     }
     </tbody>

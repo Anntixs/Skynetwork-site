@@ -9,46 +9,46 @@
 <section class="hero">
   <div class="wrap hero-grid">
     <div>
-      <div class="eyebrow">Сеть виртуальной авиации</div>
-      <h1>Одно небо для пилотов и диспетчеров</h1>
-      <p class="lead">В SkyNetwork пилоты летают в MSFS, а диспетчеры ведут их с земли — по-настоящему, по радио и по правилам. Участие бесплатное.</p>
+      <div class="eyebrow">@L["Virtual aviation network"]</div>
+      <h1>@L["One sky for pilots and controllers"]</h1>
+      <p class="lead">@L["On SkyNetwork pilots fly in MSFS while controllers guide them from the ground — for real, on the radio and by the rules. Membership is free."]</p>
       <div class="hero-actions">
         @if (Me.IsSignedIn)
         {
-          <a class="btn btn-primary" href="/flightplan">Подать план полёта</a>
-          <a class="btn" href="/map">Карта в реальном времени</a>
+          <a class="btn btn-primary" href="/flightplan">@L["File a flight plan"]</a>
+          <a class="btn" href="/map">@L["Live map"]</a>
         }
         else
         {
-          <a class="btn btn-primary" href="/register">Зарегистрироваться</a>
-          <a class="btn" href="/docs">Как начать</a>
+          <a class="btn btn-primary" href="/register">@L["Register"]</a>
+          <a class="btn" href="/docs">@L["Getting started"]</a>
         }
       </div>
       <div class="live-line">
         @if (s.Available)
         {
           <span class="dot"></span>
-          <span>Сейчас в эфире: <b>@s.Pilots.Count</b> @Plural(s.Pilots.Count, "пилот", "пилота", "пилотов") и <b>@s.Controllers.Count</b> @Plural(s.Controllers.Count, "диспетчер", "диспетчера", "диспетчеров")</span>
+          <span>@L["On the air now:"] <b>@s.Pilots.Count</b> @L.Plural(s.Pilots.Count, "pilot", "pilots") @L["and"] <b>@s.Controllers.Count</b> @L.Plural(s.Controllers.Count, "controller", "controllers")</span>
         }
         else
         {
-          <span class="dot off"></span><span>Сервер сейчас не отвечает</span>
+          <span class="dot off"></span><span>@L["The server is not responding right now"]</span>
         }
       </div>
     </div>
-    <div class="hero-map" id="map" data-compact="1" aria-label="Карта трафика"></div>
+    <div class="hero-map" id="map" data-compact="1" aria-label="@L["Traffic map"]"></div>
   </div>
 </section>
 
 <section class="section band">
   <div class="wrap">
     <div class="section-head">
-      <h2>Диспетчеры в эфире</h2>
-      <a href="/online">Весь онлайн →</a>
+      <h2>@L["Controllers on the air"]</h2>
+      <a href="/online">@L["Everyone online →"]</a>
     </div>
     @if (s.Controllers.Count == 0)
     {
-      <div class="empty">Сейчас никто не на позиции. Забронируйте время в <a href="/bookings">расписании</a> — пилоты увидят, когда вы выйдете.</div>
+      <div class="empty">@L["No one is on position right now."] <a href="/bookings">@L["Book a position"]</a> @L["so pilots know when you will be on."]</div>
     }
     else
     {
@@ -69,12 +69,12 @@
 <section class="section">
   <div class="wrap">
     <div class="section-head">
-      <h2>Ближайшие мероприятия</h2>
-      <a href="/events">Все мероприятия →</a>
+      <h2>@L["Upcoming events"]</h2>
+      <a href="/events">@L["All events →"]</a>
     </div>
     @if (Model.Events.Count == 0)
     {
-      <div class="empty">Мероприятий пока не запланировано.</div>
+      <div class="empty">@L["No events planned yet."]</div>
     }
     else
     {
@@ -96,18 +96,18 @@
 <section class="section">
   <div class="wrap grid two" style="gap:48px">
     <div>
-      <div class="section-head"><h2>Как начать</h2></div>
+      <div class="section-head"><h2>@L["Getting started"]</h2></div>
       <div class="steps" style="grid-template-columns:1fr">
-        <div class="step"><h3>Зарегистрируйтесь</h3><p class="muted small">Вы получите CID — номер участника. С ним и паролем вы входите на сайт и в сеть.</p></div>
-        <div class="step"><h3>Установите программу</h3><p class="muted small">Пилотам — SkyPilot для MSFS 2020/2024, диспетчерам — радар Network-ATC. <a href="/docs/software">Скачать</a></p></div>
-        <div class="step"><h3>Выходите в эфир</h3><p class="muted small">Подайте план полёта на сайте и подключитесь. Диспетчерам нужен рейтинг — начните с <a href="/docs/ratings">обучения</a>.</p></div>
+        <div class="step"><h3>@L["Register"]</h3><p class="muted small">@L["You get a CID, your member number. With it and your password you sign in to the website and the network."]</p></div>
+        <div class="step"><h3>@L["Install the software"]</h3><p class="muted small">@L["Pilots use SkyPilot for MSFS 2020/2024, controllers use the Network-ATC radar."] <a href="/docs/software">@L["Download"]</a></p></div>
+        <div class="step"><h3>@L["Get on the air"]</h3><p class="muted small">@L["File a flight plan on the website and connect. Controllers need a rating — start with"] <a href="/docs/ratings">@L["training"]</a>.</p></div>
       </div>
     </div>
     <div>
-      <div class="section-head"><h2>Новости</h2><a href="/news">Все новости →</a></div>
+      <div class="section-head"><h2>@L["News"]</h2><a href="/news">@L["All news →"]</a></div>
       @if (Model.News.Count == 0)
       {
-        <div class="empty">Новостей пока нет.</div>
+        <div class="empty">@L["No news yet."]</div>
       }
       <div class="news-list">
         @foreach (var n in Model.News)
@@ -126,9 +126,4 @@
 @section Scripts {
   <script src="~/lib/leaflet/leaflet.js"></script>
   <script src="~/js/map.js" asp-append-version="true"></script>
-}
-
-@functions {
-    static string Plural(int n, string one, string few, string many) =>
-        (n % 10 == 1 && n % 100 != 11) ? one : (n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14) ? few : many;
 }

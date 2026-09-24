@@ -14,6 +14,27 @@ public sealed class SiteOptions
     public int FsdPort { get; set; } = 6809;
     /// <summary>CID given to the first registered member.</summary>
     public int FirstCid { get; set; } = 1;
+    /// <summary>
+    /// Map tile sources ({z}/{x}/{y}), tried in order (empty: <see cref="DefaultTileSources"/>). The site downloads and caches the tiles itself,
+    /// so visitors' browsers only talk to this site.
+    /// </summary>
+    public string[] TileSources { get; set; } = [];
+    public static readonly string[] DefaultTileSources =
+    [
+        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    ];
+    /// <summary>Tile sources for the dark theme (empty: <see cref="DefaultDarkTileSources"/>).</summary>
+    public string[] DarkTileSources { get; set; } = [];
+    public static readonly string[] DefaultDarkTileSources =
+    [
+        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    ];
+    /// <summary>Tile cache directory; empty means "tiles" next to the database.</summary>
+    public string TileCache { get; set; } = "";
     /// <summary>Behind nginx or another reverse proxy: trust its X-Forwarded-For / X-Forwarded-Proto headers.</summary>
     public bool BehindProxy { get; set; }
     /// <summary>Login/registration attempts per minute from one address.</summary>

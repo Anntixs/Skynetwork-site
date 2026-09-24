@@ -1,17 +1,17 @@
 @page "/staff/tickets"
 @model SkyNetwork.Site.Pages.Staff.TicketsModel
-@{ ViewData["Title"] = "Обращения"; }
-<h1 style="font-size:30px">Обращения</h1>
+@{ ViewData["Title"] = L["Support tickets"]; }
+<h1 style="font-size:30px">@L["Support tickets"]</h1>
 <div class="inline-form" style="margin-bottom:16px">
-  <a class="btn btn-small @(Model.Status == null ? "btn-primary" : "")" href="/staff/tickets">Все</a>
+  <a class="btn btn-small @(Model.Status == null ? "btn-primary" : "")" href="/staff/tickets">@L["All"]</a>
   @foreach (var (key, title) in SupportService.TicketStatuses)
   {
-    <a class="btn btn-small @(Model.Status == key ? "btn-primary" : "")" href="/staff/tickets?status=@key">@title</a>
+    <a class="btn btn-small @(Model.Status == key ? "btn-primary" : "")" href="/staff/tickets?status=@key">@L[title]</a>
   }
 </div>
 <div class="table-wrap">
   <table>
-    <thead><tr><th>№</th><th>Тема</th><th>От кого</th><th>Статус</th><th>Обновлено</th></tr></thead>
+    <thead><tr><th>#</th><th>@L["Subject"]</th><th>@L["From"]</th><th>@L["Status"]</th><th>@L["Updated"]</th></tr></thead>
     <tbody>
     @foreach (var t in Model.List)
     {
@@ -19,11 +19,11 @@
         <td class="mono">@t.Id</td>
         <td><a href="/staff/tickets/@t.Id">@t.Subject</a></td>
         <td>@(t.Cid is { } c ? $"{t.Name} ({c})" : t.Email)</td>
-        <td><span class="badge @(t.Status == "open" ? "warn" : t.Status == "answered" ? "ok" : "")">@SupportService.TicketStatuses[t.Status]</span></td>
+        <td><span class="badge @(t.Status == "open" ? "warn" : t.Status == "answered" ? "ok" : "")">@L[SupportService.TicketStatuses[t.Status]]</span></td>
         <td>@Format.Utc(t.Updated)</td>
       </tr>
     }
-    @if (Model.List.Count == 0) { <tr><td colspan="5" class="muted">Обращений нет</td></tr> }
+    @if (Model.List.Count == 0) { <tr><td colspan="5" class="muted">@L["No tickets"]</td></tr> }
     </tbody>
   </table>
 </div>

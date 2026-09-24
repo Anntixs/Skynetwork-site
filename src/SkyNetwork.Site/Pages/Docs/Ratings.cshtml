@@ -1,26 +1,46 @@
 @page "/docs/ratings"
-@{ ViewData["Title"] = "Рейтинги диспетчеров"; }
+@{ ViewData["Title"] = L["Ratings"]; }
 <div class="wrap page with-side">
   <partial name="_DocsNav" />
   <div>
-    <h1 style="font-size:34px">Рейтинги диспетчеров</h1>
-    <p class="muted" style="max-width:640px">Рейтинг определяет, какие позиции вам доступны. Каждый следующий получают после обучения и практического экзамена у инструктора.</p>
-    <div class="table-wrap" style="margin-top:20px">
+    <h1 style="font-size:34px">@L["Ratings"]</h1>
+    <p class="muted" style="max-width:640px">@L["Members hold three independent ratings: controller, pilot and military. Each next level is earned through training and a practical exam with an instructor."]</p>
+
+    <h2 style="font-size:22px;margin-top:28px" id="atc">@L["Controller ratings"]</h2>
+    <p class="muted" style="max-width:640px">@L["The controller rating decides which positions you may staff."]</p>
+    <div class="table-wrap">
       <table>
-        <thead><tr><th>Рейтинг</th><th>Название</th><th>Позиции</th></tr></thead>
+        <thead><tr><th>@L["Rating"]</th><th>@L["Name"]</th><th>@L["Positions"]</th></tr></thead>
         <tbody>
-          <tr><td class="mono">OBS</td><td>Наблюдатель</td><td>Подключение без права управления — слушать и учиться</td></tr>
-          <tr><td class="mono">S1</td><td>@Ratings.Long(Ratings.S1)</td><td>Доставка разрешений и руление: DEL, GND</td></tr>
-          <tr><td class="mono">S2</td><td>@Ratings.Long(Ratings.S2)</td><td>Вышка: TWR</td></tr>
-          <tr><td class="mono">S3</td><td>@Ratings.Long(Ratings.S3)</td><td>Подход и вылет: APP, DEP</td></tr>
-          <tr><td class="mono">C1</td><td>@Ratings.Long(Ratings.C1)</td><td>Районный центр: CTR</td></tr>
-          <tr><td class="mono">C3</td><td>@Ratings.Long(Ratings.C3)</td><td>Все позиции, наставничество</td></tr>
-          <tr><td class="mono">I1–I3</td><td>Инструкторы</td><td>Обучение и экзамены</td></tr>
-          <tr><td class="mono">SUP</td><td>Супервайзер</td><td>Порядок в сети, помощь участникам</td></tr>
-          <tr><td class="mono">ADM</td><td>Администратор</td><td>Управление сетью</td></tr>
+          <tr><td class="mono">OBS</td><td>@L[Ratings.Long(Ratings.OBS)]</td><td>@L["Connect without controlling — listen and learn"]</td></tr>
+          <tr><td class="mono">S1</td><td>@L[Ratings.Long(Ratings.S1)]</td><td>@L["Clearance delivery and ground: DEL, GND"]</td></tr>
+          <tr><td class="mono">S2</td><td>@L[Ratings.Long(Ratings.S2)]</td><td>@L["Tower: TWR"]</td></tr>
+          <tr><td class="mono">S3</td><td>@L[Ratings.Long(Ratings.S3)]</td><td>@L["Approach and departure: APP, DEP"]</td></tr>
+          <tr><td class="mono">C1</td><td>@L[Ratings.Long(Ratings.C1)]</td><td>@L["Area control: CTR"]</td></tr>
+          <tr><td class="mono">C3</td><td>@L[Ratings.Long(Ratings.C3)]</td><td>@L["All positions, mentoring"]</td></tr>
+          <tr><td class="mono">I1–I3</td><td>@L["Instructors"]</td><td>@L["Training and exams"]</td></tr>
+          <tr><td class="mono">SUP</td><td>@L[Ratings.Long(Ratings.SUP)]</td><td>@L["Keeps order on the network, helps members"]</td></tr>
+          <tr><td class="mono">ADM</td><td>@L[Ratings.Long(Ratings.ADM)]</td><td>@L["Runs the network"]</td></tr>
         </tbody>
       </table>
     </div>
-    <p style="margin-top:20px"><a class="btn btn-primary" href="/training">Подать заявку на обучение</a></p>
+
+    @foreach (var (ladder, title, id) in new[] { (PilotRatings.Pilot, "Pilot ratings", "pilot"), (PilotRatings.Military, "Military ratings", "military") })
+    {
+      <h2 style="font-size:22px;margin-top:36px" id="@id">@L[title]</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>@L["Rating"]</th><th>@L["Name"]</th><th>@L["What it covers"]</th></tr></thead>
+          <tbody>
+          @foreach (var (shortName, longName, privileges) in ladder.Levels)
+          {
+            <tr><td class="mono">@shortName</td><td>@L[longName]</td><td>@L[privileges]</td></tr>
+          }
+          </tbody>
+        </table>
+      </div>
+    }
+    <p class="muted small" style="margin-top:12px">@L["Instructor and examiner pilot ratings are given by the team; you cannot apply for them."]</p>
+    <p style="margin-top:20px"><a class="btn btn-primary" href="/training">@L["Apply for training"]</a></p>
   </div>
 </div>

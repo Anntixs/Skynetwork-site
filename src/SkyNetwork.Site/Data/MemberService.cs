@@ -8,7 +8,8 @@ public sealed class MemberService(Database db, IOptions<SiteOptions> options, Au
 {
     private const string Select = """
         SELECT m.cid, m.name, m.rating, m.suspended, p.email, COALESCE(p.country, '') AS country,
-               p.registered_at, p.last_login_at, COALESCE(p.suspension_reason, '') AS suspension_reason
+               p.registered_at, p.last_login_at, COALESCE(p.suspension_reason, '') AS suspension_reason,
+               p.suspended_until, COALESCE(p.pilot_rating, 0) AS pilot_rating, COALESCE(p.military_rating, 0) AS military_rating
         FROM members m LEFT JOIN member_profiles p ON p.cid = m.cid
         """;
 
@@ -96,16 +97,16 @@ public sealed class MemberService(Database db, IOptions<SiteOptions> options, Au
         return c.Query<string>("SELECT role FROM staff_roles WHERE cid = @cid ORDER BY role", new { cid }).ToList();
     }
 
-    public IReadOnlyList<Member> Search(string? query, int limit = 100)
+    public IReadOnlyList<Member> Search(string? query, bool suspendedOnly = false, int limit = 100)
     {
         using var c = db.Open();
         query = (query ?? "").Trim();
+        string filter = suspendedOnly ? " AND m.suspended = 1" : "";
         if (query.Length == 0)
-            return c.Query<Member>(Select + " ORDER BY m.cid DESC LIMIT @limit", new { limit }).ToList();
+            return c.Query<Member>(Select + " WHERE 1 = 1" + filter + " ORDER BY m.cid DESC LIMIT @limit", new { limit }).ToList();
         return c.Query<Member>(Select + """
-             WHERE CAST(m.cid AS TEXT) = @query OR m.name LIKE @like OR p.email LIKE @like
-             ORDER BY m.cid DESC LIMIT @limit
-            """, new { query, like = "%" + query + "%", limit }).ToList();
+             WHERE (CAST(m.cid AS TEXT) = @query OR m.name LIKE @like OR p.email LIKE @like)
+            """ + filter + " ORDER BY m.cid DESC LIMIT @limit", new { query, like = "%" + query + "%", limit }).ToList();
     }
 
     public IReadOnlyList<Member> Staff()
@@ -132,15 +133,51 @@ public sealed class MemberService(Database db, IOptions<SiteOptions> options, Au
         audit.Log(actor, "rating", cid.ToString(), $"{Ratings.Short(old)} → {Ratings.Short(rating)}");
     }
 
-    public void SetSuspended(long actor, long cid, bool suspended, string reason)
+    /// <summary>
+    /// Suspends (for <paramref name="days"/>, or for good when null) or lifts a suspension. The FSD
+    /// server reads the same flag: it refuses the login and disconnects a member already online.
+    /// </summary>
+    public void SetSuspended(long actor, long cid, bool suspended, string reason, int? days = null)
+    {
+        long now = Database.Now();
+        long? until = suspended && days is > 0 ? now + days.Value * 86400L : null;
+        using var c = db.Open();
+        using var tx = c.BeginTransaction();
+        c.Execute("UPDATE members SET suspended = @s WHERE cid = @cid", new { cid, s = suspended ? 1 : 0 }, tx);
+        c.Execute("""
+            INSERT INTO member_profiles (cid, registered_at, suspension_reason, suspended_until) VALUES (@cid, @now, @reason, @until)
+            ON CONFLICT(cid) DO UPDATE SET suspension_reason = @reason, suspended_until = @until
+            """, new { cid, now, reason = suspended ? reason : "", until }, tx);
+        tx.Commit();
+        string details = suspended ? (days is > 0 ? $"{days} d: {reason}" : $"permanent: {reason}") : reason;
+        audit.Log(actor, suspended ? "suspend" : "unsuspend", cid.ToString(), details);
+    }
+
+    /// <summary>Lifts temporary suspensions whose time is up; returns the CIDs released.</summary>
+    public IReadOnlyList<long> LiftExpiredSuspensions()
     {
         using var c = db.Open();
-        c.Execute("UPDATE members SET suspended = @s WHERE cid = @cid", new { cid, s = suspended ? 1 : 0 });
+        var due = c.Query<long>("""
+            SELECT m.cid FROM members m JOIN member_profiles p ON p.cid = m.cid
+            WHERE m.suspended = 1 AND p.suspended_until IS NOT NULL AND p.suspended_until <= @now
+            """, new { now = Database.Now() }).ToList();
+        foreach (var cid in due) SetSuspended(0, cid, false, "suspension expired");
+        return due;
+    }
+
+    public void SetPilotRatings(long actor, long cid, int pilot, int military)
+    {
+        var old = Find(cid);
+        if (old == null) return;
+        using var c = db.Open();
         c.Execute("""
-            INSERT INTO member_profiles (cid, registered_at, suspension_reason) VALUES (@cid, @now, @reason)
-            ON CONFLICT(cid) DO UPDATE SET suspension_reason = @reason
-            """, new { cid, now = Database.Now(), reason = suspended ? reason : "" });
-        audit.Log(actor, suspended ? "suspend" : "unsuspend", cid.ToString(), reason);
+            INSERT INTO member_profiles (cid, registered_at, pilot_rating, military_rating) VALUES (@cid, @now, @pilot, @military)
+            ON CONFLICT(cid) DO UPDATE SET pilot_rating = @pilot, military_rating = @military
+            """, new { cid, now = Database.Now(), pilot, military });
+        if (old.PilotRating != pilot)
+            audit.Log(actor, "pilot-rating", cid.ToString(), $"{PilotRatings.Pilot.Short(old.PilotRating)} → {PilotRatings.Pilot.Short(pilot)}");
+        if (old.MilitaryRating != military)
+            audit.Log(actor, "military-rating", cid.ToString(), $"{PilotRatings.Military.Short(old.MilitaryRating)} → {PilotRatings.Military.Short(military)}");
     }
 
     public void ResetPassword(long actor, long cid, string password)

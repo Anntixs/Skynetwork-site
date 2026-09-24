@@ -40,7 +40,7 @@ public class PublicPagesTests
         var c = site.Browser();
         var r = await c.GetAsync("/nope");
         Assert.Equal(HttpStatusCode.NotFound, r.StatusCode);
-        Assert.Contains("Такой страницы нет", await r.Content.ReadAsStringAsync());
+        Assert.Contains("There is no such page", await r.Content.ReadAsStringAsync());
         r = await c.GetAsync("/flightplan?callsign=AFL1");
         Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);
         Assert.StartsWith("/login", r.Headers.Location!.PathAndQuery);
@@ -67,11 +67,11 @@ public class AccountTests
 
         // Same email again is refused.
         var again = await site.Browser().SubmitAsync("/register", fields);
-        Assert.Contains("уже зарегистрирована", await again.Content.ReadAsStringAsync());
+        Assert.Contains("already registered", await again.Content.ReadAsStringAsync());
 
         var fresh = site.Browser();
         var bad = await fresh.SubmitAsync("/login", new Dictionary<string, string> { ["Cid"] = "1", ["Password"] = "wrong" });
-        Assert.Contains("Неверный CID или пароль", await bad.Content.ReadAsStringAsync());
+        Assert.Contains("Wrong CID or password", await bad.Content.ReadAsStringAsync());
         await fresh.LoginAsync(1, "secret123");
         Assert.Contains("Ivan Petrov", await fresh.HtmlAsync("/account"));
     }
@@ -94,7 +94,7 @@ public class AccountTests
             ["Plan.Route"] = "n0450f350  demo5 dm100", ["Plan.Remarks"] = "/V/",
         };
         var bad = await c.SubmitAsync("/flightplan", new Dictionary<string, string>(plan) { ["Plan.Departure"] = "SVO" });
-        Assert.Contains("4-буквенные коды ICAO", await bad.Content.ReadAsStringAsync());
+        Assert.Contains("4-letter ICAO codes", await bad.Content.ReadAsStringAsync());
         var r = await c.SubmitAsync("/flightplan", plan);
         Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);
 
@@ -117,7 +117,7 @@ public class AccountTests
         long s2 = site.Member("Tower Controller", Ratings.S2);
         var c = site.Browser();
         await c.LoginAsync(obs);
-        Assert.Contains("после получения рейтинга S1", await c.HtmlAsync("/bookings"));
+        Assert.Contains("once you hold the S1 rating", await c.HtmlAsync("/bookings"));
 
         var atc = site.Browser();
         await atc.LoginAsync(s2);
@@ -125,7 +125,7 @@ public class AccountTests
         var booking = new Dictionary<string, string> { ["Callsign"] = "uuee_twr", ["Date"] = date, ["From"] = "18:00", ["To"] = "20:00" };
         Assert.Equal(HttpStatusCode.Redirect, (await atc.SubmitAsync("/bookings", booking)).StatusCode);
         var overlap = await atc.SubmitAsync("/bookings", new Dictionary<string, string>(booking) { ["From"] = "19:00", ["To"] = "21:00" });
-        Assert.Contains("уже забронирован", await overlap.Content.ReadAsStringAsync());
+        Assert.Contains("is already booked", await overlap.Content.ReadAsStringAsync());
         var api = await site.Browser().GetFromJsonAsync<JsonElement>("/api/v1/bookings");
         Assert.Equal("UUEE_TWR", api[0].GetProperty("callsign").GetString());
         Assert.Equal("S2", api[0].GetProperty("rating").GetString());
@@ -164,14 +164,14 @@ public class StaffAreaTests
 
         var s = site.Browser();
         await s.LoginAsync(sup);
-        Assert.Contains("Управление", await s.HtmlAsync("/"));
+        Assert.Contains("Management", await s.HtmlAsync("/"));
         await s.HtmlAsync("/staff");
         await s.HtmlAsync("/staff/members");
         await s.HtmlAsync("/staff/audit");
         var card = await s.HtmlAsync($"/staff/members/{editor}");
-        Assert.Contains("Заблокировать", card);
-        Assert.DoesNotContain("Роли на сайте", card);   // only administrators manage roles
-        Assert.DoesNotContain("Изменить рейтинг", card); // supervisors do not change ratings
+        Assert.Contains("Suspend", card);
+        Assert.DoesNotContain("Website roles", card);   // only administrators manage roles
+        Assert.DoesNotContain("Change rating", card); // supervisors do not change ratings
 
         var e = site.Browser();
         await e.LoginAsync(editor);
@@ -192,19 +192,19 @@ public class StaffAreaTests
 
         var s = site.Browser();
         await s.LoginAsync(sup);
-        var r = await s.SubmitAsync($"/staff/members/{bad}", new Dictionary<string, string> { ["suspend"] = "true", ["reason"] = "Помехи в эфире" },
+        var r = await s.SubmitAsync($"/staff/members/{bad}", new Dictionary<string, string> { ["suspend"] = "true", ["reason"] = "Blocking the frequency", ["days"] = "0" },
             $"/staff/members/{bad}?handler=Suspend");
-        Assert.Contains("Участник заблокирован", await r.Content.ReadAsStringAsync());
+        Assert.Contains("Member suspended", await r.Content.ReadAsStringAsync());
         Assert.True(site.Get<MemberService>().IsSuspended(bad));
 
         // The open session ends and a new login is refused with a clear message.
         Assert.Equal(HttpStatusCode.Redirect, (await victim.GetAsync("/account")).StatusCode);
         var login = await site.Browser().SubmitAsync("/login", new Dictionary<string, string> { ["Cid"] = bad.ToString(), ["Password"] = "password1" });
-        Assert.Contains("заблокирована", await login.Content.ReadAsStringAsync());
+        Assert.Contains("Your account is suspended. Reason: Blocking the frequency", await login.Content.ReadAsStringAsync());
 
         var audit = await s.HtmlAsync("/staff/audit");
-        Assert.Contains("Блокировка", audit);
-        Assert.Contains("Помехи в эфире", audit);
+        Assert.Contains("Suspension", audit);
+        Assert.Contains("Blocking the frequency", audit);
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public class StaffAreaTests
         long student = site.Member("Student Controller");
         var st = site.Browser();
         await st.LoginAsync(student);
-        await st.SubmitAsync("/training", new Dictionary<string, string> { ["target"] = Ratings.S1.ToString(), ["text"] = "Вечерами" });
+        await st.SubmitAsync("/training", new Dictionary<string, string> { ["target"] = Ratings.S1.ToString(), ["text"] = "Evenings" });
         var request = Assert.Single(site.Get<SupportService>().Training(student));
 
         var i = site.Browser();
@@ -223,7 +223,7 @@ public class StaffAreaTests
         Assert.Contains("Student Controller", await i.HtmlAsync("/staff/training"));
         await i.SubmitAsync("/staff/training", new Dictionary<string, string>
         {
-            ["id"] = request.Id.ToString(), ["status"] = "accepted", ["comment"] = "Экзамен сдан", ["promote"] = "true",
+            ["id"] = request.Id.ToString(), ["status"] = "accepted", ["comment"] = "Exam passed", ["promote"] = "true",
         });
         Assert.Equal(Ratings.S1, site.Get<MemberService>().Find(student)!.Rating);
         Assert.Equal("completed", site.Get<SupportService>().TrainingRequest(request.Id)!.Status);

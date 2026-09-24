@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
 using SkyNetwork.Site.Data;
+using SkyNetwork.Site.Localization;
 using SkyNetwork.Site.Security;
 
 namespace SkyNetwork.Site.Pages.Staff;
@@ -16,6 +17,7 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
     public IReadOnlyList<AuditEntry> History { get; private set; } = [];
     public IReadOnlyList<string> Roles { get; private set; } = [];
     public IReadOnlyList<int> RatingOptions { get; private set; } = [];
+    public bool CanSuspend { get; private set; }
     public string? Message { get; private set; }
     public string? Error { get; private set; }
 
@@ -31,6 +33,7 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
         RatingOptions = m.Cid == Me.Cid ? [] // nobody changes their own rating
             : Ratings.All.Where(r => r == m.Rating || Permissions.CanSetRating(Me.Member!.Rating, Me.Permissions, m.Rating, r)).ToList();
         if (RatingOptions.Count == 1) RatingOptions = [];
+        CanSuspend = Permissions.CanSuspend(Me.Member!, Me.Permissions, m);
         return true;
     }
 
@@ -39,27 +42,41 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
     public IActionResult OnPostRating(long cid, int rating)
     {
         if (!Load(cid)) return NotFound();
-        if (cid == Me.Cid || !Permissions.CanSetRating(Me.Member!.Rating, Me.Permissions, Member.Rating, rating)) Error = "Этот рейтинг вам выставлять нельзя";
+        if (cid == Me.Cid || !Permissions.CanSetRating(Me.Member!.Rating, Me.Permissions, Member.Rating, rating)) Error = "You cannot set this rating";
         else if (rating != Member.Rating)
         {
             members.SetRating(Me.Cid, cid, rating);
-            Message = $"Рейтинг изменён на {Ratings.Short(rating)}";
+            Message = this.T("Rating changed to {0}", Ratings.Short(rating));
         }
         Load(cid);
         return Page();
     }
 
-    public IActionResult OnPostSuspend(long cid, bool suspend, string? reason)
+    public IActionResult OnPostSuspend(long cid, bool suspend, string? reason, int days)
     {
         if (!Load(cid)) return NotFound();
         if (!Me.Has(Perm.Suspend) || cid == Me.Cid) return NotFound();
-        // Supervisors cannot lock out administrators.
-        if (Member.Rating == Ratings.ADM && Me.Member!.Rating != Ratings.ADM) Error = "Администратора может заблокировать только администратор";
-        else if (suspend && string.IsNullOrWhiteSpace(reason)) Error = "Укажите причину";
+        // Supervisors cannot lock out other supervisors or administrators.
+        if (!CanSuspend) Error = "Only an administrator can suspend supervisors and administrators";
+        else if (suspend && string.IsNullOrWhiteSpace(reason)) Error = "Enter a reason";
+        else if (suspend == Member.Suspended) Error = suspend ? "The member is already suspended" : "The member is not suspended";
         else
         {
-            members.SetSuspended(Me.Cid, cid, suspend, (reason ?? "").Trim());
-            Message = suspend ? "Участник заблокирован" : "Участник разблокирован";
+            members.SetSuspended(Me.Cid, cid, suspend, (reason ?? "").Trim(), days is > 0 and <= 3650 ? days : null);
+            Message = suspend ? "Member suspended. They will be disconnected from the network within 10 seconds" : "Suspension lifted";
+        }
+        Load(cid);
+        return Page();
+    }
+
+    public IActionResult OnPostPilotRatings(long cid, int pilot, int military)
+    {
+        if (!Load(cid) || !Me.Has(Perm.PilotRatings) || cid == Me.Cid) return NotFound();
+        if (!PilotRatings.Pilot.Valid(pilot) || !PilotRatings.Military.Valid(military)) Error = "Choose a rating from the list";
+        else
+        {
+            members.SetPilotRatings(Me.Cid, cid, pilot, military);
+            Message = "Ratings saved";
         }
         Load(cid);
         return Page();
@@ -70,7 +87,7 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
         if (!Load(cid) || !Me.Has(Perm.ResetPasswords)) return NotFound();
         string temp = Convert.ToBase64String(RandomNumberGenerator.GetBytes(9)).Replace('+', 'x').Replace('/', 'y');
         members.ResetPassword(Me.Cid, cid, temp);
-        Message = $"Временный пароль: {temp} — он показан один раз";
+        Message = this.T("Temporary password: {0} — it is shown only once", temp);
         return Page();
     }
 
@@ -78,7 +95,7 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
     {
         if (!Load(cid) || !Me.Has(Perm.ManageRoles)) return NotFound();
         members.SetRoles(Me.Cid, cid, roles);
-        Message = "Роли сохранены";
+        Message = "Roles saved";
         Load(cid);
         return Page();
     }

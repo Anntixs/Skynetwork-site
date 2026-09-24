@@ -3,27 +3,27 @@
 <div class="wrap page with-side">
   <partial name="_DocsNav" />
   <div>
-    <h1 style="font-size:34px">API для разработчиков</h1>
-    <p class="muted" style="max-width:640px">Открытый API только для чтения: JSON, без ключей, CORS разрешён. Данные онлайна обновляются раз в 15 секунд — не запрашивайте их чаще.</p>
+    <h1 style="font-size:34px">@L["Developer API"]</h1>
+    <p class="muted" style="max-width:640px">@L["An open read-only API: JSON, no keys, CORS allowed. Online data refreshes every 15 seconds — do not request it more often."]</p>
     <div class="table-wrap" style="margin-top:20px">
       <table>
-        <thead><tr><th>Запрос</th><th>Что возвращает</th></tr></thead>
+        <thead><tr><th>@L["Request"]</th><th>@L["Returns"]</th></tr></thead>
         <tbody>
-          <tr><td class="mono">GET /api/v1/status</td><td>Название сети, адрес FSD-сервера, состояние данных</td></tr>
-          <tr><td class="mono">GET /api/v1/online</td><td>Пилоты (позиция, высота, скорость, курс, план) и диспетчеры (частота, рейтинг, позиция)</td></tr>
-          <tr><td class="mono">GET /api/v1/stats</td><td>Участники, онлайн, число подключений</td></tr>
-          <tr><td class="mono">GET /api/v1/members/{cid}</td><td>Профиль участника: имя, рейтинг, часы пилотом и диспетчером</td></tr>
-          <tr><td class="mono">GET /api/v1/members/{cid}/sessions</td><td>Последние 50 подключений</td></tr>
-          <tr><td class="mono">GET /api/v1/events</td><td>Ближайшие мероприятия</td></tr>
-          <tr><td class="mono">GET /api/v1/events/{id}</td><td>Мероприятие</td></tr>
-          <tr><td class="mono">GET /api/v1/bookings</td><td>Бронирования позиций</td></tr>
-          <tr><td class="mono">GET /api/v1/news</td><td>Новости</td></tr>
-          <tr><td class="mono">GET /api/flightplans/latest?cid={cid}</td><td>Последний поданный план участника (формат SkyPilot); 404, если плана нет</td></tr>
+          <tr><td class="mono">GET /api/v1/status</td><td>@L["Network name, FSD server address, data status"]</td></tr>
+          <tr><td class="mono">GET /api/v1/online</td><td>@L["Pilots (position, altitude, speed, heading, flight plan) and controllers (frequency, rating, position)"]</td></tr>
+          <tr><td class="mono">GET /api/v1/stats</td><td>@L["Members, online, number of connections"]</td></tr>
+          <tr><td class="mono">GET /api/v1/members/{cid}</td><td>@L["Member profile: name, controller, pilot and military ratings, pilot and controller hours"]</td></tr>
+          <tr><td class="mono">GET /api/v1/members/{cid}/sessions</td><td>@L["Last 50 connections"]</td></tr>
+          <tr><td class="mono">GET /api/v1/events</td><td>@L["Upcoming events"]</td></tr>
+          <tr><td class="mono">GET /api/v1/events/{id}</td><td>@L["An event"]</td></tr>
+          <tr><td class="mono">GET /api/v1/bookings</td><td>@L["Position bookings"]</td></tr>
+          <tr><td class="mono">GET /api/v1/news</td><td>@L["News"]</td></tr>
+          <tr><td class="mono">GET /api/flightplans/latest?cid={cid}</td><td>@L["The member's latest flight plan (SkyPilot format); 404 if there is none"]</td></tr>
         </tbody>
       </table>
     </div>
-    <h2 style="font-size:20px;margin-top:32px">Пример</h2>
+    <h2 style="font-size:20px;margin-top:32px">@L["Example"]</h2>
     <pre class="card mono small" style="overflow-x:auto">curl @host/api/v1/online</pre>
-    <p class="muted small">Время везде — UTC в формате ISO 8601. Сырой поток FSD-сервера доступен и напрямую: <span class="mono">/data.json</span> на HTTP-порту сервера.</p>
+    <p class="muted small">@L["All times are UTC in ISO 8601. The raw FSD server feed is available directly too:"] <span class="mono">/data.json</span> @L["on the server's HTTP port."]</p>
   </div>
 </div>
