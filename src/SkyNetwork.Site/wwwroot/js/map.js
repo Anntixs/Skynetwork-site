@@ -7,8 +7,8 @@
     .setView([55.75, 37.6], compact ? 4 : 5);
   // Tiles come through the site (see TileProxy), not straight from the provider.
   L.tileLayer('/tiles/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-    attribution: '&copy; OpenStreetMap, &copy; CARTO'
+    maxZoom: 18, maxNativeZoom: 16,
+    attribution: '&copy; Esri, HERE, Garmin, &copy; OpenStreetMap'
   }).addTo(map);
 
   const layer = L.layerGroup().addTo(map);

@@ -21,8 +21,8 @@ public sealed class SiteOptions
     public string[] TileSources { get; set; } = [];
     public static readonly string[] DefaultTileSources =
     [
-        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+        // CARTO now answers every request without an API key with a watermarked "API KEY REQUIRED" tile.
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
         "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     ];
     /// <summary>Tile cache directory; empty means "tiles" next to the database.</summary>

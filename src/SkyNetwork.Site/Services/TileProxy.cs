@@ -58,5 +58,11 @@ public sealed class TileProxy(IHttpClientFactory http, IOptions<SiteOptions> opt
         }
     }
 
-    private static IResult Tile(string file) => Results.File(file, "image/png");
+    // Sources answer with PNG or JPEG; the cached file keeps the bytes as they came.
+    private static IResult Tile(string file)
+    {
+        var head = new byte[2];
+        using (var f = File.OpenRead(file)) f.ReadAtLeast(head, 2, throwOnEndOfStream: false);
+        return Results.File(file, head is [0xFF, 0xD8] ? "image/jpeg" : "image/png");
+    }
 }
