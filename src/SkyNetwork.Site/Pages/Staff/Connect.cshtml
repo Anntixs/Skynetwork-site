@@ -1,0 +1,43 @@
+@page "/staff/connect"
+@model SkyNetwork.Site.Pages.Staff.ConnectModel
+@{ ViewData["Title"] = L["Sign-in for other sites"]; }
+<h1 style="font-size:30px">@L["Sign-in for other sites"]</h1>
+<p class="muted" style="max-width:760px">@L["SkyNetwork Connect: division sites and other sites of the network sign members in through SkyNetwork. The member enters the password here only and agrees once; the site gets their CID, name and ratings. Register a site here and give its administrators the client ID and secret."] <a href="/developers#connect">@L["How it works"]</a></p>
+@if (Model.Message != null) { <div class="alert ok">@L[Model.Message]</div> }
+@if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
+@if (Model.Issued is { } issued)
+{
+  <div class="alert ok">@L["Copy the secret now and pass it to the site's administrators securely: it is shown only once."]</div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="small muted">client_id</div><div class="key-box" style="margin-bottom:10px">@issued.ClientId</div>
+    <div class="small muted">client_secret</div><div class="key-box" id="new-secret">@issued.Secret</div>
+  </div>
+}
+<div class="grid" style="gap:12px;margin-bottom:28px">
+  @foreach (var c in Model.List)
+  {
+    <details class="card">
+      <summary style="cursor:pointer"><b>@c.Name</b> <span class="mono small muted">@c.ClientId</span>
+        @if (!c.Active) { <span class="badge">@L["disabled"]</span> }</summary>
+      <form method="post" asp-page-handler="Update" class="form" style="margin-top:14px;max-width:none">
+        <input type="hidden" name="id" value="@c.Id">
+        <label>@L["Site name"]<input name="name" value="@c.Name" maxlength="80" required></label>
+        <label>@L["Redirect addresses, one per line"]<textarea name="redirects" class="mono" style="min-height:70px">@c.RedirectUris</textarea></label>
+        <label class="check"><input type="checkbox" name="active" value="true" checked="@c.Active"> <span>@L["Sign-in allowed"]</span></label>
+        <div class="inline-form">
+          <button class="btn btn-primary" type="submit">@L["Save"]</button>
+          <span class="muted small">@L["Secret"]: <span class="mono">@c.SecretHint</span></span>
+        </div>
+      </form>
+      <form method="post" asp-page-handler="Secret" style="margin-top:10px" onsubmit="return confirm('@L["Issue a new secret? The site stops signing members in until its settings get the new one."]')">
+        <input type="hidden" name="id" value="@c.Id"><button class="btn btn-small" type="submit">@L["Issue a new secret"]</button>
+      </form>
+    </details>
+  }
+</div>
+<h2 style="font-size:20px">@L["New site"]</h2>
+<form method="post" class="card form">
+  <label>@L["Site name"]<input name="name" maxlength="80" required placeholder="SkyRUS"></label>
+  <label>@L["Redirect addresses, one per line"]<textarea name="redirects" class="mono" style="min-height:70px" required placeholder="https://skyrus.example.com/login/callback"></textarea></label>
+  <div><button class="btn btn-primary" type="submit">@L["Register the site"]</button></div>
+</form>

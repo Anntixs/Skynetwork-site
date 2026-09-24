@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using SkyNetwork.Site.Data;
 using SkyNetwork.Site.Localization;
 using SkyNetwork.Site.Security;
@@ -11,6 +12,10 @@ public sealed class RatingsModel(CurrentUser me, DivisionService divisions) : St
 
     public bool All { get; private set; }
     public IReadOnlyList<RatingRequest> List { get; private set; } = [];
+    /// <summary>Divisions and their API keys (administrators only).</summary>
+    public IReadOnlyList<Division> Keys { get; private set; } = [];
+    /// <summary>A key just issued: shown once, never stored in plain text.</summary>
+    public string? NewKey { get; private set; }
     public string? Message { get; private set; }
     public string? Error { get; private set; }
 
@@ -21,6 +26,7 @@ public sealed class RatingsModel(CurrentUser me, DivisionService divisions) : St
     {
         All = all == 1;
         List = divisions.Requests(All ? null : "pending");
+        if (Me.Has(Perm.ManageDivisions)) Keys = divisions.All();
     }
 
     public void OnPostApprove(long id, string? comment)
@@ -36,5 +42,22 @@ public sealed class RatingsModel(CurrentUser me, DivisionService divisions) : St
         Error = divisions.Decline(Me.Member!, Me.Permissions, id, comment ?? "");
         if (Error == null) Message = "Request declined";
         OnGet(null);
+    }
+
+    public IActionResult OnPostKey(string? divisionCode, string? name)
+    {
+        if (!Me.Has(Perm.ManageDivisions)) return NotFound();
+        (NewKey, Error) = divisions.IssueKey(Me.Cid, divisionCode ?? "", name ?? "");
+        OnGet(null);
+        return Page();
+    }
+
+    public IActionResult OnPostRevoke(long id)
+    {
+        if (!Me.Has(Perm.ManageDivisions)) return NotFound();
+        divisions.RevokeKey(Me.Cid, id);
+        Message = "The API key is revoked";
+        OnGet(null);
+        return Page();
     }
 }

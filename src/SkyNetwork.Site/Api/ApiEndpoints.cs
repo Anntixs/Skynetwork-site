@@ -136,7 +136,7 @@ public static class ApiEndpoints
             };
         });
 
-        v1.MapGet("/members/{cid:long}", (long cid, MemberService members, SessionService sessions, DivisionService divisions) =>
+        v1.MapGet("/members/{cid:long}", (long cid, MemberService members, SessionService sessions) =>
         {
             var m = members.Find(cid);
             if (m == null) return Results.NotFound();
@@ -147,7 +147,7 @@ public static class ApiEndpoints
                 staffRank = m.IsStaff ? Ratings.Short(m.StaffRank) : null, staffRankName = m.IsStaff ? Ratings.Long(m.StaffRank) : null,
                 pilotRating = PilotRatings.Pilot.Short(m.PilotRating), pilotRatingName = PilotRatings.Pilot.Long(m.PilotRating),
                 militaryRating = PilotRatings.Military.Short(m.MilitaryRating), militaryRatingName = PilotRatings.Military.Long(m.MilitaryRating),
-                registered = m.Registered, division = divisions.Of(cid)?.Code,
+                registered = m.Registered,
                 pilotHours = Math.Round(h.PilotHours, 1), atcHours = Math.Round(h.AtcHours, 1), suspended = m.Suspended,
             });
         });
@@ -158,8 +158,6 @@ public static class ApiEndpoints
                 s.Callsign, s.Kind, s.Details, start = s.Start, end = s.EndedAt is { } e ? Time.Utc(e) : (DateTime?)null,
                 minutes = (int)s.Duration.TotalMinutes,
             }));
-
-        v1.MapGet("/divisions", (DivisionService divisions) => divisions.All(activeOnly: true).Select(DivisionApi.DivisionDto));
 
         v1.MapGet("/events", (ContentService content) => content.UpcomingEvents(50).Select(EventDto));
         v1.MapGet("/events/{id:long}", (long id, ContentService content) =>

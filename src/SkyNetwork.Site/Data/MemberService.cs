@@ -94,7 +94,9 @@ public sealed class MemberService(Database db, IOptions<SiteOptions> options, Au
     public IReadOnlyList<string> RolesOf(long cid)
     {
         using var c = db.Open();
-        return c.Query<string>("SELECT role FROM staff_roles WHERE cid = @cid ORDER BY role", new { cid }).ToList();
+        // Roles no longer in use (e.g. the old "training" role) are ignored.
+        return c.Query<string>("SELECT role FROM staff_roles WHERE cid = @cid ORDER BY role", new { cid })
+            .Where(Permissions.Roles.ContainsKey).ToList();
     }
 
     public IReadOnlyList<Member> Search(string? query, bool suspendedOnly = false, int limit = 100)

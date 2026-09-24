@@ -12,7 +12,6 @@ public sealed class IndexModel(CurrentUser me, MemberService members, SupportSer
     public long Members { get; private set; }
     public OnlineSnapshot Online { get; private set; } = OnlineSnapshot.Empty;
     public int OpenTickets { get; private set; }
-    public int OpenTraining { get; private set; }
     public int PendingRatings { get; private set; }
     public IReadOnlyList<TopEntry> TopPilots { get; private set; } = [];
     public IReadOnlyList<TopEntry> TopAtc { get; private set; } = [];
@@ -22,7 +21,7 @@ public sealed class IndexModel(CurrentUser me, MemberService members, SupportSer
     {
         Members = members.Count();
         Online = feed.Current;
-        (OpenTickets, OpenTraining) = support.Counts();
+        OpenTickets = support.OpenTickets();
         PendingRatings = divisions.PendingCount();
         TopPilots = sessions.Top("pilot");
         TopAtc = sessions.Top("atc");

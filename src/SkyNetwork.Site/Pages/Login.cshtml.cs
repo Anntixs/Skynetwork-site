@@ -8,13 +8,24 @@ using SkyNetwork.Site.Security;
 namespace SkyNetwork.Site.Pages;
 
 [EnableRateLimiting("auth")]
-public sealed class LoginModel(MemberService members) : PageModel
+public sealed class LoginModel(MemberService members, ConnectService connect) : PageModel
 {
     [BindProperty(SupportsGet = true)] public string? ReturnUrl { get; set; }
     [BindProperty] public long Cid { get; set; }
     [BindProperty] public string Password { get; set; } = "";
     [BindProperty] public bool Remember { get; set; }
     public string? Error { get; private set; }
+
+    /// <summary>The site being signed in to through SkyNetwork Connect, if any.</summary>
+    public string? ConnectSite
+    {
+        get
+        {
+            if (ReturnUrl == null || !ReturnUrl.StartsWith("/oauth/authorize?", StringComparison.Ordinal)) return null;
+            var id = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(ReturnUrl[ReturnUrl.IndexOf('?')..])["client_id"].ToString();
+            return connect.Client(id) is { Active: true } c ? c.Name : null;
+        }
+    }
 
     public void OnGet() { }
 

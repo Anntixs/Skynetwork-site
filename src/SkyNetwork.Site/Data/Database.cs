@@ -104,20 +104,27 @@ public sealed class Database
                 id INTEGER PRIMARY KEY AUTOINCREMENT, ticket_id INTEGER NOT NULL REFERENCES tickets(id),
                 cid INTEGER, staff INTEGER NOT NULL DEFAULT 0, body TEXT NOT NULL, created_at INTEGER NOT NULL);
 
-            CREATE TABLE IF NOT EXISTS training_requests (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, cid INTEGER NOT NULL, target_rating INTEGER NOT NULL,
-                message TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'open',
-                instructor_cid INTEGER, staff_comment TEXT NOT NULL DEFAULT '',
-                created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
-
-            -- Divisions (regional branches, e.g. SKYRUS, SKYEUD) run their own academies and send
-            -- rating requests through the division API; a supervisor approves them.
+            -- Divisions (e.g. SKYRUS) send rating requests through the division API with their key;
+            -- a supervisor approves them in the staff area.
             CREATE TABLE IF NOT EXISTS divisions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE COLLATE NOCASE, name TEXT NOT NULL,
-                region TEXT NOT NULL DEFAULT '', website TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '',
-                director_cid INTEGER, active INTEGER NOT NULL DEFAULT 1,
+                id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE COLLATE NOCASE, name TEXT NOT NULL DEFAULT '',
                 api_key_hash TEXT UNIQUE, api_key_hint TEXT NOT NULL DEFAULT '', api_key_created_at INTEGER,
                 created_at INTEGER NOT NULL);
+
+            -- SkyNetwork Connect: sign-in on other sites (division sites and the like) through the
+            -- network, OAuth 2.0 authorization code flow. Codes and tokens are stored as SHA-256 only.
+            CREATE TABLE IF NOT EXISTS oauth_clients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, client_id TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
+                secret_hash TEXT NOT NULL, secret_hint TEXT NOT NULL, redirect_uris TEXT NOT NULL,
+                active INTEGER NOT NULL DEFAULT 1, created_by INTEGER NOT NULL, created_at INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS oauth_codes (
+                code_hash TEXT PRIMARY KEY, client_id TEXT NOT NULL, cid INTEGER NOT NULL, redirect_uri TEXT NOT NULL,
+                scope TEXT NOT NULL, code_challenge TEXT NOT NULL DEFAULT '', expires_at INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0);
+            CREATE TABLE IF NOT EXISTS oauth_tokens (
+                token_hash TEXT PRIMARY KEY, client_id TEXT NOT NULL, cid INTEGER NOT NULL, scope TEXT NOT NULL, expires_at INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS oauth_consents (
+                cid INTEGER NOT NULL, client_id TEXT NOT NULL, scope TEXT NOT NULL, created_at INTEGER NOT NULL,
+                PRIMARY KEY (cid, client_id));
 
             CREATE TABLE IF NOT EXISTS rating_requests (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, division_id INTEGER NOT NULL REFERENCES divisions(id),
@@ -144,10 +151,11 @@ public sealed class Database
         }
 
         // Columns added after the first release.
+        // The "training" role went away with the training section (training is on the division sites).
+        c.Execute("DELETE FROM staff_roles WHERE role = 'training'");
         AddColumn(c, "member_profiles", "suspended_until", "INTEGER");
         AddColumn(c, "member_profiles", "pilot_rating", "INTEGER NOT NULL DEFAULT 0");
         AddColumn(c, "member_profiles", "military_rating", "INTEGER NOT NULL DEFAULT 0");
-        AddColumn(c, "training_requests", "track", "TEXT NOT NULL DEFAULT 'atc'");
         AddColumn(c, "flight_plans", "waypoints", "TEXT NOT NULL DEFAULT ''");
 
         // Waypoints and airway segments learned from imported SimBrief routes (see NavData).
@@ -163,16 +171,7 @@ public sealed class Database
         AddColumn(c, "member_profiles", "simbrief", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "events", "banner", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "news", "banner", "TEXT NOT NULL DEFAULT ''");
-        AddColumn(c, "member_profiles", "division_id", "INTEGER");
-        AddColumn(c, "training_requests", "division_id", "INTEGER");
 
-        // The first divisions; administrators add more and issue their API keys in the staff area.
-        if (c.ExecuteScalar<long>("SELECT COUNT(*) FROM divisions") == 0)
-            c.Execute("""
-                INSERT INTO divisions (code, name, region, created_at) VALUES
-                    ('SKYRUS', 'SkyRUS', 'Russia', @now),
-                    ('SKYEUD', 'SkyEUD', 'Europe', @now)
-                """, new { now = Now() });
     }
 
     private static void AddColumn(SqliteConnection c, string table, string column, string type)
