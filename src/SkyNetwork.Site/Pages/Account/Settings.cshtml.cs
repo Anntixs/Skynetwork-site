@@ -6,7 +6,7 @@ using SkyNetwork.Site.Security;
 
 namespace SkyNetwork.Site.Pages.Account;
 
-public sealed class SettingsModel(CurrentUser me, MemberService members) : PageModel
+public sealed class SettingsModel(CurrentUser me, MemberService members, ConnectService connect) : PageModel
 {
     [BindProperty] public string Email { get; set; } = "";
     [BindProperty] public string Country { get; set; } = "";
@@ -14,10 +14,13 @@ public sealed class SettingsModel(CurrentUser me, MemberService members) : PageM
     [BindProperty] public string NewPassword { get; set; } = "";
     [BindProperty] public string Confirm { get; set; } = "";
     public string? Message { get; private set; }
+    /// <summary>Sites the member signed in to with SkyNetwork Connect.</summary>
+    public IReadOnlyList<ConnectConsent> ConnectedSites { get; private set; } = [];
     public string? Error { get; private set; }
 
     public void OnGet()
     {
+        ConnectedSites = connect.Consents(me.Cid);
         Email = me.Member!.Email ?? "";
         Country = me.Member.Country;
     }
@@ -51,5 +54,12 @@ public sealed class SettingsModel(CurrentUser me, MemberService members) : PageM
             Message = "Password changed. Use the new password to connect to the network too";
         }
         return Page();
+    }
+
+    public void OnPostRevoke(string clientId)
+    {
+        connect.Revoke(me.Cid, clientId);
+        Message = "Access withdrawn";
+        OnGet();
     }
 }

@@ -30,13 +30,21 @@
     <pre class="card mono small" style="overflow-x:auto">curl @host/api/v1/online</pre>
     <p class="muted small">@L["All times are UTC in ISO 8601. The raw FSD server feed is available directly too:"] <span class="mono">/data.json</span> @L["on the server's HTTP port."]</p>
 
+    <h2 id="connect" style="font-size:24px;margin-top:40px">SkyNetwork Connect</h2>
+    <p class="muted" style="max-width:720px">@L["Sign-in with SkyNetwork for division sites and other sites of the network (OAuth 2.0, authorization code flow, PKCE supported). The member signs in on the network site and agrees once; the site never sees the password. A network administrator registers the site and gives it a client ID and secret."]</p>
+    <ol class="muted" style="max-width:720px">
+      <li>@L["Send the member to"] <span class="mono">GET @host/oauth/authorize?response_type=code&amp;client_id=…&amp;redirect_uri=…&amp;scope=profile&amp;state=…</span> @L["(optionally code_challenge and code_challenge_method=S256)."]</li>
+      <li>@L["The member comes back to redirect_uri with code and state (or error=access_denied)."]</li>
+      <li>@L["Exchange the code within 5 minutes:"] <span class="mono">POST @host/oauth/token</span> @L["(form: grant_type=authorization_code, code, redirect_uri, client_id, client_secret, code_verifier) → access_token for 1 hour."]</li>
+      <li><span class="mono">GET @host/oauth/userinfo</span> @L["with Authorization: Bearer access_token → cid, name, rating, staffRank, pilotRating, militaryRating, country; email with the email scope."]</li>
+    </ol>
+
     <h2 id="division-api" style="font-size:24px;margin-top:40px">@L["Division API"]</h2>
     <p class="muted" style="max-width:720px">@L["For division websites. Every request carries the division's key, issued by a network administrator: the Authorization: Bearer header (or X-Api-Key). Answers are JSON; errors come as { \"error\": code, \"message\": text }."]</p>
     <div class="table-wrap" style="margin-top:12px">
       <table>
         <thead><tr><th>@L["Request"]</th><th>@L["Returns"]</th></tr></thead>
         <tbody>
-          <tr><td class="mono">POST /api/division/v1/auth</td><td>@L["Sign-in on the division website: checks the CID and password ({ cid, password }) and returns the member; 401 wrong password, 403 suspended"]</td></tr>
           <tr><td class="mono">GET /api/division/v1/members/{cid}</td><td>@L["A member and their ratings: check a CID before the exam"]</td></tr>
           <tr><td class="mono">POST /api/division/v1/rating-requests</td><td>@L["The student passed the exam: ask for the rating. A supervisor approves it"]</td></tr>
           <tr><td class="mono">GET /api/division/v1/rating-requests[?status=&amp;cid=]</td><td>@L["Your rating requests and their status: pending, approved, declined, withdrawn"]</td></tr>

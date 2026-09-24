@@ -22,6 +22,7 @@ builder.Services.AddSingleton<ContentService>();
 builder.Services.AddSingleton<FlightPlanService>();
 builder.Services.AddSingleton<SupportService>();
 builder.Services.AddSingleton<DivisionService>();
+builder.Services.AddSingleton<ConnectService>();
 builder.Services.AddSingleton<SessionService>();
 builder.Services.AddScoped<CurrentUser>();
 builder.Services.AddScoped<Lang>();
@@ -79,6 +80,11 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "?",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1) }));
+    // SkyNetwork Connect token and profile requests: per address.
+    int connectLimit = builder.Configuration.GetValue("Site:ConnectRequestsPerMinute", 120);
+    o.AddPolicy("connect", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "?",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = connectLimit, Window = TimeSpan.FromMinutes(1) }));
     // Division API: per key (or address when there is none).
     int divisionLimit = builder.Configuration.GetValue("Site:DivisionApiRequestsPerMinute", 120);
     o.AddPolicy("division-api", ctx => RateLimitPartition.GetFixedWindowLimiter(
@@ -130,6 +136,7 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapSiteApi();
 app.MapDivisionApi();
+app.MapConnect();
 
 // Language switch: remembered for a year in a cookie, then back to the page.
 app.MapGet("/lang/{code}", (string code, string? r, HttpContext ctx) =>

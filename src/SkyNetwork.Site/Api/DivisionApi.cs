@@ -39,27 +39,6 @@ public static class DivisionApi
             return await next(ctx);
         });
 
-        // Sign-in on a division website with the network CID and password (checked here, never stored
-        // there). Failed attempts per CID are limited to slow down password guessing.
-        api.MapPost("/auth", (AuthInput body, MemberService members) =>
-        {
-            if (body.Cid <= 0 || string.IsNullOrEmpty(body.Password)) return Problem(400, "invalid_input", "cid and password are required");
-            if (!Failures.Allowed(body.Cid)) return Problem(429, "too_many_attempts", "Too many failed attempts, try again in a few minutes");
-            if (members.Authenticate(body.Cid, body.Password) is { } m)
-            {
-                Failures.Reset(body.Cid);
-                return Results.Ok(new
-                {
-                    m.Cid, m.Name, m.Email, rating = m.RatingShort, staffRank = m.IsStaff ? Ratings.Short(m.StaffRank) : null,
-                    pilotRating = PilotRatings.Pilot.Short(m.PilotRating), militaryRating = PilotRatings.Military.Short(m.MilitaryRating),
-                });
-            }
-            Failures.Add(body.Cid);
-            return members.PasswordMatches(body.Cid, body.Password)
-                ? Problem(403, "member_suspended", "The member is suspended")
-                : Problem(401, "invalid_credentials", "Wrong CID or password");
-        });
-
         // Any member: an academy checks a CID before enrolling someone.
         api.MapGet("/members/{cid:long}", (long cid, MemberService members) =>
             members.Find(cid) is { } m ? Results.Ok(MemberDto(m)) : Problem(404, "member_not_found", "No member with this CID"));
@@ -88,23 +67,6 @@ public static class DivisionApi
                 ? Results.Ok(RequestDto(divisions.Request(id)!))
                 : Problem(409, "not_pending", "Only a pending request can be withdrawn");
         });
-    }
-
-    public sealed record AuthInput(long Cid, string? Password);
-
-    /// <summary>Failed sign-ins per CID: at most 10 in 10 minutes.</summary>
-    private static class Failures
-    {
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<long, (int Count, DateTime Since)> Map = new();
-        private static readonly TimeSpan Window = TimeSpan.FromMinutes(10);
-
-        public static bool Allowed(long cid) =>
-            !Map.TryGetValue(cid, out var f) || f.Count < 10 || DateTime.UtcNow - f.Since > Window;
-
-        public static void Add(long cid) => Map.AddOrUpdate(cid, _ => (1, DateTime.UtcNow),
-            (_, f) => DateTime.UtcNow - f.Since > Window ? (1, DateTime.UtcNow) : (f.Count + 1, f.Since));
-
-        public static void Reset(long cid) => Map.TryRemove(cid, out _);
     }
 
     private static IResult Problem(int status, string code, string message) =>

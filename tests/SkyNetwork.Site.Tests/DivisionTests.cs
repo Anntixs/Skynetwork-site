@@ -194,30 +194,4 @@ public class DivisionTests
         Assert.Equal(HttpStatusCode.NotFound, (await a.GetAsync("/staff/divisions")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await a.GetAsync("/divisions")).StatusCode);
     }
-
-    [Fact]
-    public async Task DivisionSiteSignIn()
-    {
-        using var site = new SiteFactory();
-        var (_, key) = Skyrus(site);
-        long m = site.Member("Petr Student", Ratings.S1);
-        var api = Api(site, key);
-
-        var ok = await api.PostAsJsonAsync("/api/division/v1/auth", new { cid = m, password = "password1" });
-        Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
-        var json = await Json(ok);
-        Assert.Equal(("Petr Student", "S1"), (json.GetProperty("name").GetString(), json.GetProperty("rating").GetString()));
-
-        Assert.Equal(HttpStatusCode.Unauthorized, (await api.PostAsJsonAsync("/api/division/v1/auth", new { cid = m, password = "wrong" })).StatusCode);
-        // Without a division key there is no sign-in at all.
-        Assert.Equal(HttpStatusCode.Unauthorized, (await site.CreateClient().PostAsJsonAsync("/api/division/v1/auth", new { cid = m, password = "password1" })).StatusCode);
-
-        site.Get<MemberService>().SetSuspended(0, m, true, "test");
-        Assert.Equal(HttpStatusCode.Forbidden, (await api.PostAsJsonAsync("/api/division/v1/auth", new { cid = m, password = "password1" })).StatusCode);
-
-        // Password guessing is cut off after 10 failures.
-        long other = site.Member("Olga Other");
-        for (int n = 0; n < 10; n++) await api.PostAsJsonAsync("/api/division/v1/auth", new { cid = other, password = "nope" });
-        Assert.Equal((HttpStatusCode)429, (await api.PostAsJsonAsync("/api/division/v1/auth", new { cid = other, password = "password1" })).StatusCode);
-    }
 }
