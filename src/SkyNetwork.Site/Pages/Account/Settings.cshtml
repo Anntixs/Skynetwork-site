@@ -11,7 +11,17 @@
     <p class="muted small">Имя меняется через <a href="/account/support">поддержку</a> — по нему вас узнают в эфире.</p>
     <form method="post" asp-page-handler="Profile" class="form">
       <label>Электронная почта<input name="Email" type="email" value="@Model.Email" required maxlength="120"></label>
-      <label>Страна<input name="Country" value="@Model.Country" maxlength="60"></label>
+      <label>Страна
+        <select name="Country">
+          <option value="">Не указана</option>
+          @* A country typed before the list existed stays selectable until changed. *@
+          @if (Model.Country.Length > 0 && !SkyNetwork.Site.Data.Countries.IsKnown(Model.Country)) { <option value="@Model.Country" selected>@Model.Country</option> }
+          @foreach (var country in SkyNetwork.Site.Data.Countries.All)
+          {
+            <option value="@country" selected="@(Model.Country == country)">@country</option>
+          }
+        </select>
+      </label>
       <div><button class="btn btn-primary" type="submit">Сохранить профиль</button></div>
     </form>
     <h2 style="font-size:20px;margin-top:40px">Пароль</h2>

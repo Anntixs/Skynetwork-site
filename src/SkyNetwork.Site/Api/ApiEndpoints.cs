@@ -23,6 +23,30 @@ public static class ApiEndpoints
 
         var v1 = app.MapGroup("/api/v1").RequireCors("api");
 
+        // For the map: the planned route points (SimBrief import) and the track flown so far.
+        v1.MapGet("/pilots/{callsign}/route", (string callsign, NetworkFeed feed, FlightPlanService plans) =>
+        {
+            var p = feed.Current.Pilots.FirstOrDefault(x => x.Callsign.Equals(callsign, StringComparison.OrdinalIgnoreCase));
+            if (p == null) return Results.NotFound();
+            string? points = p.FlightPlan is { } fp ? plans.Waypoints(p.Cid, fp.Departure, fp.Destination) : null;
+            return Results.Ok(new
+            {
+                waypoints = points is { Length: > 0 } ? System.Text.Json.Nodes.JsonNode.Parse(points) : null,
+                track = feed.Track(p.Callsign).Select(t => new object[] { Math.Round(t.Latitude, 4), Math.Round(t.Longitude, 4), t.Altitude }),
+            });
+        });
+
+        v1.MapGet("/airports/{icao}/layout", async (string icao, AirportLayout layouts, HttpContext ctx) =>
+        {
+            string? json = await layouts.GetAsync(icao, ctx.RequestAborted);
+            if (json == null) return Results.StatusCode(StatusCodes.Status502BadGateway);
+            ctx.Response.Headers.CacheControl = "public, max-age=86400";
+            return Results.Text(json, "application/json");
+        });
+
+        v1.MapGet("/metar/{icao}", async (string icao, MetarService metar, CancellationToken ct) =>
+            await metar.GetAsync(icao, ct) is { } text ? Results.Ok(new { icao = icao.ToUpperInvariant(), metar = text }) : Results.NotFound());
+
         v1.MapGet("/status", (Microsoft.Extensions.Options.IOptions<SiteOptions> o, NetworkFeed feed) => new
         {
             network = o.Value.Name,

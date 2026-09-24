@@ -27,6 +27,7 @@ public sealed class SettingsModel(CurrentUser me, MemberService members) : PageM
         Email = Email.Trim();
         Country = Country.Trim();
         if (!MailAddress.TryCreate(Email, out _)) Error = "Проверьте адрес почты";
+        else if (Country.Length > 0 && !Countries.IsKnown(Country) && Country != me.Member!.Country) Error = "Выберите страну из списка";
         else if (!Email.Equals(me.Member!.Email, StringComparison.OrdinalIgnoreCase) && members.EmailTaken(Email)) Error = "Эта почта уже используется";
         else
         {

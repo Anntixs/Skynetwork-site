@@ -39,6 +39,8 @@ public sealed class FlightPlan
     public int FuelMinutes { get; set; }
     public string Route { get; set; } = "";
     public string Remarks { get; set; } = "";
+    /// <summary>Route points with coordinates, JSON [[ident, lat, lon], …] (SimBrief import); empty when filed by hand.</summary>
+    public string Waypoints { get; set; } = "";
     public long CreatedAt { get; set; }
     public DateTime Created => Time.Utc(CreatedAt);
 }

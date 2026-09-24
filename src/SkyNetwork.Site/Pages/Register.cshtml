@@ -15,7 +15,13 @@
         <input name="Email" type="email" value="@Model.Email" required maxlength="120" autocomplete="email">
       </label>
       <label>Страна
-        <input name="Country" value="@Model.Country" maxlength="60" autocomplete="country-name">
+        <select name="Country" required autocomplete="country-name">
+          <option value="">Выберите страну</option>
+          @foreach (var country in SkyNetwork.Site.Data.Countries.All)
+          {
+            <option value="@country" selected="@(Model.Country == country)">@country</option>
+          }
+        </select>
       </label>
       <label>Пароль
         <input name="Password" type="password" required minlength="8" autocomplete="new-password">

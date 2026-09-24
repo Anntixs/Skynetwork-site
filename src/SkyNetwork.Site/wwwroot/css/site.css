@@ -31,6 +31,13 @@
   /* Map: sector borders and the selected aircraft's route. */
   --map-fir: rgba(91,104,120,.45);
   --map-route: #1f5fbf;
+  /* Airport diagrams (zoomed in). */
+  --apt-apron: #dfe4eb;
+  --apt-building: #c9d1dc;
+  --apt-runway: #8d99a8;
+  --apt-taxiway: #c0c9d4;
+  --apt-label: #5b6878;
+  --apt-rwy: #c2410c;
 
   --radius: 8px;
   --wrap: 1120px;
@@ -60,6 +67,12 @@
   --shadow: 0 6px 24px rgba(0,0,0,.45);
   --map-fir: rgba(148,161,178,.35);
   --map-route: #79abf6;
+  --apt-apron: #1b222c;
+  --apt-building: #29323f;
+  --apt-runway: #465163;
+  --apt-taxiway: #313b49;
+  --apt-label: #9aa6b5;
+  --apt-rwy: #f07a4a;
   color-scheme: dark;
 }
 
@@ -281,6 +294,14 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .apt-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--paper); border: 2px solid var(--map-route); }
 .fir-label { background: none; border: 0; box-shadow: none; font: 700 11px var(--mono); color: var(--f-ctr); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper); }
 .fir-label::before { display: none; }
+:root .leaflet-tooltip.wp-label { background: none; border: 0; box-shadow: none; padding: 0; font: 600 10px var(--mono); color: var(--ink); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper), 0 0 2px var(--paper); }
+.leaflet-tooltip.wp-label::before { display: none; }
+.wp-hide .wp-label { display: none; }
+.apt-lbl { display: inline-block; transform: translate(-50%, -50%); font: 600 10px var(--mono); color: var(--apt-label); white-space: nowrap;
+  text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper); }
+.apt-lbl.rwy { font-size: 12px; font-weight: 700; color: var(--apt-rwy); }
+.apt-lbl.twy { font-size: 11px; color: var(--ink); }
+.apt-lbl.gate { color: var(--accent); }
 :root .leaflet-container { font: 13px var(--body); background: var(--surface); }
 :root .leaflet-tooltip { background: var(--paper); color: var(--ink); border-color: var(--line); box-shadow: var(--shadow); font: 600 12px var(--mono); }
 :root .leaflet-tooltip-top::before { border-top-color: var(--paper); }
@@ -308,6 +329,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .kpi span { color: var(--slate); font-size: 13px; }
 .inline-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
 .inline-form input, .inline-form select { width: auto; }
+.simbrief-box { display: grid; gap: 12px; max-width: 820px; margin-bottom: 24px; padding: 16px 18px; }
+.simbrief-box input { min-width: 240px; }
 .thread { display: grid; gap: 10px; margin-bottom: 20px; }
 .msg { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
 .msg.staff { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 25%, var(--paper)); }

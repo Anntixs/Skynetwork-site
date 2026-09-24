@@ -8,7 +8,19 @@
     <p class="muted">Подайте план до подключения. В SkyPilot нажмите «Обновить» — план уйдёт диспетчерам. Пока вы в сети, SkyPilot проверяет сайт каждые 30 секунд.</p>
     @if (Model.Saved) { <div class="alert ok">План подан. Нажмите «Обновить» в SkyPilot.</div> }
     @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+    @if (Model.Imported) { <div class="alert ok">План загружен из SimBrief. Проверьте поля и нажмите «Подать план».</div> }
+    <form method="post" asp-page-handler="Simbrief" class="card simbrief-box">
+      <div>
+        <h3 style="margin:0 0 2px">Импорт из SimBrief</h3>
+        <div class="muted small">Возьмём ваш последний план из SimBrief вместе со всеми точками маршрута — они появятся на карте.</div>
+      </div>
+      <div class="inline-form">
+        <label>Имя пользователя или Pilot ID<input name="simbriefUser" value="@Model.SimbriefUser" required maxlength="64" autocomplete="off"></label>
+        <button class="btn" type="submit">Загрузить</button>
+      </div>
+    </form>
     <form method="post" class="form wide">
+      <input type="hidden" name="Plan.Waypoints" value="@p.Waypoints">
       <div class="row">
         <label>Позывной<input name="Plan.Callsign" value="@p.Callsign" class="mono" required maxlength="10" pattern="[A-Za-z0-9]{2,10}"></label>
         <label>Правила
@@ -31,7 +43,8 @@
         <label>В пути, мин<input name="Plan.EnrouteMinutes" value="@(p.EnrouteMinutes == 0 ? "" : p.EnrouteMinutes)" inputmode="numeric" required></label>
         <label>Топливо, мин<input name="Plan.FuelMinutes" value="@(p.FuelMinutes == 0 ? "" : p.FuelMinutes)" inputmode="numeric" required></label>
       </div>
-      <label>Маршрут<textarea name="Plan.Route" class="mono" required maxlength="1000" style="min-height:80px">@p.Route</textarea></label>
+      <label>Маршрут<textarea name="Plan.Route" class="mono" required maxlength="1000" style="min-height:80px">@p.Route</textarea>
+        @if (p.Waypoints.Length > 0) { <span class="hint">Точки маршрута из SimBrief сохранятся вместе с планом и будут показаны на карте.</span> }</label>
       <label>Примечания<input name="Plan.Remarks" value="@p.Remarks" maxlength="300">
         <span class="hint">/V/ — голосовая связь, /R/ — только приём, /T/ — только текст.</span></label>
       <div><button class="btn btn-primary" type="submit">Подать план</button></div>

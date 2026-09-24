@@ -110,5 +110,14 @@ public sealed class Database
                 instructor_cid INTEGER, staff_comment TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
             """);
+
+        // Columns added after the first release.
+        AddColumn(c, "flight_plans", "waypoints", "TEXT NOT NULL DEFAULT ''");
+    }
+
+    private static void AddColumn(SqliteConnection c, string table, string column, string definition)
+    {
+        if (!c.Query<string>($"SELECT name FROM pragma_table_info('{table}')").Contains(column))
+            c.Execute($"ALTER TABLE {table} ADD COLUMN {column} {definition}");
     }
 }

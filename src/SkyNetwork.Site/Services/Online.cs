@@ -18,6 +18,9 @@ public sealed record ControllerOnline(long Cid, string Name, string Callsign, st
     };
 }
 
+/// <summary>One point of an aircraft's flown track (unix seconds).</summary>
+public readonly record struct TrackPoint(double Latitude, double Longitude, int Altitude, long Time);
+
 /// <summary>Who is online, from the FSD server's data feed.</summary>
 public sealed record OnlineSnapshot(DateTime Updated, string Server, bool Available, IReadOnlyList<PilotOnline> Pilots,
     IReadOnlyList<ControllerOnline> Controllers)

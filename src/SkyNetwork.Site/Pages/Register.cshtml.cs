@@ -38,6 +38,7 @@ public sealed class RegisterModel(MemberService members) : PageModel
         if (Name.Any(char.IsControl) || Name.Contains(':')) return "Имя содержит недопустимые символы";
         if (!MailAddress.TryCreate(Email, out _)) return "Проверьте адрес почты";
         if (members.EmailTaken(Email)) return "Эта почта уже зарегистрирована. Забыли CID — напишите в поддержку";
+        if (!Countries.IsKnown(Country)) return "Выберите страну из списка";
         if (Password.Length < 8) return "Пароль — не короче 8 символов";
         if (Password.Contains(':')) return "Пароль не может содержать двоеточие";
         if (Password != Confirm) return "Пароли не совпадают";

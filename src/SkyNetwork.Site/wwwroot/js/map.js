@@ -10,6 +10,8 @@
   const map = L.map(el, { zoomControl: false, worldCopyJump: true, scrollWheelZoom: !compact })
     .setView([55.75, 37.6], compact ? 4 : 5);
   if (!compact) L.control.zoom({ position: 'bottomright' }).addTo(map);
+  // Leaflet's default prefix carries a flag; just the name here.
+  map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
 
   // Tiles come through the site (see TileProxy); the base map follows the site theme, labels sit above the sectors.
   map.createPane('labels').classList.add('labels-pane');
@@ -125,6 +127,170 @@
   const loadAirports = () => airportsLoad ??= fetch('/data/airports.json').then(r => r.json()).then(a => airports = a).catch(() => airports = {});
   const airport = code => airports?.[String(code || '').toUpperCase()] ?? null;
 
+  // VOR and NDB positions (OurAirports), for routes typed by hand.
+  let navaids = null, navaidsLoad = null;
+  const loadNavaids = () => navaidsLoad ??= Promise.all([loadAirports(), fetch('/data/navaids.json').then(r => r.json())])
+    .then(([, n]) => navaids = n).catch(() => navaids = {});
+
+  // Route text → points: airports, VOR/NDB (the one nearest to the previous point) and coordinates like 5530N03730E.
+  // Airways, SIDs/STARs and speed/level groups are skipped, so the line goes straight between what is known.
+  function resolveRoute(fp, dep, arr) {
+    if (!navaids || !airports) return null;
+    const points = dep ? [[fp.departure, dep[0], dep[1]]] : [];
+    let prev = dep;
+    for (const raw of String(fp.route || '').toUpperCase().split(/\s+/)) {
+      const token = raw.split('/')[0];
+      if (!token || token === 'DCT' || token === fp.departure || token === fp.destination) continue;
+      let at = coordinate(token);
+      if (!at) {
+        const found = [...(navaids[token] ?? []), ...(token.length === 4 && airports[token] ? [airports[token]] : [])];
+        if (!found.length) continue;
+        const ref = prev ?? arr;
+        at = ref ? found.reduce((best, c) => distNm(ref, c) < distNm(ref, best) ? c : best) : found[0];
+        // The same identifier on another continent is not this route's point.
+        if (ref && distNm(ref, at) > 1200) continue;
+      }
+      points.push([token, at[0], at[1]]);
+      prev = at;
+    }
+    if (arr) points.push([fp.destination, arr[0], arr[1]]);
+    return points.length > 2 ? points : null;
+  }
+  function coordinate(t) {
+    const m = /^(\d{2})(\d{2})?([NS])(\d{3})(\d{2})?([EW])$/.exec(t);
+    if (!m) return null;
+    const lat = (+m[1] + (+m[2] || 0) / 60) * (m[3] === 'S' ? -1 : 1), lon = (+m[4] + (+m[5] || 0) / 60) * (m[6] === 'W' ? -1 : 1);
+    return lat <= 90 && lon <= 180 ? [lat, lon] : null;
+  }
+
+  // Great-circle arcs through all points, kept continuous across the date line.
+  function path(points) {
+    const out = [];
+    for (let i = 1; i < points.length; i++) {
+      let seg = arc(points[i - 1], points[i]);
+      if (out.length) {
+        const shift = Math.round((out[out.length - 1][1] - seg[0][1]) / 360) * 360;
+        seg = seg.slice(1).map(([la, lo]) => [la, lo + shift]);
+      }
+      out.push(...seg);
+    }
+    return out.length ? out : points;
+  }
+
+  // Index of the route point the aircraft is flying to: the leg it is closest to lying on.
+  function nextPoint(points, at) {
+    if (!at) return 1;
+    let best = 1, cost = Infinity;
+    for (let i = 1; i < points.length; i++) {
+      const c = distNm(points[i - 1], at) + distNm(at, points[i]) - distNm(points[i - 1], points[i]);
+      if (c < cost) { cost = c; best = i; }
+    }
+    return best;
+  }
+
+  // The selected aircraft's route points and flown track, refreshed with the live data.
+  let route = null;
+  async function loadRoute(cs) {
+    try {
+      const r = await fetch(`/api/v1/pilots/${encodeURIComponent(cs)}/route`, { cache: 'no-store' });
+      if (!r.ok) return;
+      const d = await r.json();
+      if (selected?.kind === 'pilot' && selected.key === cs) { route = { callsign: cs, ...d }; updateCard(); }
+    } catch { }
+  }
+
+  // METAR for airport cards, at most one request per airport every 5 minutes.
+  const metars = new Map();
+  function metarOf(code) {
+    const m = metars.get(code);
+    if (!m || Date.now() - m.at > 300000) {
+      metars.set(code, { at: Date.now(), text: m?.text ?? null });
+      fetch(`/api/v1/metar/${encodeURIComponent(code)}`).then(r => r.ok ? r.json() : null)
+        .then(d => { metars.set(code, { at: Date.now(), text: d?.metar ?? '' }); if (selected?.key === code) updateCard(); })
+        .catch(() => { });
+    }
+    return metars.get(code).text;
+  }
+
+  // Route point names only when zoomed in enough to read them.
+  const labelZoom = () => el.classList.toggle('wp-hide', map.getZoom() < 6);
+  map.on('zoomend', labelZoom);
+  labelZoom();
+
+  // ---- airport diagrams (OpenStreetMap) when zoomed in, like a ground radar ----
+  const LAYOUT_ZOOM = 12;
+  map.createPane('layout').style.zIndex = 350;
+  map.createPane('layoutLabels').style.zIndex = 460;
+  map.getPane('layoutLabels').style.pointerEvents = 'none';
+  const layoutRenderer = L.canvas({ pane: 'layout', padding: .5 });
+  const layoutLayer = L.layerGroup().addTo(map);
+  const layouts = new Map();   // ICAO → diagram, or 'loading'
+
+  async function loadLayouts() {
+    if (compact || map.getZoom() < LAYOUT_ZOOM) return drawLayouts();
+    await loadAirports();
+    const view = map.getBounds().pad(.2), c = map.getCenter();
+    const near = Object.entries(airports).filter(([, a]) => view.contains([a[0], a[1]]))
+      .sort((x, y) => map.distance(c, [x[1][0], x[1][1]]) - map.distance(c, [y[1][0], y[1][1]])).slice(0, 4);
+    for (const [code] of near) {
+      if (layouts.has(code)) continue;
+      layouts.set(code, 'loading');
+      fetch(`/api/v1/airports/${code}/layout`).then(r => { if (!r.ok) throw r; return r.json(); })
+        .then(d => { layouts.set(code, d); drawLayouts(); })
+        .catch(() => setTimeout(() => layouts.delete(code), 60000));   // try again in a minute
+    }
+    drawLayouts();
+  }
+
+  function drawLayouts() {
+    layoutLayer.clearLayers();
+    const z = map.getZoom();
+    if (compact || z < LAYOUT_ZOOM) return;
+    const near = map.getBounds().pad(.5), view = map.getBounds().pad(.1);
+    const col = { apron: css('--apt-apron'), building: css('--apt-building'), runway: css('--apt-runway'), taxiway: css('--apt-taxiway'),
+      stand: css('--apt-label'), gate: css('--accent') };
+    const tag = (at, text, kind) => L.marker(at, { pane: 'layoutLabels', interactive: false, keyboard: false,
+      icon: L.divIcon({ className: '', iconSize: null, html: `<span class="apt-lbl ${kind}">${esc(text)}</span>` }) }).addTo(layoutLayer);
+    for (const [code, d] of layouts) {
+      const home = airport(code);
+      if (!d || d === 'loading' || !home || !near.contains([home[0], home[1]])) continue;
+      // Real widths: metres → pixels at this zoom.
+      const mpp = 40075016.686 * Math.cos(home[0] * RAD) / (256 * 2 ** z);
+      const px = m => Math.max(1, m / mpp);
+      const shape = { renderer: layoutRenderer, interactive: false };
+      for (const a of d.areas)
+        L.polygon(a.ring, { ...shape, stroke: false, fillColor: a.kind === 'apron' ? col.apron : col.building, fillOpacity: 1 }).addTo(layoutLayer);
+      for (const t of d.taxiways)
+        L.polyline(t.line, { ...shape, color: col.taxiway, weight: px(t.width), lineCap: 'round', lineJoin: 'round' }).addTo(layoutLayer);
+      for (const r of d.runways)
+        L.polyline(r.line, { ...shape, color: col.runway, weight: px(r.width), lineCap: 'butt' }).addTo(layoutLayer);
+
+      for (const r of d.runways) {
+        const [a, b] = String(r.ref).split('/');
+        if (a) tag(r.line[0], a, 'rwy');
+        if (b) tag(r.line[r.line.length - 1], b, 'rwy');
+      }
+      if (z >= 14) {
+        // One name per taxiway piece, not repeated within 300 m.
+        const placed = new Map();
+        for (const t of d.taxiways) {
+          if (!t.ref || t.lane) continue;
+          const mid = t.line[Math.floor(t.line.length / 2)];
+          if (!view.contains(mid) || (placed.get(t.ref) ?? []).some(p => map.distance(p, mid) < 300)) continue;
+          placed.set(t.ref, [...(placed.get(t.ref) ?? []), mid]);
+          tag(mid, t.ref, 'twy');
+        }
+      }
+      if (z >= 15)
+        for (const st of d.stands) {
+          if (!view.contains(st.at)) continue;
+          L.circleMarker(st.at, { ...shape, radius: z >= 16 ? 3 : 2, stroke: false, fillColor: st.gate ? col.gate : col.stand, fillOpacity: .9 }).addTo(layoutLayer);
+          if (z >= 16 && st.ref) tag(st.at, st.ref, st.gate ? 'gate' : 'stand');
+        }
+    }
+  }
+  map.on('moveend', loadLayouts);
+
   // ---- drawing ----
   function render() {
     if (!data) return [];
@@ -197,14 +363,17 @@
 
   // ---- selection card ----
   function select(kind, key, fly) {
+    if (!(selected?.kind === kind && selected.key === key)) route = null;
     selected = { kind, key };
     history.replaceState(null, '', '#' + encodeURIComponent(key));
     render();
+    if (kind === 'pilot') loadRoute(key);
     if (fly) flyTo();
   }
   function deselect() {
     if (!selected) return;
     selected = null;
+    route = null;
     history.replaceState(null, '', location.pathname);
     render();
   }
@@ -271,23 +440,59 @@
     const at = p.latitude != null ? [p.latitude, p.longitude] : null;
     const dep = airport(fp?.departure), arr = airport(fp?.destination);
 
-    // Flown part solid, the rest dashed, like on a radar's route display.
+    // Route points: from the SimBrief import when there is one, otherwise worked out from the route text.
+    const mine = route?.callsign === p.callsign ? route : null;
+    let points = mine?.waypoints?.length > 1 ? mine.waypoints : null, fromSimbrief = !!points;
+    if (!points && fp) {
+      if (!navaids) loadNavaids().then(updateCard);
+      points = resolveRoute(fp, dep, arr);
+    }
+    const track = mine?.track ?? [];
+
+    // Flown track solid, the planned route dashed, like on a radar's route display.
     const color = css('--map-route');
-    if (at && dep) L.polyline(arc(dep, at), { color, weight: 2, interactive: false }).addTo(routeLayer);
-    if (at && arr) L.polyline(arc(at, arr), { color, weight: 2, dashArray: '6 6', interactive: false }).addTo(routeLayer);
+    if (track.length > 1) L.polyline(path([...track, ...(at ? [at] : [])]), { color, weight: 2.5, interactive: false }).addTo(routeLayer);
+    else if (at && dep) L.polyline(arc(dep, at), { color, weight: 2, interactive: false }).addTo(routeLayer);
+
+    let next = null, flown = null, left = null;
+    if (points) {
+      const ll = points.map(w => [w[1], w[2]]);
+      const i = nextPoint(ll, at);
+      L.polyline(path(ll), { color, weight: 1.5, opacity: .35, dashArray: '4 6', interactive: false }).addTo(routeLayer);
+      if (at) L.polyline(path([at, ...ll.slice(i)]), { color, weight: 2, dashArray: '6 6', interactive: false }).addTo(routeLayer);
+      points.slice(1, -1).forEach((w, k) => L.circleMarker([w[1], w[2]], {
+        radius: 3, color, weight: 1.5, fillColor: css('--paper'), fillOpacity: 1, opacity: k + 1 < i ? .45 : 1, interactive: false,
+      }).bindTooltip(esc(w[0]), { permanent: true, direction: 'right', offset: [5, 0], className: 'wp-label' }).addTo(routeLayer));
+      if (at) {
+        next = points[i];
+        left = distNm(at, ll[i]);
+        for (let k = i + 1; k < ll.length; k++) left += distNm(ll[k - 1], ll[k]);
+        let total = 0;
+        for (let k = 1; k < ll.length; k++) total += distNm(ll[k - 1], ll[k]);
+        flown = Math.max(0, total - left);
+      }
+    } else if (at && arr) {
+      L.polyline(arc(at, arr), { color, weight: 2, dashArray: '6 6', interactive: false }).addTo(routeLayer);
+    }
+    if (flown == null && at && dep && arr) { flown = distNm(dep, at); left = distNm(at, arr); }
+
     for (const [code, a] of [[fp?.departure, dep], [fp?.destination, arr]])
       if (a) L.marker(a, { icon: L.divIcon({ className: '', iconSize: [10, 10], html: '<div class="apt-dot"></div>' }) })
         .bindTooltip(esc(code), { permanent: true, direction: 'right', offset: [8, 0] })
         .on('click', () => select('airport', code, false)).addTo(routeLayer);
 
     let progress = '';
-    if (at && dep && arr) {
-      const flown = distNm(dep, at), left = distNm(at, arr);
+    if (flown != null) {
       const pct = Math.min(100, Math.round(flown / Math.max(1, flown + left) * 100));
       const eta = p.groundspeed > 50 && left > 1 ? 'прибытие ≈ ' + utc(new Date(Date.now() + left / p.groundspeed * 3600000)) : `${pct}%`;
       progress = `<div class="mc-progress" style="margin-top:10px"><i style="width:${pct}%"></i></div>
         <div class="mc-progress-text"><span>${Math.round(flown)} nm</span><span>${eta}</span><span>${Math.round(left)} nm</span></div>`;
+      if (next && at && p.groundspeed >= 40)
+        progress += `<div class="small" style="margin-top:6px"><span class="muted">Следующая точка:</span> <b class="mono">${esc(next[0])}</b>
+          <span class="muted">· ${Math.round(distNm(at, [next[1], next[2]]))} nm</span></div>`;
     }
+    const routeNote = points ? `<div class="muted small" style="margin-top:4px">${fromSimbrief ? `${points.length} точек маршрута из SimBrief`
+      : `${points.length} точек найдено по базе VOR/NDB — без промежуточных точек трасс`}</div>` : '';
 
     const chips = (fp?.aircraft ? `<span class="badge accent">${esc(fp.aircraft)}</span>` : '') +
       (fp?.rules ? `<span class="badge">${esc(fp.rules)}</span>` : '') +
@@ -308,7 +513,7 @@
           ${cell('Топливо', hm(fp?.fuelMinutes ?? 0))}
         </div>
         ${fp?.alternate ? `<div class="small"><span class="muted">Запасной:</span> ${aptLink(fp.alternate, null).replace('<span></span>', '')}</div>` : ''}
-        ${fp?.route ? `<div class="mc-block"><div class="eyebrow">Маршрут</div><div class="mc-text">${esc(fp.route)}</div></div>` : ''}
+        ${fp?.route ? `<div class="mc-block"><div class="eyebrow">Маршрут</div><div class="mc-text">${esc(fp.route)}</div>${routeNote}</div>` : ''}
         ${fp?.remarks ? `<div class="mc-block"><div class="eyebrow">Примечания</div><div class="mc-text">${esc(fp.remarks)}</div></div>` : ''}
         <div class="muted small">В сети ${onlineFor(p.logonTime)}</div>
       </div>`;
@@ -343,8 +548,11 @@
     const flights = list => list.length
       ? `<div class="mc-chips">${list.map(p => `<a class="badge" href="#" data-select="pilot|${esc(p.callsign)}">${esc(p.callsign)}</a>`).join('')}</div>`
       : '<div class="muted small">нет</div>';
+    const metar = metarOf(code);
     return head(esc(code), esc(info?.[2] ?? '')) + `
       <div class="mc-body">
+        <div class="mc-block"><div class="eyebrow">METAR</div>${metar ? `<div class="mc-text">${esc(metar)}</div>`
+          : `<div class="muted small">${metar === '' ? 'нет данных' : 'загрузка…'}</div>`}</div>
         <div class="mc-block"><div class="eyebrow">Диспетчеры</div>${strips ? `<div class="mc-list">${strips}</div>` : '<div class="muted small">никого</div>'}</div>
         <div class="mc-block"><div class="eyebrow">Вылеты · ${deps.length}</div>${flights(deps)}</div>
         <div class="mc-block"><div class="eyebrow">Прилёты · ${arrs.length}</div>${flights(arrs)}</div>
@@ -375,6 +583,7 @@
     base.setUrl(`/tiles/${theme()}/{z}/{x}/{y}.png`);
     labels.setUrl(`/tiles/${theme()}-labels/{z}/{x}/{y}.png`);
     drawOutline();
+    drawLayouts();
     render();
   }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
 
@@ -392,6 +601,7 @@
     if (list) list.innerHTML = [...data.pilots, ...data.controllers].map(x => `<option value="${esc(x.callsign)}">`).join('');
 
     const points = render();
+    if (selected?.kind === 'pilot') loadRoute(selected.key);
     if (pendingHash) {
       const q = pendingHash;
       pendingHash = '';

@@ -13,8 +13,16 @@ public sealed class NetworkFeed(IOptions<SiteOptions> options, Database db, IHtt
     private readonly Dictionary<string, long> _open = [];
     private volatile OnlineSnapshot _current = OnlineSnapshot.Empty;
     private bool _adopted;
+    // Where each online aircraft has been since it connected (in memory only), for the flown track on the map.
+    private const int MaxTrackPoints = 5000;
+    private readonly Dictionary<string, (long Cid, List<TrackPoint> Points)> _tracks = new(StringComparer.OrdinalIgnoreCase);
 
     public OnlineSnapshot Current => _current;
+
+    public IReadOnlyList<TrackPoint> Track(string callsign)
+    {
+        lock (_tracks) return _tracks.TryGetValue(callsign, out var t) ? t.Points.ToArray() : [];
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stop)
     {
@@ -44,7 +52,34 @@ public sealed class NetworkFeed(IOptions<SiteOptions> options, Database db, IHtt
     {
         var snapshot = FeedParser.Parse(json, _current);
         _current = snapshot;
+        RecordTracks(snapshot);
         TrackSessions(snapshot);
+    }
+
+    private void RecordTracks(OnlineSnapshot s)
+    {
+        long now = Database.Now();
+        lock (_tracks)
+        {
+            var online = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in s.Pilots)
+            {
+                if (p.Latitude is not { } lat || p.Longitude is not { } lon) continue;
+                online.Add(p.Callsign);
+                // A callsign taken by someone else starts a new track.
+                if (!_tracks.TryGetValue(p.Callsign, out var t) || t.Cid != p.Cid) _tracks[p.Callsign] = t = (p.Cid, []);
+                if (t.Points.Count > 0)
+                {
+                    var last = t.Points[^1];
+                    // A point when the aircraft has moved, climbed or descended, or every 5 minutes while it stands still.
+                    if (FeedParser.Distance(last.Latitude, last.Longitude, lat, lon) < 0.3
+                        && Math.Abs(last.Altitude - p.Altitude) < 500 && now - last.Time < 300) continue;
+                }
+                t.Points.Add(new TrackPoint(lat, lon, p.Altitude, now));
+                if (t.Points.Count > MaxTrackPoints) t.Points.RemoveRange(0, t.Points.Count - MaxTrackPoints);
+            }
+            foreach (var gone in _tracks.Keys.Where(k => !online.Contains(k)).ToList()) _tracks.Remove(gone);
+        }
     }
 
     private static string Key(string kind, long cid, string callsign) => $"{kind}:{cid}:{callsign.ToUpperInvariant()}";
