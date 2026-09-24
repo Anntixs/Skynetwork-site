@@ -34,8 +34,7 @@ public sealed class RegisterModel(MemberService members) : PageModel
 
     private string? Validate()
     {
-        if (Name.Length < 3 || !Name.Contains(' ')) return "Enter your first and last name";
-        if (Name.Any(char.IsControl) || Name.Contains(':')) return "The name contains characters that are not allowed";
+        if (MemberService.ValidateName(Name) is { } nameError) return nameError;
         if (!MailAddress.TryCreate(Email, out _)) return "Check the email address";
         if (members.EmailTaken(Email)) return "This email is already registered. Forgot your CID? Write to support";
         if (Password.Length < 8) return "The password must be at least 8 characters";

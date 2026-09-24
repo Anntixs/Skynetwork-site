@@ -10,7 +10,8 @@
   <div class="news-list prose">
     @foreach (var n in posts)
     {
-      <div class="news-item">
+      <div class="news-item @(n.BannerUrl != null ? "with-thumb" : "")">
+        @if (n.BannerUrl is { } thumb) { <a href="/news/@n.Id" class="news-thumb"><img src="@thumb" alt="" loading="lazy"></a> }
         <div class="muted small">@Format.Date(n.Created) · @n.AuthorName</div>
         <h3><a href="/news/@n.Id">@n.Title</a></h3>
         <p class="muted">@(n.Body.Length > 280 ? n.Body[..280] + "…" : n.Body)</p>

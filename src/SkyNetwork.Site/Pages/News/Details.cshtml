@@ -2,6 +2,7 @@
 @model SkyNetwork.Site.Pages.News.DetailsModel
 @{ ViewData["Title"] = Model.Post.Title; }
 <div class="wrap page">
+  @if (Model.Post.BannerUrl is { } banner) { <img class="page-banner" src="@banner" alt=""> }
   <div class="eyebrow"><a href="/news">@L["News"]</a></div>
   <h1>@Model.Post.Title</h1>
   <p class="muted">@Format.Date(Model.Post.Created) · @Model.Post.AuthorName</p>

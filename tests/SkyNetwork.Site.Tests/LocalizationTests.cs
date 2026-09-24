@@ -42,13 +42,13 @@ public class LocalizationTests
             foreach (Match m in Regex.Matches(text, @"L\.Plural\([^,]+,\s*""([^""]+)"",\s*""([^""]+)""\)"))
                 yield return m.Groups[1].Value + "|" + m.Groups[2].Value;
         }
-        foreach (var r in Ratings.All) yield return Ratings.Long(r);
+        foreach (var r in Ratings.Controller.Append(Ratings.SUP).Append(Ratings.ADM)) yield return Ratings.Long(r);
         foreach (var ladder in new[] { PilotRatings.Pilot, PilotRatings.Military })
             foreach (var (_, name, privileges) in ladder.Levels) { yield return name; yield return privileges; }
         foreach (var (_, title) in TrainingTracks.All) yield return title;
         foreach (var title in Permissions.Roles.Values) yield return title;
         foreach (var title in SupportService.TicketStatuses.Values.Concat(SupportService.TrainingStatuses.Values)) yield return title;
-        foreach (var action in new[] { "rating", "pilot-rating", "military-rating", "suspend", "unsuspend", "password-reset", "roles", "note",
+        foreach (var action in new[] { "rating", "staff-rank", "pilot-rating", "military-rating", "suspend", "unsuspend", "password-reset", "roles", "note",
                      "event", "event-delete", "news", "news-delete", "booking-delete", "ticket", "training" })
             yield return AuditService.Title(action);
     }

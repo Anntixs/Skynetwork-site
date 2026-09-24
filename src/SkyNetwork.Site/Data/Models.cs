@@ -9,7 +9,10 @@ public sealed class Member
 {
     public long Cid { get; set; }
     public string Name { get; set; } = "";
+    /// <summary>Controller rating, OBS…I3.</summary>
     public int Rating { get; set; }
+    /// <summary>Staff rank: 0, SUP or ADM.</summary>
+    public int StaffRank { get; set; }
     public bool Suspended { get; set; }
     public string? Email { get; set; }
     public string Country { get; set; } = "";
@@ -23,6 +26,11 @@ public sealed class Member
 
     public string RatingShort => Ratings.Short(Rating);
     public string RatingLong => Ratings.Long(Rating);
+    public bool IsStaff => StaffRank > 0;
+    /// <summary>Rating as shown to people: the staff rank first when there is one, "SUP · C1".</summary>
+    public string DisplayShort => IsStaff ? $"{Ratings.Short(StaffRank)} · {RatingShort}" : RatingShort;
+    /// <summary>The highest level the member may connect to the network with.</summary>
+    public int NetworkRating => Math.Max(Rating, StaffRank);
     public DateTime? SuspensionEnds => SuspendedUntil is { } u ? Time.Utc(u) : null;
     public DateTime? Registered => RegisteredAt is { } r ? Time.Utc(r) : null;
 }
@@ -58,6 +66,9 @@ public sealed class NetworkEvent
     public long StartsAt { get; set; }
     public long EndsAt { get; set; }
     public bool Published { get; set; }
+    /// <summary>Uploaded banner file name ("" for none), served from /uploads/.</summary>
+    public string Banner { get; set; } = "";
+    public string? BannerUrl => Banner.Length > 0 ? "/uploads/" + Banner : null;
     public long CreatedBy { get; set; }
     public DateTime Start => Time.Utc(StartsAt);
     public DateTime End => Time.Utc(EndsAt);
@@ -69,6 +80,9 @@ public sealed class NewsPost
     public string Title { get; set; } = "";
     public string Body { get; set; } = "";
     public bool Published { get; set; }
+    /// <summary>Uploaded banner file name ("" for none), served from /uploads/.</summary>
+    public string Banner { get; set; } = "";
+    public string? BannerUrl => Banner.Length > 0 ? "/uploads/" + Banner : null;
     public long AuthorCid { get; set; }
     public string AuthorName { get; set; } = "";
     public long CreatedAt { get; set; }

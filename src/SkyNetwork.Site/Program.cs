@@ -34,6 +34,7 @@ builder.Services.AddHttpClient("tiles", c =>
     c.DefaultRequestHeaders.UserAgent.ParseAdd("SkyNetworkSite/1.0 (+https://github.com/Anntixs/Skynetwork-site)");
 });
 builder.Services.AddSingleton<TileProxy>();
+builder.Services.AddSingleton<UploadStore>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<NetworkFeed>());
 
 // Cyrillic stays as text in the HTML instead of &#x...; entities.

@@ -30,17 +30,17 @@ public sealed class ContentService(Database db, AuditService audit)
     public long SaveEvent(long actor, NetworkEvent e)
     {
         using var c = db.Open();
-        var args = new { e.Id, e.Title, e.Summary, e.Body, e.Airports, e.StartsAt, e.EndsAt, published = e.Published ? 1 : 0, actor, now = Database.Now() };
+        var args = new { e.Id, e.Title, e.Summary, e.Body, e.Airports, e.StartsAt, e.EndsAt, e.Banner, published = e.Published ? 1 : 0, actor, now = Database.Now() };
         long id = e.Id;
         if (e.Id == 0)
             id = c.ExecuteScalar<long>("""
-                INSERT INTO events (title, summary, body, airports, starts_at, ends_at, published, created_by, created_at)
-                VALUES (@Title, @Summary, @Body, @Airports, @StartsAt, @EndsAt, @published, @actor, @now) RETURNING id
+                INSERT INTO events (title, summary, body, airports, starts_at, ends_at, banner, published, created_by, created_at)
+                VALUES (@Title, @Summary, @Body, @Airports, @StartsAt, @EndsAt, @Banner, @published, @actor, @now) RETURNING id
                 """, args);
         else
             c.Execute("""
                 UPDATE events SET title=@Title, summary=@Summary, body=@Body, airports=@Airports, starts_at=@StartsAt,
-                    ends_at=@EndsAt, published=@published WHERE id=@Id
+                    ends_at=@EndsAt, banner=@Banner, published=@published WHERE id=@Id
                 """, args);
         audit.Log(actor, "event", id.ToString(), e.Title);
         return id;
@@ -76,14 +76,14 @@ public sealed class ContentService(Database db, AuditService audit)
     public long SavePost(long actor, NewsPost p)
     {
         using var c = db.Open();
-        var args = new { p.Id, p.Title, p.Body, published = p.Published ? 1 : 0, actor, now = Database.Now() };
+        var args = new { p.Id, p.Title, p.Body, p.Banner, published = p.Published ? 1 : 0, actor, now = Database.Now() };
         long id = p.Id;
         if (p.Id == 0)
             id = c.ExecuteScalar<long>("""
-                INSERT INTO news (title, body, published, author_cid, created_at) VALUES (@Title, @Body, @published, @actor, @now) RETURNING id
+                INSERT INTO news (title, body, banner, published, author_cid, created_at) VALUES (@Title, @Body, @Banner, @published, @actor, @now) RETURNING id
                 """, args);
         else
-            c.Execute("UPDATE news SET title=@Title, body=@Body, published=@published WHERE id=@Id", args);
+            c.Execute("UPDATE news SET title=@Title, body=@Body, banner=@Banner, published=@published WHERE id=@Id", args);
         audit.Log(actor, "news", id.ToString(), p.Title);
         return id;
     }

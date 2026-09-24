@@ -12,7 +12,8 @@
       <tr>
         <td class="mono">@if (Model.Me.Has(Perm.ViewMembers)) { <a href="/staff/members/@m.Cid">@m.Cid</a> } else { @m.Cid }</td>
         <td>@m.Name</td>
-        <td><span class="badge accent">@m.RatingShort</span> @L[m.RatingLong]</td>
+        <td>@if (m.IsStaff) { <span class="badge accent">@Ratings.Short(m.StaffRank)</span> @L[Ratings.Long(m.StaffRank)] <span class="muted">·</span> }
+            <span class="badge">@m.RatingShort</span> @L[m.RatingLong]</td>
         <td>@string.Join(", ", roles.Select(r => L[Permissions.Roles[r]]))</td>
       </tr>
     }

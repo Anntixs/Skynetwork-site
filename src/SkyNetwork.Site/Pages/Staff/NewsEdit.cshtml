@@ -4,9 +4,15 @@
 <div class="eyebrow"><a href="/staff/news">@L["News"]</a></div>
 <h1 style="font-size:28px">@(p.Id == 0 ? L["New post"] : p.Title)</h1>
 @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
-<form method="post" class="form wide">
+<form method="post" class="form wide" enctype="multipart/form-data">
   <label>@L["Headline"]<input name="Title" value="@p.Title" required maxlength="160"></label>
   <label>@L["Text"]<textarea name="Body" required maxlength="20000" style="min-height:280px">@p.Body</textarea></label>
+  <div class="banner-field">
+    @if (p.BannerUrl is { } url) { <img class="banner-preview" src="@url" alt=""> }
+    <label>@L["Banner"]<input type="file" name="banner" accept="image/jpeg,image/png,image/webp">
+      <span class="hint">@L["JPEG, PNG or WebP up to 5 MB; wide pictures (about 1600 × 600) look best."]</span></label>
+    @if (p.BannerUrl != null) { <label class="check"><input type="checkbox" name="removeBanner" value="true"> <span>@L["Remove the banner"]</span></label> }
+  </div>
   <label class="check"><input type="checkbox" name="Published" value="true" checked="@p.Published"> <span>@L["Publish"]</span></label>
   <div class="inline-form">
     <button class="btn btn-primary" type="submit">@L["Save"]</button>

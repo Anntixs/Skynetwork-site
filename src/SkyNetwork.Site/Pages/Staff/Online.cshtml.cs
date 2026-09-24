@@ -16,6 +16,6 @@ public sealed class OnlineModel(CurrentUser me, NetworkFeed feed, MemberService 
     {
         Online = feed.Current;
         foreach (var c in Online.Controllers)
-            if (members.Find(c.Cid) is { } m) Ratings[c.Cid] = m.Rating;
+            if (members.Find(c.Cid) is { } m) Ratings[c.Cid] = m.NetworkRating;
     }
 }

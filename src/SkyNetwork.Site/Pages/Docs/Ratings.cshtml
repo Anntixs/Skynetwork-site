@@ -10,7 +10,7 @@
     <p class="muted" style="max-width:640px">@L["The controller rating decides which positions you may staff."]</p>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>@L["Rating"]</th><th>@L["Name"]</th><th>@L["Positions"]</th></tr></thead>
+        <thead><tr><th>@L["Rating"]</th><th>@L["Rating name"]</th><th>@L["Positions"]</th></tr></thead>
         <tbody>
           <tr><td class="mono">OBS</td><td>@L[Ratings.Long(Ratings.OBS)]</td><td>@L["Connect without controlling — listen and learn"]</td></tr>
           <tr><td class="mono">S1</td><td>@L[Ratings.Long(Ratings.S1)]</td><td>@L["Clearance delivery and ground: DEL, GND"]</td></tr>
@@ -24,13 +24,14 @@
         </tbody>
       </table>
     </div>
+    <p class="muted small" style="margin-top:12px;max-width:640px">@L["SUP and ADM are team ranks: a supervisor or administrator also holds a controller rating, shown next to the rank, for example “SUP · C1”."]</p>
 
     @foreach (var (ladder, title, id) in new[] { (PilotRatings.Pilot, "Pilot ratings", "pilot"), (PilotRatings.Military, "Military ratings", "military") })
     {
       <h2 style="font-size:22px;margin-top:36px" id="@id">@L[title]</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>@L["Rating"]</th><th>@L["Name"]</th><th>@L["What it covers"]</th></tr></thead>
+          <thead><tr><th>@L["Rating"]</th><th>@L["Rating name"]</th><th>@L["What it covers"]</th></tr></thead>
           <tbody>
           @foreach (var (shortName, longName, privileges) in ladder.Levels)
           {
