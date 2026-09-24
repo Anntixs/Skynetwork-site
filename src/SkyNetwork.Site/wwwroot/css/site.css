@@ -252,6 +252,10 @@ main { min-height: calc(100vh - 64px - 120px); }
 .strip.APP { border-left-color: var(--f-app); }
 .strip.CTR, .strip.FSS { border-left-color: var(--f-ctr); }
 .strip a.cs:hover { color: var(--accent); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 14px; }
+.facts dt { color: var(--slate); font-size: 12px; }
+.facts dd { margin: 0; }
+.key-box { font: 600 14px var(--mono); word-break: break-all; user-select: all; padding: 12px; border: 1px dashed var(--accent); border-radius: 8px; }
 .empty { padding: 28px; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--slate); text-align: center; }
 
 /* ---- cards / lists ---- */

@@ -142,6 +142,8 @@ public class PilotRatingTests
         using var site = new SiteFactory();
         long instructor = site.Member("Ilya Instructor", Ratings.I1);
         long student = site.Member("Student Pilot");
+        // Training is run by divisions: the member joins one first.
+        site.Get<DivisionService>().SetMemberDivision(student, student, site.Get<DivisionService>().FindByCode("SKYRUS")!.Id);
         var st = site.Browser();
         await st.LoginAsync(student);
         // Only the next level can be requested.

@@ -109,6 +109,26 @@ public sealed class Database
                 message TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'open',
                 instructor_cid INTEGER, staff_comment TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+
+            -- Divisions (regional branches, e.g. SKYRUS, SKYEUD) run their own academies and send
+            -- rating requests through the division API; a supervisor approves them.
+            CREATE TABLE IF NOT EXISTS divisions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE COLLATE NOCASE, name TEXT NOT NULL,
+                region TEXT NOT NULL DEFAULT '', website TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '',
+                director_cid INTEGER, active INTEGER NOT NULL DEFAULT 1,
+                api_key_hash TEXT UNIQUE, api_key_hint TEXT NOT NULL DEFAULT '', api_key_created_at INTEGER,
+                created_at INTEGER NOT NULL);
+
+            CREATE TABLE IF NOT EXISTS rating_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, division_id INTEGER NOT NULL REFERENCES divisions(id),
+                cid INTEGER NOT NULL, track TEXT NOT NULL, current_rating INTEGER NOT NULL, target_rating INTEGER NOT NULL,
+                examiner_cid INTEGER, examiner_name TEXT NOT NULL DEFAULT '', exam_date TEXT NOT NULL DEFAULT '',
+                score TEXT NOT NULL DEFAULT '', report_url TEXT NOT NULL DEFAULT '', comment TEXT NOT NULL DEFAULT '',
+                external_id TEXT, status TEXT NOT NULL DEFAULT 'pending',
+                reviewer_cid INTEGER, review_comment TEXT NOT NULL DEFAULT '',
+                created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+            CREATE INDEX IF NOT EXISTS ix_rating_requests_status ON rating_requests (status, created_at);
+            CREATE UNIQUE INDEX IF NOT EXISTS ux_rating_requests_external ON rating_requests (division_id, external_id);
             """);
         // Staff ranks (SUP, ADM) used to live in members.rating; they get their own column. The FSD
         // server does the same migration: whichever starts first moves them, in one transaction.
@@ -143,6 +163,16 @@ public sealed class Database
         AddColumn(c, "member_profiles", "simbrief", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "events", "banner", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "news", "banner", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "member_profiles", "division_id", "INTEGER");
+        AddColumn(c, "training_requests", "division_id", "INTEGER");
+
+        // The first divisions; administrators add more and issue their API keys in the staff area.
+        if (c.ExecuteScalar<long>("SELECT COUNT(*) FROM divisions") == 0)
+            c.Execute("""
+                INSERT INTO divisions (code, name, region, created_at) VALUES
+                    ('SKYRUS', 'SkyRUS', 'Russia', @now),
+                    ('SKYEUD', 'SkyEUD', 'Europe', @now)
+                """, new { now = Now() });
     }
 
     private static void AddColumn(SqliteConnection c, string table, string column, string type)

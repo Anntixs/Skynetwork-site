@@ -17,7 +17,7 @@
         <h3 style="margin:0"><a href="/staff/members/@r.Cid">@r.Name</a> <span class="muted small mono">@r.Cid</span></h3>
         <span class="badge @(r.Status == "open" ? "warn" : r.Status == "accepted" ? "accent" : "")">@L[SupportService.TrainingStatuses[r.Status]]</span>
       </div>
-      <div class="muted small">@L[TrainingTracks.All.First(t => t.Key == r.Track).Title] · @r.CurrentShort → <b>@r.TargetShort</b> · @L["filed"] @Format.Utc(r.Created)</div>
+      <div class="muted small">@if (r.DivisionCode.Length > 0) { <b>@r.DivisionCode · </b> }@L[TrainingTracks.All.First(t => t.Key == r.Track).Title] · @r.CurrentShort → <b>@r.TargetShort</b> · @L["filed"] @Format.Utc(r.Created)</div>
       @if (r.Message.Length > 0) { <p style="white-space:pre-line;margin:10px 0">@r.Message</p> }
       <form method="post" class="inline-form" style="margin-top:10px">
         <input type="hidden" name="id" value="@r.Id">

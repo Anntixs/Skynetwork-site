@@ -1,0 +1,62 @@
+@page "/staff/ratings"
+@model SkyNetwork.Site.Pages.Staff.RatingsModel
+@{ ViewData["Title"] = L["Rating requests"]; }
+<h1 style="font-size:30px">@L["Rating requests"]</h1>
+<p class="muted" style="max-width:720px">@L["Divisions send these after a student passes the exam in their academy. Approving gives the rating at once; a declined request goes back to the division with your comment."]</p>
+@if (Model.Message != null) { <div class="alert ok">@L[Model.Message]</div> }
+@if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
+<div class="inline-form" style="margin-bottom:16px">
+  <a class="btn btn-small @(Model.All ? "" : "btn-primary")" href="/staff/ratings">@L["Awaiting approval"]</a>
+  <a class="btn btn-small @(Model.All ? "btn-primary" : "")" href="/staff/ratings?all=1">@L["All"]</a>
+</div>
+@if (Model.List.Count == 0) { <div class="empty">@L["No requests."]</div> }
+<div class="grid" style="gap:12px">
+  @foreach (var r in Model.List)
+  {
+    <div class="card">
+      <div class="section-head" style="margin-bottom:6px">
+        <h3 style="margin:0"><a href="/staff/members/@r.Cid">@r.Name</a> <span class="muted small mono">@r.Cid</span></h3>
+        <span class="badge @(r.Status == "pending" ? "warn" : r.Status == "approved" ? "accent" : "")">@L[DivisionService.RequestStatuses[r.Status]]</span>
+      </div>
+      <div class="muted small">
+        <b>@r.DivisionCode</b> · @L[TrainingTracks.All.First(t => t.Key == r.Track).Title] · @r.CurrentShort → <b>@r.TargetShort</b> @L[TrainingTracks.Long(r.Track, r.TargetRating)]
+        · @L["received"] @Format.Utc(r.Created)
+        @if (r.MemberRating != r.CurrentRating) { <span> · @L["now holds"] @TrainingTracks.Short(r.Track, r.MemberRating)</span> }
+      </div>
+      <dl class="facts" style="margin:10px 0 0">
+        @if (r.ExaminerCid is { } ex || r.ExaminerName.Length > 0)
+        {
+          <div><dt>@L["Examiner"]</dt><dd>@if (r.ExaminerCid is { } e) { <a href="/staff/members/@e">@(r.ExaminerName.Length > 0 ? r.ExaminerName : e.ToString())</a> } else { @r.ExaminerName }</dd></div>
+        }
+        @if (r.ExamDate.Length > 0) { <div><dt>@L["Exam date"]</dt><dd>@r.ExamDate</dd></div> }
+        @if (r.Score.Length > 0) { <div><dt>@L["Result"]</dt><dd>@r.Score</dd></div> }
+        @if (r.ReportUrl.Length > 0) { <div><dt>@L["Exam report"]</dt><dd><a href="@r.ReportUrl" target="_blank" rel="noopener noreferrer">@L["Open"]</a></dd></div> }
+      </dl>
+      @if (r.Comment.Length > 0) { <p style="white-space:pre-line;margin:10px 0">@r.Comment</p> }
+      @if (r.Status == "pending")
+      {
+        @if (Model.CanApprove(r))
+        {
+          <form method="post" asp-page-handler="Approve" class="inline-form" style="margin-top:10px">
+            <input type="hidden" name="id" value="@r.Id">
+            <label style="flex:1">@L["Comment for the division"]<input name="comment" maxlength="1000"></label>
+            <button class="btn btn-primary" type="submit">@L.F("Approve {0}", r.TargetShort)</button>
+          </form>
+        }
+        else
+        {
+          <p class="muted small">@(r.Cid == Model.Me.Cid ? L["You cannot approve your own rating"] : L["Only an administrator approves instructor ratings."])</p>
+        }
+        <form method="post" asp-page-handler="Decline" class="inline-form" style="margin-top:10px">
+          <input type="hidden" name="id" value="@r.Id">
+          <label style="flex:1">@L["Reason for declining"]<input name="comment" maxlength="1000" required></label>
+          <button class="btn" type="submit">@L["Decline"]</button>
+        </form>
+      }
+      else if (r.ReviewerCid is { } rev)
+      {
+        <p class="muted small" style="margin:10px 0 0">@L["Handled by"] <a href="/staff/members/@rev">@r.ReviewerName</a>, @Format.Utc(r.Updated)@(r.ReviewComment.Length > 0 ? ": " + r.ReviewComment : "")</p>
+      }
+    </div>
+  }
+</div>

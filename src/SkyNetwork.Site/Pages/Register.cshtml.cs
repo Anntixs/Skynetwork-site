@@ -22,9 +22,12 @@ public sealed class RegisterModel(MemberService members) : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        Name = Name.Trim();
-        Email = Email.Trim();
-        Country = Countries.Normalize(Country) ?? Country.Trim();
+        // An empty field binds as null.
+        Name = (Name ?? "").Trim();
+        Email = (Email ?? "").Trim();
+        Country = Countries.Normalize(Country ?? "") ?? (Country ?? "").Trim();
+        Password ??= "";
+        Confirm ??= "";
         Error = Validate();
         if (Error != null) return Page();
         long cid = members.Register(Name, Email, Country, Password);

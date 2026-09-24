@@ -1,0 +1,50 @@
+@page "/staff/divisions/{id:long}"
+@model SkyNetwork.Site.Pages.Staff.DivisionModel
+@{ var d = Model.Division; ViewData["Title"] = d.Name; }
+<p><a href="/staff/divisions">← @L["Divisions"]</a></p>
+<h1 style="font-size:30px">@d.Name <span class="muted mono" style="font-size:18px">@d.Code</span></h1>
+@if (Model.Message != null) { <div class="alert ok">@L[Model.Message]</div> }
+@if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
+
+<div class="grid two" style="gap:20px;align-items:start">
+  <form method="post" asp-page="/Staff/Division" asp-route-id="@d.Id" class="card form">
+    <h3 style="margin:0">@L["Division"]</h3>
+    <label>@L["Division name"]<input name="name" value="@d.Name" required maxlength="60"></label>
+    <label>@L["Region"]<input name="region" value="@d.Region" maxlength="60"></label>
+    <label>@L["Website"]<input name="website" type="url" value="@d.Website" maxlength="200" placeholder="https://"></label>
+    <label>@L["Director (CID)"]<input name="director" type="number" min="1" value="@d.DirectorCid"></label>
+    <label>@L["Description"]<textarea name="description" maxlength="2000">@d.Description</textarea></label>
+    <label>@L["Status"]
+      <select name="active">
+        <option value="true" selected="@d.Active">@L["active"]</option>
+        <option value="false" selected="@(!d.Active)">@L["inactive"]</option>
+      </select>
+    </label>
+    <div><button class="btn btn-primary" type="submit">@L["Save"]</button></div>
+  </form>
+
+  <div class="card">
+    <h3 style="margin-top:0">@L["API key"]</h3>
+    @if (Model.NewKey != null)
+    {
+      <div class="alert ok">@L["New key issued. Copy it now and pass it to the division securely: it is shown only once."]</div>
+      <div class="key-box" id="new-key">@Model.NewKey</div>
+    }
+    else if (d.HasApiKey)
+    {
+      <p><span class="mono">@d.ApiKeyHint</span> · @L["issued"] @Format.Utc(d.ApiKeyCreated!.Value)</p>
+    }
+    else
+    {
+      <p class="muted">@L["The division has no key yet: its website cannot send rating requests."]</p>
+    }
+    <p class="muted small">@L["The division's website sends the key in the Authorization: Bearer header. A new key replaces the old one at once."] <a href="/developers#division-api">@L["Division API"]</a></p>
+    <div class="inline-form">
+      <form method="post" asp-page-handler="Key"><button class="btn btn-primary" type="submit">@(d.HasApiKey ? L["Issue a new key"] : L["Issue a key"])</button></form>
+      @if (d.HasApiKey)
+      {
+        <form method="post" asp-page-handler="Revoke" onsubmit="return confirm('@L["Revoke the key? The division's website stops working with the network until a new key is issued."]')"><button class="btn" type="submit">@L["Revoke"]</button></form>
+      }
+    </div>
+  </div>
+</div>

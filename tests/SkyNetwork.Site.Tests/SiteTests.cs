@@ -50,6 +50,21 @@ public class PublicPagesTests
 public class AccountTests
 {
     [Fact]
+    public async Task RegisterWithoutCountry_AsksForIt()
+    {
+        using var site = new SiteFactory();
+        // An empty field used to arrive as null and crash the page.
+        var r = await site.Browser().SubmitAsync("/register", new Dictionary<string, string>
+        {
+            ["Name"] = "Ivan Petrov", ["Email"] = "ivan@example.com", ["Country"] = "",
+            ["Password"] = "secret123", ["Confirm"] = "secret123", ["AcceptRules"] = "true",
+        });
+        Assert.Equal(HttpStatusCode.OK, r.StatusCode);
+        Assert.Contains("Choose a country from the list", await r.Content.ReadAsStringAsync());
+        Assert.Equal(0, site.Get<MemberService>().Count());
+    }
+
+    [Fact]
     public async Task RegisterGivesCid_LoginWorks_AndBadPasswordIsRejected()
     {
         using var site = new SiteFactory();
@@ -212,6 +227,8 @@ public class StaffAreaTests
         using var site = new SiteFactory();
         long instructor = site.Member("Ilya Instructor", Ratings.I1);
         long student = site.Member("Student Controller");
+        // Training is run by divisions: the member joins one first.
+        site.Get<DivisionService>().SetMemberDivision(student, student, site.Get<DivisionService>().FindByCode("SKYRUS")!.Id);
         var st = site.Browser();
         await st.LoginAsync(student);
         await st.SubmitAsync("/training", new Dictionary<string, string> { ["target"] = Ratings.S1.ToString(), ["text"] = "Evenings" });

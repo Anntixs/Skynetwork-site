@@ -48,8 +48,10 @@ public class LocalizationTests
         foreach (var (_, title) in TrainingTracks.All) yield return title;
         foreach (var title in Permissions.Roles.Values) yield return title;
         foreach (var title in SupportService.TicketStatuses.Values.Concat(SupportService.TrainingStatuses.Values)) yield return title;
+        foreach (var title in DivisionService.RequestStatuses.Values) yield return title;
         foreach (var action in new[] { "rating", "staff-rank", "pilot-rating", "military-rating", "suspend", "unsuspend", "password-reset", "roles", "note",
-                     "event", "event-delete", "news", "news-delete", "booking-delete", "ticket", "training" })
+                     "event", "event-delete", "news", "news-delete", "booking-delete", "ticket", "training",
+                     "division", "division-key", "member-division", "rating-request" })
             yield return AuditService.Title(action);
     }
 

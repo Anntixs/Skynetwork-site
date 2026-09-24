@@ -1,0 +1,24 @@
+@page "/divisions/{code}"
+@model SkyNetwork.Site.Pages.Divisions.DetailsModel
+@{
+    var d = Model.Division;
+    ViewData["Title"] = d.Name;
+    bool mine = Model.Mine;
+}
+<div class="wrap page">
+  <div class="profile-head">
+    <div class="avatar">@d.Code[..Math.Min(2, d.Code.Length)]</div>
+    <div>
+      <h1 style="font-size:30px;margin:0">@d.Name</h1>
+      <div class="muted"><span class="mono">@d.Code</span>@(d.Region.Length > 0 ? " · " + d.Region : "") · @d.MemberCount @L.Plural((int)d.MemberCount, "member", "members")</div>
+    </div>
+  </div>
+  @if (d.Description.Length > 0) { <p style="white-space:pre-line;max-width:720px">@d.Description</p> }
+  <div class="inline-form" style="margin:16px 0 24px">
+    @if (d.Website.Length > 0) { <a class="btn btn-primary" href="@d.Website" target="_blank" rel="noopener">@L["Division website and academy"]</a> }
+    @if (Me.Member == null) { <a class="btn" href="/register">@L["Join the network"]</a> }
+    else if (!mine) { <a class="btn" href="/training">@L["Join this division"]</a> }
+    else { <span class="badge accent">@L["Your division"]</span> }
+  </div>
+  @if (d.DirectorCid is { } dir) { <p class="muted">@L["Director"]: <a href="/members/@dir">@d.DirectorName</a></p> }
+</div>
