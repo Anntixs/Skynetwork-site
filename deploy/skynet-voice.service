@@ -1,0 +1,13 @@
+# /etc/systemd/system/skynet-voice.service
+[Unit]
+Description=SkyNetwork voice server
+After=network.target
+
+[Service]
+User=skynetwork
+ExecStart=/opt/skynetwork/voice/skynet-voice --db /var/lib/skynetwork/skynetwork.db --port 3782
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
