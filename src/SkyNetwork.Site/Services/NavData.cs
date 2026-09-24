@@ -32,14 +32,14 @@ public sealed partial class NavData(Database db, IWebHostEnvironment env, ILogge
 
     private sealed record Segment(string A, double ALat, double ALon, string B, double BLat, double BLon);
 
-    private sealed record Bundled(
+    private sealed record BundledData(
         Dictionary<string, List<(double Lat, double Lon)>> Fixes,
         Dictionary<string, List<Segment>> Airways,
         Dictionary<string, (double Lat, double Lon)> Airports);
 
     // The bundled files are read once per process, whichever site instance asks first (tests create several).
     private static readonly object BundledLock = new();
-    private static Bundled? _bundledCache;
+    private static BundledData? _bundledCache;
     private static string? _bundledRoot;
 
     private readonly object _lock = new();
@@ -176,7 +176,7 @@ public sealed partial class NavData(Database db, IWebHostEnvironment env, ILogge
 
     // ---- lookups ----
 
-    private Bundled Bundled
+    private BundledData Bundled
     {
         get
         {
@@ -315,7 +315,7 @@ public sealed partial class NavData(Database db, IWebHostEnvironment env, ILogge
 
     // ---- bundled files ----
 
-    private static Bundled Load(string root, ILogger log)
+    private static BundledData Load(string root, ILogger log)
     {
         var fixes = new Dictionary<string, List<(double, double)>>(StringComparer.Ordinal);
         var airways = new Dictionary<string, List<Segment>>(StringComparer.Ordinal);
@@ -357,7 +357,7 @@ public sealed partial class NavData(Database db, IWebHostEnvironment env, ILogge
             log.LogWarning("Nav data files: {Error}", e.Message);
         }
         log.LogInformation("Nav data: {Fixes} fixes, {Airways} airways, {Airports} airports", fixes.Count, airways.Count, airports.Count);
-        return new Bundled(fixes, airways, airports);
+        return new BundledData(fixes, airways, airports);
     }
 
     private static IEnumerable<string> Lines(string gzipPath)
