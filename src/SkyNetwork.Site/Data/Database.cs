@@ -104,12 +104,6 @@ public sealed class Database
                 id INTEGER PRIMARY KEY AUTOINCREMENT, ticket_id INTEGER NOT NULL REFERENCES tickets(id),
                 cid INTEGER, staff INTEGER NOT NULL DEFAULT 0, body TEXT NOT NULL, created_at INTEGER NOT NULL);
 
-            CREATE TABLE IF NOT EXISTS training_requests (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, cid INTEGER NOT NULL, target_rating INTEGER NOT NULL,
-                message TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'open',
-                instructor_cid INTEGER, staff_comment TEXT NOT NULL DEFAULT '',
-                created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
-
             -- Divisions (e.g. SKYRUS) send rating requests through the division API with their key;
             -- a supervisor approves them in the staff area.
             CREATE TABLE IF NOT EXISTS divisions (
@@ -142,10 +136,11 @@ public sealed class Database
         }
 
         // Columns added after the first release.
+        // The "training" role went away with the training section (training is on the division sites).
+        c.Execute("DELETE FROM staff_roles WHERE role = 'training'");
         AddColumn(c, "member_profiles", "suspended_until", "INTEGER");
         AddColumn(c, "member_profiles", "pilot_rating", "INTEGER NOT NULL DEFAULT 0");
         AddColumn(c, "member_profiles", "military_rating", "INTEGER NOT NULL DEFAULT 0");
-        AddColumn(c, "training_requests", "track", "TEXT NOT NULL DEFAULT 'atc'");
         AddColumn(c, "flight_plans", "waypoints", "TEXT NOT NULL DEFAULT ''");
 
         // Waypoints and airway segments learned from imported SimBrief routes (see NavData).

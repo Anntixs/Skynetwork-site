@@ -36,6 +36,7 @@
       <table>
         <thead><tr><th>@L["Request"]</th><th>@L["Returns"]</th></tr></thead>
         <tbody>
+          <tr><td class="mono">POST /api/division/v1/auth</td><td>@L["Sign-in on the division website: checks the CID and password ({ cid, password }) and returns the member; 401 wrong password, 403 suspended"]</td></tr>
           <tr><td class="mono">GET /api/division/v1/members/{cid}</td><td>@L["A member and their ratings: check a CID before the exam"]</td></tr>
           <tr><td class="mono">POST /api/division/v1/rating-requests</td><td>@L["The student passed the exam: ask for the rating. A supervisor approves it"]</td></tr>
           <tr><td class="mono">GET /api/division/v1/rating-requests[?status=&amp;cid=]</td><td>@L["Your rating requests and their status: pending, approved, declined, withdrawn"]</td></tr>

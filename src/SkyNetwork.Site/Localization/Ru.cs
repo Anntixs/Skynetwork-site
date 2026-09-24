@@ -705,5 +705,11 @@ public static class Ru
         ["The member must not hold this rating already. One pending request per member and track."] = "У участника ещё не должно быть этого рейтинга. На рассмотрении может быть только одна заявка на участника по каждому направлению.",
         ["Division API keys"] = "Ключи API дивизионов",
         ["A division's website sends requests with its key in the Authorization: Bearer header. The key is shown once; a new key replaces the old one at once."] = "Сайт дивизиона отправляет заявки со своим ключом в заголовке Authorization: Bearer. Ключ показывается один раз; новый ключ сразу заменяет старый.",
+        ["about ratings"] = "о рейтингах",
+        ["Booking opens once you hold the S1 rating. Ratings are earned in the training center of your division."] = "Бронирование доступно с рейтингом S1. Рейтинги получают в учебном центре своего дивизиона.",
+        ["File a flight plan on the website and connect. Controllers need a rating —"] = "Подайте план полёта на сайте и подключайтесь. Диспетчерам нужен рейтинг —",
+        ["Members hold three independent ratings: controller, pilot and military. Each next level is earned through training and an exam in a division's training center; a network supervisor then approves the rating."] = "У участника три независимых рейтинга: диспетчерский, пилотский и военный. Каждый следующий уровень получают после обучения и экзамена в учебном центре дивизиона; затем рейтинг одобряет супервайзер сети.",
+        ["New members are observers (OBS): they can connect and listen but not control. Ratings are earned in the training center of your division."] = "Новые участники — наблюдатели (OBS): они могут подключаться и слушать, но не управлять. Рейтинги получают в учебном центре своего дивизиона.",
+        ["Sign-in on the division website: checks the CID and password ({ cid, password }) and returns the member; 401 wrong password, 403 suspended"] = "Вход на сайте дивизиона: проверяет CID и пароль ({ cid, password }) и возвращает участника; 401 — неверный пароль, 403 — участник заблокирован",
     };
 }

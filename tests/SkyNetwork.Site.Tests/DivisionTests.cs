@@ -60,11 +60,6 @@ public class DivisionTests
         long examiner = site.Member("Ivan Examiner", Ratings.I1);
         long sup = site.Member("Sergey Supervisor", Ratings.SUP);
 
-        // The member applied for training on the site; the division trained and examined them.
-        var s = site.Browser();
-        await s.LoginAsync(student);
-        await s.SubmitAsync("/training", new Dictionary<string, string> { ["Track"] = "atc", ["Target"] = Ratings.S2.ToString(), ["Text"] = "Evenings" });
-        long appId = site.Get<SupportService>().Training(student).Single().Id;
         var api = Api(site, key);
 
         // Exam passed: the division asks for S2.
@@ -97,7 +92,6 @@ public class DivisionTests
         var done = await Json(await api.GetAsync($"/api/division/v1/rating-requests/{id}"));
         Assert.Equal(("approved", sup, "Well done"),
             (done.GetProperty("status").GetString(), done.GetProperty("reviewer").GetInt64(), done.GetProperty("reviewComment").GetString()));
-        Assert.Equal("completed", site.Get<SupportService>().TrainingRequest(appId)!.Status);
         Assert.Contains(site.Get<AuditService>().Recent(), e => e.Action == "rating" && e.ActorCid == sup && e.Details == "S1 → S2");
         Assert.Contains(site.Get<AuditService>().Recent(), e => e.Action == "rating-request" && e.Details == "SKYRUS: S2 approved");
     }
@@ -199,5 +193,31 @@ public class DivisionTests
         // No separate division pages.
         Assert.Equal(HttpStatusCode.NotFound, (await a.GetAsync("/staff/divisions")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await a.GetAsync("/divisions")).StatusCode);
+    }
+
+    [Fact]
+    public async Task DivisionSiteSignIn()
+    {
+        using var site = new SiteFactory();
+        var (_, key) = Skyrus(site);
+        long m = site.Member("Petr Student", Ratings.S1);
+        var api = Api(site, key);
+
+        var ok = await api.PostAsJsonAsync("/api/division/v1/auth", new { cid = m, password = "password1" });
+        Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+        var json = await Json(ok);
+        Assert.Equal(("Petr Student", "S1"), (json.GetProperty("name").GetString(), json.GetProperty("rating").GetString()));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await api.PostAsJsonAsync("/api/division/v1/auth", new { cid = m, password = "wrong" })).StatusCode);
+        // Without a division key there is no sign-in at all.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await site.CreateClient().PostAsJsonAsync("/api/division/v1/auth", new { cid = m, password = "password1" })).StatusCode);
+
+        site.Get<MemberService>().SetSuspended(0, m, true, "test");
+        Assert.Equal(HttpStatusCode.Forbidden, (await api.PostAsJsonAsync("/api/division/v1/auth", new { cid = m, password = "password1" })).StatusCode);
+
+        // Password guessing is cut off after 10 failures.
+        long other = site.Member("Olga Other");
+        for (int n = 0; n < 10; n++) await api.PostAsJsonAsync("/api/division/v1/auth", new { cid = other, password = "nope" });
+        Assert.Equal((HttpStatusCode)429, (await api.PostAsJsonAsync("/api/division/v1/auth", new { cid = other, password = "password1" })).StatusCode);
     }
 }

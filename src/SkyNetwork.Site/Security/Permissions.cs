@@ -13,7 +13,7 @@ public enum Perm
     EditRatings = 1 << 3,
     ManageRoles = 1 << 4,
     Tickets = 1 << 5,
-    Training = 1 << 6,
+    // 1 << 6 was Training (training requests moved to the division websites).
     Events = 1 << 7,
     News = 1 << 8,
     Bookings = 1 << 9,
@@ -34,8 +34,8 @@ public enum Perm
 
 /// <summary>
 /// Who may do what. Network ratings give the base: administrators everything, supervisors run the
-/// network day to day, instructors handle training. Administrators can add site roles on top
-/// (event manager, news editor, support, training).
+/// network day to day, instructors rate controllers. Administrators can add site roles on top
+/// (event manager, news editor, support).
 /// </summary>
 public static class Permissions
 {
@@ -44,14 +44,13 @@ public static class Permissions
         ["events"] = "Events",
         ["news"] = "News",
         ["support"] = "Support",
-        ["training"] = "Training",
     };
 
     private const Perm Supervisor = Perm.StaffArea | Perm.ViewMembers | Perm.Suspend | Perm.Notes | Perm.Tickets | Perm.Online |
-                                    Perm.Bookings | Perm.Audit | Perm.Training | Perm.Events | Perm.News | Perm.PilotRatings |
+                                    Perm.Bookings | Perm.Audit | Perm.Events | Perm.News | Perm.PilotRatings |
                                     Perm.EditNames | Perm.ApproveRatings;
 
-    private const Perm Instructor = Perm.StaffArea | Perm.ViewMembers | Perm.Notes | Perm.Training | Perm.EditRatings | Perm.Online |
+    private const Perm Instructor = Perm.StaffArea | Perm.ViewMembers | Perm.Notes | Perm.EditRatings | Perm.Online |
                                     Perm.PilotRatings;
 
     /// <param name="rating">Controller rating: instructors (I1–I3) train and rate.</param>
@@ -67,7 +66,6 @@ public static class Permissions
                 "events" => Perm.StaffArea | Perm.Events,
                 "news" => Perm.StaffArea | Perm.News,
                 "support" => Perm.StaffArea | Perm.Tickets | Perm.ViewMembers | Perm.ResetPasswords,
-                "training" => Instructor,
                 _ => Perm.None,
             };
         return p;

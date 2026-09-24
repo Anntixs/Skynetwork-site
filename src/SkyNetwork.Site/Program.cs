@@ -70,7 +70,6 @@ builder.Services.AddRazorPages(o =>
 {
     o.Conventions.AuthorizeFolder("/Account");
     o.Conventions.AuthorizePage("/FlightPlan");
-    o.Conventions.AuthorizePage("/Training");
 }).AddMvcOptions(o => o.ModelMetadataDetailsProviders.Add(new KeepEmptyStrings()));
 builder.Services.AddRateLimiter(o =>
 {
