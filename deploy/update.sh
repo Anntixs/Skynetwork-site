@@ -17,6 +17,8 @@ git -C "$SITE_SRC" pull --ff-only
 rm -rf ~/site-build
 dotnet publish "$SITE_SRC/src/SkyNetwork.Site" -c Release -o ~/site-build --nologo -v q
 mkdir -p /opt/skynetwork/site
+# Stopped first: overwriting the DLLs of a running site crashes it.
+systemctl stop skynetwork-site
 cp -r ~/site-build/. /opt/skynetwork/site/
 
 # Older installs set ASPNETCORE_URLS, which appsettings.json overrides (the site then listened on 0.0.0.0).
@@ -30,6 +32,6 @@ sleep 5
 echo "== Проверка"
 systemctl is-active skynet-fsd skynetwork-site
 curl -s -o /dev/null -w "сайт: HTTP %{http_code}\n" http://127.0.0.1:8000/
-curl -s -o /dev/null -w "карта: HTTP %{http_code}\n" http://127.0.0.1:8000/tiles/3/4/2.png
+curl -s -o /dev/null -w "карта: HTTP %{http_code}\n" http://127.0.0.1:8000/tiles/light/3/4/2.png
 ss -ltn | grep -E ':(6809|8000) ' || true
 echo "Готово."
