@@ -9,10 +9,16 @@
 <div class="map-page">
   <div id="map" aria-label="Карта трафика"></div>
   <div class="map-panel">
-    <div class="eyebrow" style="margin:0 0 4px">В эфире</div>
-    <div><b id="pilot-count">—</b> <span class="muted">пилотов</span> · <b id="atc-count">—</b> <span class="muted">диспетчеров</span></div>
-    <div class="muted small" id="map-updated">Загрузка…</div>
+    <div>
+      <div class="eyebrow" style="margin:0 0 4px">В эфире</div>
+      <div><b id="pilot-count">—</b> <span class="muted">пилотов</span> · <b id="atc-count">—</b> <span class="muted">диспетчеров</span></div>
+      <div class="muted small" id="map-updated">Загрузка…</div>
+    </div>
+    <input type="search" id="map-search" list="map-callsigns" placeholder="Позывной, CID или аэропорт" autocomplete="off" aria-label="Поиск на карте">
+    <datalist id="map-callsigns"></datalist>
+    <label class="check"><input type="checkbox" id="fir-toggle" checked> Границы секторов</label>
   </div>
+  <aside class="map-card" id="map-card" hidden aria-live="polite"></aside>
 </div>
 @section Scripts {
   <script src="~/lib/leaflet/leaflet.js"></script>

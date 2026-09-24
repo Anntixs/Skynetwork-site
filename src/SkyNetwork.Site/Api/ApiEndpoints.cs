@@ -15,15 +15,10 @@ public static class ApiEndpoints
         app.MapGet("/api/flightplans/latest", (long cid, FlightPlanService plans) =>
             plans.Latest(cid) is { } p ? Results.Ok(PlanDto(p)) : Results.NotFound()).RequireCors("api");
 
-        app.MapGet("/tiles/{z:int}/{x:int}/{y:int}.png", async (int z, int x, int y, TileProxy tiles, HttpContext ctx) =>
+        app.MapGet("/tiles/{layer}/{z:int}/{x:int}/{y:int}.png", async (string layer, int z, int x, int y, TileProxy tiles, HttpContext ctx) =>
         {
             ctx.Response.Headers.CacheControl = "public, max-age=604800";
-            return await tiles.GetAsync(false, z, x, y, ctx.RequestAborted);
-        });
-        app.MapGet("/tiles/labels/{z:int}/{x:int}/{y:int}.png", async (int z, int x, int y, TileProxy tiles, HttpContext ctx) =>
-        {
-            ctx.Response.Headers.CacheControl = "public, max-age=604800";
-            return await tiles.GetAsync(true, z, x, y, ctx.RequestAborted);
+            return await tiles.GetAsync(layer, z, x, y, ctx.RequestAborted);
         });
 
         var v1 = app.MapGroup("/api/v1").RequireCors("api");
