@@ -51,6 +51,15 @@
       <div><button class="btn btn-primary" type="submit">@L["Change rating"]</button></div>
     </form>
   }
+  @if (Model.CanEditName)
+  {
+    <form method="post" asp-page-handler="Name" class="card form">
+      <h3>@L["Name"]</h3>
+      <label>@L["First and last name"]<input name="name" value="@m.Name" required maxlength="60"></label>
+      <p class="muted small">@L["Members ask for a name change through support. The network shows the new name from the next connection."]</p>
+      <div><button class="btn btn-primary" type="submit">@L["Save name"]</button></div>
+    </form>
+  }
   @if (Model.CanSetStaffRank)
   {
     <form method="post" asp-page-handler="StaffRank" class="card form">

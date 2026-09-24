@@ -66,6 +66,9 @@ public sealed class NetworkEvent
     public long StartsAt { get; set; }
     public long EndsAt { get; set; }
     public bool Published { get; set; }
+    /// <summary>Uploaded banner file name ("" for none), served from /uploads/.</summary>
+    public string Banner { get; set; } = "";
+    public string? BannerUrl => Banner.Length > 0 ? "/uploads/" + Banner : null;
     public long CreatedBy { get; set; }
     public DateTime Start => Time.Utc(StartsAt);
     public DateTime End => Time.Utc(EndsAt);
@@ -77,6 +80,9 @@ public sealed class NewsPost
     public string Title { get; set; } = "";
     public string Body { get; set; } = "";
     public bool Published { get; set; }
+    /// <summary>Uploaded banner file name ("" for none), served from /uploads/.</summary>
+    public string Banner { get; set; } = "";
+    public string? BannerUrl => Banner.Length > 0 ? "/uploads/" + Banner : null;
     public long AuthorCid { get; set; }
     public string AuthorName { get; set; } = "";
     public long CreatedAt { get; set; }

@@ -81,7 +81,8 @@
       <div class="grid three">
         @foreach (var e in Model.Events)
         {
-          <a class="card" href="/events/@e.Id">
+          <a class="card @(e.BannerUrl != null ? "with-banner" : "")" href="/events/@e.Id">
+            @if (e.BannerUrl is { } banner) { <img class="card-banner" src="@banner" alt="" loading="lazy"> }
             <span class="date-chip">@Format.Span(e.Start, e.End)</span>
             <h3>@e.Title</h3>
             <p class="muted small">@e.Summary</p>
@@ -112,7 +113,8 @@
       <div class="news-list">
         @foreach (var n in Model.News)
         {
-          <div class="news-item">
+          <div class="news-item @(n.BannerUrl != null ? "with-thumb" : "")">
+            @if (n.BannerUrl is { } thumb) { <a href="/news/@n.Id" class="news-thumb"><img src="@thumb" alt="" loading="lazy"></a> }
             <div class="muted small">@Format.Date(n.Created)</div>
             <h3><a href="/news/@n.Id">@n.Title</a></h3>
             <p class="muted small">@(n.Body.Length > 180 ? n.Body[..180] + "…" : n.Body)</p>

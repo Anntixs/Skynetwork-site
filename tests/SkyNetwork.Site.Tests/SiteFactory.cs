@@ -11,10 +11,12 @@ namespace SkyNetwork.Site.Tests;
 public sealed class SiteFactory : WebApplicationFactory<Program>
 {
     public string DatabasePath { get; } = Path.Combine(Path.GetTempPath(), $"skynet-site-{Guid.NewGuid():N}.db");
+    public string UploadsPath { get; } = Path.Combine(Path.GetTempPath(), $"skynet-uploads-{Guid.NewGuid():N}");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Site:Database", DatabasePath);
+        builder.UseSetting("Site:Uploads", UploadsPath);
         builder.UseSetting("Site:DataFeedUrl", "");
         builder.UseSetting("Site:AuthAttemptsPerMinute", "10000");
         builder.UseEnvironment(Environment.GetEnvironmentVariable("SITE_TEST_ENV") ?? "Production");
@@ -40,6 +42,7 @@ public sealed class SiteFactory : WebApplicationFactory<Program>
         base.Dispose(disposing);
         foreach (var f in new[] { DatabasePath, DatabasePath + "-wal", DatabasePath + "-shm" })
             try { File.Delete(f); } catch (IOException) { }
+        try { Directory.Delete(UploadsPath, true); } catch (IOException) { }
     }
 }
 

@@ -23,6 +23,8 @@ public enum Perm
     ResetPasswords = 1 << 13,
     /// <summary>Pilot and military ratings (site only).</summary>
     PilotRatings = 1 << 14,
+    /// <summary>Change a member's first and last name.</summary>
+    EditNames = 1 << 15,
     All = ~0,
 }
 
@@ -42,7 +44,8 @@ public static class Permissions
     };
 
     private const Perm Supervisor = Perm.StaffArea | Perm.ViewMembers | Perm.Suspend | Perm.Notes | Perm.Tickets | Perm.Online |
-                                    Perm.Bookings | Perm.Audit | Perm.Training | Perm.Events | Perm.News | Perm.PilotRatings;
+                                    Perm.Bookings | Perm.Audit | Perm.Training | Perm.Events | Perm.News | Perm.PilotRatings |
+                                    Perm.EditNames;
 
     private const Perm Instructor = Perm.StaffArea | Perm.ViewMembers | Perm.Notes | Perm.Training | Perm.EditRatings | Perm.Online |
                                     Perm.PilotRatings;
@@ -77,6 +80,13 @@ public static class Permissions
         if (actorStaffRank == Ratings.ADM) return true;
         return from <= Ratings.C3 && to <= Ratings.C3;
     }
+
+    /// <summary>
+    /// Names are changed by supervisors and administrators; a supervisor not for other members of the
+    /// team with a rank (only an administrator renames supervisors and administrators).
+    /// </summary>
+    public static bool CanEditName(Member actor, Perm actorPerms, Member target) =>
+        actorPerms.HasFlag(Perm.EditNames) && (actor.StaffRank == Ratings.ADM || target.StaffRank == 0 || actor.Cid == target.Cid);
 
     /// <summary>Staff ranks (SUP, ADM) are given and taken only by administrators, never to themselves.</summary>
     public static bool CanSetStaffRank(Member actor, Member target) => actor.StaffRank == Ratings.ADM && actor.Cid != target.Cid;

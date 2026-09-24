@@ -19,6 +19,7 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
     public IReadOnlyList<int> RatingOptions { get; private set; } = [];
     public bool CanSuspend { get; private set; }
     public bool CanSetStaffRank { get; private set; }
+    public bool CanEditName { get; private set; }
     public string? Message { get; private set; }
     public string? Error { get; private set; }
 
@@ -36,6 +37,7 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
         if (RatingOptions.Count == 1) RatingOptions = [];
         CanSuspend = Permissions.CanSuspend(Me.Member!, Me.Permissions, m);
         CanSetStaffRank = Permissions.CanSetStaffRank(Me.Member!, m);
+        CanEditName = Permissions.CanEditName(Me.Member!, Me.Permissions, m);
         return true;
     }
 
@@ -66,6 +68,20 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
         {
             members.SetSuspended(Me.Cid, cid, suspend, (reason ?? "").Trim(), days is > 0 and <= 3650 ? days : null);
             Message = suspend ? "Member suspended. They will be disconnected from the network within 10 seconds" : "Suspension lifted";
+        }
+        Load(cid);
+        return Page();
+    }
+
+    public IActionResult OnPostName(long cid, string? name)
+    {
+        if (!Load(cid) || !CanEditName) return NotFound();
+        name = string.Join(' ', (name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        if (MemberService.ValidateName(name) is { } error) Error = error;
+        else if (name != Member.Name)
+        {
+            members.SetName(Me.Cid, cid, name);
+            Message = "Name changed. The network shows it from the member's next connection";
         }
         Load(cid);
         return Page();

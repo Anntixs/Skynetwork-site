@@ -200,6 +200,23 @@ public sealed class MemberService(Database db, IOptions<SiteOptions> options, Au
         audit.Log(actor, "staff-rank", cid.ToString(), $"{Name(old)} → {Name(rank)}");
     }
 
+    /// <summary>First and last name, as on registration; returns an English error or null.</summary>
+    public static string? ValidateName(string name)
+    {
+        if (name.Length < 3 || name.Length > 60 || !name.Contains(' ')) return "Enter your first and last name";
+        if (name.Any(char.IsControl) || name.Contains(':')) return "The name contains characters that are not allowed";
+        return null;
+    }
+
+    /// <summary>Renames a member (the network shows the new name from their next connection).</summary>
+    public void SetName(long actor, long cid, string name)
+    {
+        using var c = db.Open();
+        var old = c.ExecuteScalar<string>("SELECT name FROM members WHERE cid = @cid", new { cid }) ?? "";
+        c.Execute("UPDATE members SET name = @name WHERE cid = @cid", new { cid, name });
+        audit.Log(actor, "name", cid.ToString(), $"{old} → {name}");
+    }
+
     public void SetRoles(long actor, long cid, IEnumerable<string> roles)
     {
         var list = roles.Where(Permissions.Roles.ContainsKey).Distinct().ToList();

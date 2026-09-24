@@ -35,6 +35,8 @@ public sealed class SiteOptions
     ];
     /// <summary>Tile cache directory; empty means "tiles" next to the database.</summary>
     public string TileCache { get; set; } = "";
+    /// <summary>Directory for uploaded banners; empty means "uploads" next to the database.</summary>
+    public string Uploads { get; set; } = "";
     /// <summary>Behind nginx or another reverse proxy: trust its X-Forwarded-For / X-Forwarded-Proto headers.</summary>
     public bool BehindProxy { get; set; }
     /// <summary>Login/registration attempts per minute from one address.</summary>

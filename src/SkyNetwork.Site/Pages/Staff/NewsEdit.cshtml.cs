@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using SkyNetwork.Site.Data;
 using SkyNetwork.Site.Security;
+using SkyNetwork.Site.Services;
 
 namespace SkyNetwork.Site.Pages.Staff;
 
-public sealed class NewsEditModel(CurrentUser me, ContentService content) : StaffPageModel(me)
+public sealed class NewsEditModel(CurrentUser me, ContentService content, UploadStore uploads) : StaffPageModel(me)
 {
     protected override Perm Required => Perm.News;
 
@@ -25,7 +26,7 @@ public sealed class NewsEditModel(CurrentUser me, ContentService content) : Staf
 
     public IActionResult OnGet(string id) => Load(id) ? Page() : NotFound();
 
-    public IActionResult OnPost(string id, string title, string body, bool published)
+    public async Task<IActionResult> OnPostAsync(string id, string title, string body, bool published, IFormFile? banner, bool removeBanner)
     {
         if (!Load(id)) return NotFound();
         Post.Title = (title ?? "").Trim();
@@ -36,7 +37,20 @@ public sealed class NewsEditModel(CurrentUser me, ContentService content) : Staf
             Error = "Fill in the headline and text";
             return Page();
         }
+        string old = Post.Banner;
+        if (banner is { Length: > 0 })
+        {
+            var (name, error) = await uploads.SaveImageAsync(banner, HttpContext.RequestAborted);
+            if (error != null)
+            {
+                Error = error;
+                return Page();
+            }
+            Post.Banner = name!;
+        }
+        else if (removeBanner) Post.Banner = "";
         long saved = content.SavePost(Me.Cid, Post);
+        if (old.Length > 0 && old != Post.Banner) uploads.Delete(old);
         return Redirect($"/staff/news/{saved}");
     }
 
@@ -44,6 +58,7 @@ public sealed class NewsEditModel(CurrentUser me, ContentService content) : Staf
     {
         if (!Load(id) || Post.Id == 0) return NotFound();
         content.DeletePost(Me.Cid, Post.Id);
+        uploads.Delete(Post.Banner);
         return Redirect("/staff/news");
     }
 }

@@ -128,6 +128,8 @@ public sealed class Database
         AddColumn(c, "member_profiles", "pilot_rating", "INTEGER NOT NULL DEFAULT 0");
         AddColumn(c, "member_profiles", "military_rating", "INTEGER NOT NULL DEFAULT 0");
         AddColumn(c, "training_requests", "track", "TEXT NOT NULL DEFAULT 'atc'");
+        AddColumn(c, "events", "banner", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "banner", "TEXT NOT NULL DEFAULT ''");
     }
 
     private static void AddColumn(SqliteConnection c, string table, string column, string type)
