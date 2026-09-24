@@ -8,7 +8,7 @@ User=skynetwork
 WorkingDirectory=/opt/skynetwork/site
 ExecStart=/usr/bin/dotnet /opt/skynetwork/site/SkyNetwork.Site.dll
 Environment=ASPNETCORE_ENVIRONMENT=Production
-Environment=ASPNETCORE_URLS=http://127.0.0.1:8000
+Environment=Urls=http://127.0.0.1:8000
 Environment=Site__Database=/var/lib/skynetwork/skynetwork.db
 Environment=Site__BehindProxy=true
 # Address shown to members on the "how to connect" pages.
