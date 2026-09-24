@@ -3,22 +3,53 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SkyNetwork.Site.Data;
 using SkyNetwork.Site.Security;
+using SkyNetwork.Site.Services;
 
 namespace SkyNetwork.Site.Pages;
 
 /// <summary>Flight plan filing; SkyPilot opens /flightplan?callsign=… and reads /api/flightplans/latest.</summary>
-public sealed partial class FlightPlanModel(CurrentUser me, FlightPlanService plans) : PageModel
+public sealed partial class FlightPlanModel(CurrentUser me, FlightPlanService plans, Simbrief simbrief) : PageModel
 {
+    private const string SimbriefCookie = "simbrief";
+
     [BindProperty] public FlightPlan Plan { get; set; } = new();
     public bool Saved { get; private set; }
     public string? Error { get; private set; }
+    public bool Imported { get; private set; }
+    /// <summary>SimBrief username or Pilot ID, remembered after the first import.</summary>
+    public string SimbriefUser { get; private set; } = "";
 
     public void OnGet(string? callsign, int? saved)
     {
         Saved = saved == 1;
+        SimbriefUser = Request.Cookies[SimbriefCookie] ?? plans.SimbriefUser(me.Cid);
         // Start from the last plan: most flights are re-filed with small changes.
         Plan = plans.Latest(me.Cid) ?? new FlightPlan { Remarks = "/V/" };
         if (!string.IsNullOrWhiteSpace(callsign)) Plan.Callsign = callsign.Trim().ToUpperInvariant();
+    }
+
+    /// <summary>Fills the form from the latest SimBrief plan; the pilot checks it and files it as usual.</summary>
+    public async Task<IActionResult> OnPostSimbriefAsync(string? simbriefUser, CancellationToken ct)
+    {
+        SimbriefUser = (simbriefUser ?? "").Trim();
+        var current = plans.Latest(me.Cid);
+        var (imported, error) = await simbrief.FetchAsync(SimbriefUser, ct);
+        if (imported == null)
+        {
+            Error = error;
+            Plan = current ?? new FlightPlan { Remarks = "/V/" };
+            return Page();
+        }
+        Response.Cookies.Append(SimbriefCookie, SimbriefUser, new CookieOptions
+        {
+            MaxAge = TimeSpan.FromDays(365), HttpOnly = true, IsEssential = true, SameSite = SameSiteMode.Lax, Secure = Request.IsHttps,
+        });
+        // Remembered for the map: it finds this member's SimBrief route by itself from now on.
+        plans.SetSimbriefUser(me.Cid, SimbriefUser);
+        imported.Remarks = current?.Remarks is { Length: > 0 } remarks ? remarks : "/V/";
+        Plan = imported;
+        Imported = true;
+        return Page();
     }
 
     public IActionResult OnPost()
@@ -37,6 +68,8 @@ public sealed partial class FlightPlanModel(CurrentUser me, FlightPlanService pl
         p.CruiseAltitude = U(p.CruiseAltitude);
         p.Route = Regex.Replace(U(p.Route), @"\s+", " ");
         p.Remarks = (p.Remarks ?? "").Trim();
+        p.Waypoints = Simbrief.Clean(p.Waypoints);
+        SimbriefUser = Request.Cookies[SimbriefCookie] ?? "";
         Error = Validate(p);
         if (Error != null) return Page();
         plans.File(p);

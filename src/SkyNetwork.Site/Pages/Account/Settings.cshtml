@@ -11,7 +11,17 @@
     <p class="muted small">@L["Your name is changed through"] <a href="/account/support">@L["support"]</a> — @L["people recognise you by it on the air."]</p>
     <form method="post" asp-page-handler="Profile" class="form">
       <label>@L["Email"]<input name="Email" type="email" value="@Model.Email" required maxlength="120"></label>
-      <label>@L["Country"]<input name="Country" value="@Model.Country" maxlength="60"></label>
+      <label>@L["Country"]
+        <select name="Country" autocomplete="country-name">
+          <option value="">@L["Not specified"]</option>
+          @{ var chosen = Countries.Normalize(Model.Country); }
+          @if (Model.Country.Length > 0 && chosen == null) { <option value="@Model.Country" selected>@Model.Country</option> }
+          @foreach (var (value, name) in Countries.List(L.IsRu))
+          {
+            <option value="@value" selected="@(chosen == value)">@name</option>
+          }
+        </select>
+      </label>
       <div><button class="btn btn-primary" type="submit">@L["Save profile"]</button></div>
     </form>
     <h2 style="font-size:20px;margin-top:40px">@L["Password"]</h2>

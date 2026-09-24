@@ -25,6 +25,10 @@ public enum Perm
     PilotRatings = 1 << 14,
     /// <summary>Change a member's first and last name.</summary>
     EditNames = 1 << 15,
+    /// <summary>Issue and revoke division API keys.</summary>
+    ManageDivisions = 1 << 16,
+    /// <summary>Approve or decline the rating requests divisions send after an exam.</summary>
+    ApproveRatings = 1 << 17,
     All = ~0,
 }
 
@@ -45,7 +49,7 @@ public static class Permissions
 
     private const Perm Supervisor = Perm.StaffArea | Perm.ViewMembers | Perm.Suspend | Perm.Notes | Perm.Tickets | Perm.Online |
                                     Perm.Bookings | Perm.Audit | Perm.Training | Perm.Events | Perm.News | Perm.PilotRatings |
-                                    Perm.EditNames;
+                                    Perm.EditNames | Perm.ApproveRatings;
 
     private const Perm Instructor = Perm.StaffArea | Perm.ViewMembers | Perm.Notes | Perm.Training | Perm.EditRatings | Perm.Online |
                                     Perm.PilotRatings;
@@ -79,6 +83,17 @@ public static class Permissions
         if (!actor.HasFlag(Perm.EditRatings) || !Ratings.IsController(to)) return false;
         if (actorStaffRank == Ratings.ADM) return true;
         return from <= Ratings.C3 && to <= Ratings.C3;
+    }
+
+    /// <summary>
+    /// Whether a rating request from a division may be approved: supervisors approve controller ratings
+    /// up to C3 and every pilot and military rating; instructor ratings (I1–I3) only administrators.
+    /// </summary>
+    public static bool CanApproveRating(int actorStaffRank, Perm actor, string track, int target)
+    {
+        if (!actor.HasFlag(Perm.ApproveRatings)) return false;
+        if (actorStaffRank == Ratings.ADM) return true;
+        return track != "atc" || target <= Ratings.C3;
     }
 
     /// <summary>

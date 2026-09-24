@@ -25,8 +25,10 @@ public sealed class SettingsModel(CurrentUser me, MemberService members) : PageM
     public IActionResult OnPostProfile()
     {
         Email = Email.Trim();
-        Country = Country.Trim();
+        Country = Countries.Normalize(Country) ?? Country.Trim();
         if (!MailAddress.TryCreate(Email, out _)) Error = "Check the email address";
+        // A country typed before the list existed can stay as it is.
+        else if (Country.Length > 0 && Countries.Normalize(Country) == null && Country != me.Member!.Country) Error = "Choose a country from the list";
         else if (!Email.Equals(me.Member!.Email, StringComparison.OrdinalIgnoreCase) && members.EmailTaken(Email)) Error = "This email is already in use";
         else
         {

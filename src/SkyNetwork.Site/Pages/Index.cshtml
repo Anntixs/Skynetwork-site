@@ -2,130 +2,232 @@
 @model IndexModel
 @{
     var s = Model.Online;
+    string N(long n) => n.ToString("N0", L.Culture);
 }
 @section Head {
   <link rel="stylesheet" href="~/lib/leaflet/leaflet.css">
+  <script>if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) document.documentElement.classList.add('motion');</script>
 }
-<section class="hero">
-  <div class="wrap hero-grid">
-    <div>
-      <div class="eyebrow">@L["Virtual aviation network"]</div>
-      <h1>@L["One sky for pilots and controllers"]</h1>
-      <p class="lead">@L["On SkyNetwork pilots fly in MSFS while controllers guide them from the ground — for real, on the radio and by the rules. Membership is free."]</p>
-      <div class="hero-actions">
+<section class="sec hero" id="hero" aria-labelledby="hero-h">
+  <div class="wrap">
+    <div class="hero-text" data-reveal-group>
+      <div class="eyebrow" data-reveal>@L["Virtual aviation network"]</div>
+      <h1 id="hero-h" data-reveal>@L["One sky for pilots and controllers"]</h1>
+      <p class="lead" data-reveal>@L["On SkyNetwork pilots fly in MSFS while controllers guide them from the ground — for real, on the radio and by the rules. Membership is free."]</p>
+      <div class="hero-actions" data-reveal>
         @if (Me.IsSignedIn)
         {
-          <a class="btn btn-primary" href="/flightplan">@L["File a flight plan"]</a>
-          <a class="btn" href="/map">@L["Live map"]</a>
+          <a class="btn btn-primary btn-pill" href="/flightplan">@L["File a flight plan"]</a>
+          <a class="chev-link" href="/map">@L["Live map"]<partial name="_Chevron" /></a>
         }
         else
         {
-          <a class="btn btn-primary" href="/register">@L["Register"]</a>
-          <a class="btn" href="/docs">@L["Getting started"]</a>
-        }
-      </div>
-      <div class="live-line">
-        @if (s.Available)
-        {
-          <span class="dot"></span>
-          <span>@L["On the air now:"] <b>@s.Pilots.Count</b> @L.Plural(s.Pilots.Count, "pilot", "pilots") @L["and"] <b>@s.Controllers.Count</b> @L.Plural(s.Controllers.Count, "controller", "controllers")</span>
-        }
-        else
-        {
-          <span class="dot off"></span><span>@L["The server is not responding right now"]</span>
+          <a class="btn btn-primary btn-pill" href="/register">@L["Register"]</a>
+          <a class="chev-link" href="/docs">@L["Getting started"]<partial name="_Chevron" /></a>
         }
       </div>
     </div>
-    <div class="hero-map" id="map" data-compact="1" aria-label="@L["Traffic map"]"></div>
-  </div>
-</section>
 
-<section class="section band">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>@L["Controllers on the air"]</h2>
-      <a href="/online">@L["Everyone online →"]</a>
+    <div class="hero-screen" data-reveal style="--i:3">
+      <div class="hero-map" id="map" data-compact="1" aria-label="@L["Traffic map"]" data-text="@MapTexts.Json(L)"></div>
+      @if (s.Available)
+      {
+        <span class="screen-chip"><span class="dot"></span><span>@L["Pilots"] <b id="pilot-count">@s.Pilots.Count</b></span><span class="sep" aria-hidden="true">·</span><span>@L["Controllers"] <b id="atc-count">@s.Controllers.Count</b></span></span>
+      }
+      else
+      {
+        <span class="screen-chip off"><span class="dot off"></span><span>@L["The server is not responding right now"]</span></span>
+      }
+      <a class="screen-link" href="/map"><span>@L["Open the map"]</span><partial name="_Chevron" /></a>
     </div>
-    @if (s.Controllers.Count == 0)
-    {
-      <div class="empty">@L["No one is on position right now."] <a href="/bookings">@L["Book a position"]</a> @L["so pilots know when you will be on."]</div>
-    }
-    else
-    {
-      <div class="strips two">
-        @foreach (var c in s.Controllers.Take(8))
-        {
-          <div class="strip @c.FacilityName">
-            <span class="cs">@c.Callsign</span>
-            <span class="who">@c.Name · @c.Rating</span>
-            <span class="freq">@c.Frequency</span>
-          </div>
-        }
-      </div>
-    }
+
+    <div class="nums" data-reveal-group="4">
+      <div class="num" data-reveal><b data-mirror="pilot-count">@(s.Available ? N(s.Pilots.Count) : "—")</b><span>@L["Pilots in the air"]</span></div>
+      <div class="num" data-reveal><b data-mirror="atc-count">@(s.Available ? N(s.Controllers.Count) : "—")</b><span>@L["Controllers on position"]</span></div>
+      <div class="num" data-reveal><b>@N(Model.MemberCount)</b><span>@L["Members"]</span></div>
+      <div class="num" data-reveal><b>@N(Model.SessionsMonth)</b><span>@L["Sessions in 30 days"]</span><small>@L.F("{0} today", N(Model.SessionsToday))</small></div>
+    </div>
   </div>
 </section>
 
-<section class="section">
+<section class="sec" id="on-air" aria-labelledby="on-air-h">
   <div class="wrap">
-    <div class="section-head">
-      <h2>@L["Upcoming events"]</h2>
-      <a href="/events">@L["All events →"]</a>
+    <div class="sec-head" data-reveal>
+      <h2 id="on-air-h">@L["Controllers on the air"]</h2>
+      <p>@L["Frequencies you can call right now."]</p>
+    </div>
+    <div class="board" data-reveal>
+      @if (!s.Available)
+      {
+        <div class="empty"><p><span class="dot off"></span>@L["The server is not responding right now"]</p></div>
+      }
+      else if (s.Controllers.Count == 0)
+      {
+        <div class="empty">
+          <svg class="empty-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19v1a2 2 0 0 1-2 2h-3"/></svg>
+          <p>@L["No one is on position right now."] <a href="/bookings">@L["Book a position"]</a> @L["so pilots know when you will be on."]</p>
+        </div>
+      }
+      else
+      {
+        <div class="strips two">
+          @foreach (var c in s.Controllers.Take(8))
+          {
+            <div class="strip @c.FacilityName">
+              <span class="cs">@c.Callsign</span>
+              <span class="who">@c.Name · @c.Rating</span>
+              <span class="freq">@c.Frequency</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+    <p class="sec-more" data-reveal>
+      <a class="chev-link" href="/online">@(s.Controllers.Count > 8 ? L.F("Everyone online ({0})", s.Controllers.Count) : L["Everyone online"])<partial name="_Chevron" /></a>
+    </p>
+  </div>
+</section>
+
+<section class="sec" id="events" aria-labelledby="events-h">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <h2 id="events-h">@L["Upcoming events"]</h2>
+      <p>@L["Staffed positions, busy skies, real procedures."]</p>
     </div>
     @if (Model.Events.Count == 0)
     {
-      <div class="empty">@L["No events planned yet."]</div>
+      <div class="empty" data-reveal>
+        <svg class="empty-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        <p>@L["No events planned yet."]</p>
+      </div>
     }
     else
     {
-      <div class="grid three">
+      <div class="grid three cards" data-reveal-group>
         @foreach (var e in Model.Events)
         {
-          <a class="card @(e.BannerUrl != null ? "with-banner" : "")" href="/events/@e.Id">
-            @if (e.BannerUrl is { } banner) { <img class="card-banner" src="@banner" alt="" loading="lazy"> }
-            <span class="date-chip">@Format.Span(e.Start, e.End)</span>
-            <h3>@e.Title</h3>
-            <p class="muted small">@e.Summary</p>
-            @if (e.Airports.Length > 0) { <span class="mono small">@e.Airports</span> }
+          <a class="card" href="/events/@e.Id" data-reveal>
+            <span class="card-media @(e.BannerUrl == null ? "blank" : "")">
+              @if (e.BannerUrl is { } banner)
+              {
+                <img src="@banner" alt="" loading="lazy" decoding="async">
+              }
+              else
+              {
+                <svg class="arc" viewBox="0 0 320 180" aria-hidden="true" focusable="false"><path d="M40 140 Q160 30 280 140" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 6"/><circle cx="40" cy="140" r="3" fill="currentColor"/><circle cx="280" cy="140" r="3" fill="currentColor"/></svg>
+              }
+            </span>
+            <div class="card-body">
+              <span class="date-chip">@Format.Span(e.Start, e.End)</span>
+              <h3>@e.Title</h3>
+              <p>@e.Summary</p>
+              @if (e.Airports.Length > 0) { <span class="mono airports">@e.Airports</span> }
+            </div>
           </a>
         }
       </div>
     }
+    <p class="sec-more" data-reveal><a class="chev-link" href="/events">@L["All events"]<partial name="_Chevron" /></a></p>
   </div>
 </section>
 
-<section class="section">
-  <div class="wrap grid two" style="gap:48px">
-    <div>
-      <div class="section-head"><h2>@L["Getting started"]</h2></div>
-      <div class="steps" style="grid-template-columns:1fr">
-        <div class="step"><h3>@L["Register"]</h3><p class="muted small">@L["You get a CID, your member number. With it and your password you sign in to the website and the network."]</p></div>
-        <div class="step"><h3>@L["Install the software"]</h3><p class="muted small">@L["Pilots use SkyPilot for MSFS 2020/2024, controllers use the Network-ATC radar."] <a href="/docs/software">@L["Download"]</a></p></div>
-        <div class="step"><h3>@L["Get on the air"]</h3><p class="muted small">@L["File a flight plan on the website and connect. Controllers need a rating — start with"] <a href="/docs/ratings">@L["training"]</a>.</p></div>
-      </div>
+@if (Model.Gallery.Count > 0)
+{
+<section class="sec" id="gallery" aria-labelledby="gallery-h">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <h2 id="gallery-h">@L["Screenshots from the network"]</h2>
+      <p>@L["Moments caught by our members."]</p>
     </div>
-    <div>
-      <div class="section-head"><h2>@L["News"]</h2><a href="/news">@L["All news →"]</a></div>
-      @if (Model.News.Count == 0)
-      {
-        <div class="empty">@L["No news yet."]</div>
-      }
-      <div class="news-list">
-        @foreach (var n in Model.News)
+    <div class="gallery" role="region" aria-roledescription="carousel" aria-label="@L["Screenshot gallery"]" data-reveal>
+      <div class="gallery-frame">
+        @for (int i = 0; i < Model.Gallery.Count; i++)
         {
-          <div class="news-item @(n.BannerUrl != null ? "with-thumb" : "")">
-            @if (n.BannerUrl is { } thumb) { <a href="/news/@n.Id" class="news-thumb"><img src="@thumb" alt="" loading="lazy"></a> }
-            <div class="muted small">@Format.Date(n.Created)</div>
-            <h3><a href="/news/@n.Id">@n.Title</a></h3>
-            <p class="muted small">@(n.Body.Length > 180 ? n.Body[..180] + "…" : n.Body)</p>
-          </div>
+          <img class="slide @(i == 0 ? "active" : "")" src="@Model.Gallery[i]" alt="@L.F("Screenshot {0} of {1}", i + 1, Model.Gallery.Count)" aria-hidden="@(i == 0 ? "false" : "true")" loading="@(i == 0 ? "eager" : "lazy")" decoding="async">
         }
       </div>
+      @if (Model.Gallery.Count > 1)
+      {
+        <div class="gallery-dots" hidden>
+          @for (int i = 0; i < Model.Gallery.Count; i++)
+          {
+            <button type="button" aria-label="@L.F("Show screenshot {0}", i + 1)" aria-pressed="@(i == 0 ? "true" : "false")"><i></i></button>
+          }
+        </div>
+      }
     </div>
+  </div>
+</section>
+}
+
+<section class="sec" id="start" aria-labelledby="start-h">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <h2 id="start-h">@L["Getting started"]</h2>
+      <p>@L["Three steps, half an hour, and you are on frequency."]</p>
+    </div>
+    <div class="steps" data-reveal-group>
+      <div class="step" data-reveal><h3>@L["Register"]</h3><p>@L["You get a CID, your member number. With it and your password you sign in to the website and the network."]</p></div>
+      <div class="step" data-reveal><h3>@L["Install the software"]</h3><p>@L["Pilots use SkyPilot for MSFS 2020/2024, controllers use the Network-ATC radar."] <a href="/docs/software">@L["Download"]</a></p></div>
+      <div class="step" data-reveal><h3>@L["Get on the air"]</h3><p>@L["File a flight plan on the website and connect. Controllers need a rating — start with"] <a href="/docs/ratings">@L["training"]</a>.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="news" aria-labelledby="news-h">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <h2 id="news-h">@L["News"]</h2>
+      <p>@L["What changed on the network."]</p>
+    </div>
+    @if (Model.News.Count == 0)
+    {
+      <div class="empty" data-reveal>
+        <svg class="empty-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13a1 1 0 0 1 1 1v12a2 2 0 0 0 4 0V9h-4"/><path d="M4 5v13a2 2 0 0 0 2 2h14"/><path d="M8 9h6M8 13h6"/></svg>
+        <p>@L["No news yet."]</p>
+      </div>
+    }
+    else
+    {
+      <div class="grid three cards" data-reveal-group>
+        @foreach (var n in Model.News)
+        {
+          <a class="card" href="/news/@n.Id" data-reveal>
+            @if (n.BannerUrl is { } thumb)
+            {
+              <span class="card-media"><img src="@thumb" alt="" loading="lazy" decoding="async"></span>
+            }
+            <div class="card-body">
+              <span class="card-date">@Format.Date(n.Created)</span>
+              <h3>@n.Title</h3>
+              <p>@(n.Body.Length > 160 ? n.Body[..160] + "…" : n.Body)</p>
+            </div>
+          </a>
+        }
+      </div>
+    }
+    <p class="sec-more" data-reveal><a class="chev-link" href="/news">@L["All news"]<partial name="_Chevron" /></a></p>
+  </div>
+</section>
+
+<section class="sec" id="cta" aria-labelledby="cta-h">
+  <div class="wrap cta" data-reveal-group>
+    <h2 id="cta-h" data-reveal>@L["Your first flight starts here."]</h2>
+    @if (Me.IsSignedIn)
+    {
+      <p data-reveal>@L["File a flight plan, connect, and the sky is yours."]</p>
+      <p class="cta-actions" data-reveal><a class="btn btn-primary btn-pill" href="/flightplan">@L["File a flight plan"]</a></p>
+    }
+    else
+    {
+      <p data-reveal>@L["Membership is free. Register, install the software and get on the air."]</p>
+      <p class="cta-actions" data-reveal><a class="btn btn-primary btn-pill" href="/register">@L["Register"]</a></p>
+    }
   </div>
 </section>
 
 @section Scripts {
   <script src="~/lib/leaflet/leaflet.js"></script>
   <script src="~/js/map.js" asp-append-version="true"></script>
+  <script src="~/js/home.js" asp-append-version="true" onerror="document.documentElement.classList.remove('motion')"></script>
 }

@@ -7,7 +7,7 @@ public sealed record FeedFlightPlan(string Rules, string Aircraft, int CruiseSpe
     string CruiseAltitude, string Destination, int EnrouteMinutes, int FuelMinutes, string Alternate, string Remarks, string Route);
 
 public sealed record PilotOnline(long Cid, string Name, string Callsign, double? Latitude, double? Longitude, int Altitude,
-    int Groundspeed, string Transponder, double? Heading, DateTime LogonTime, FeedFlightPlan? FlightPlan);
+    int Groundspeed, string Transponder, double? Heading, DateTime LogonTime, FeedFlightPlan? FlightPlan, bool OnGround = false);
 
 public sealed record ControllerOnline(long Cid, string Name, string Callsign, string Rating, string Frequency, int Facility,
     int VisualRange, double? Latitude, double? Longitude, DateTime LogonTime)
@@ -17,6 +17,9 @@ public sealed record ControllerOnline(long Cid, string Name, string Callsign, st
         1 => "FSS", 2 => "DEL", 3 => "GND", 4 => "TWR", 5 => "APP", 6 => "CTR", _ => "OBS",
     };
 }
+
+/// <summary>One point of an aircraft's flown track (unix seconds).</summary>
+public readonly record struct TrackPoint(double Latitude, double Longitude, int Altitude, int Groundspeed, long Time);
 
 /// <summary>Who is online, from the FSD server's data feed.</summary>
 public sealed record OnlineSnapshot(DateTime Updated, string Server, bool Available, IReadOnlyList<PilotOnline> Pilots,
@@ -42,9 +45,11 @@ public static class FeedParser
         {
             string callsign = p.GetProperty("callsign").GetString() ?? "";
             double? lat = Number(p, "latitude"), lon = Number(p, "longitude");
-            // The feed has no heading: take the track from the previous position, or keep the old one.
-            double? heading = null;
-            if (before.TryGetValue(callsign, out var old))
+            // The heading comes with the feed (the server reads it from the position packet); an older server has none,
+            // then the track from the previous position, or the old value, is used.
+            double? heading = Number(p, "heading");
+            bool onGround = p.TryGetProperty("on_ground", out var og) && og.ValueKind == JsonValueKind.True;
+            if (heading == null && before.TryGetValue(callsign, out var old))
             {
                 heading = old.Heading;
                 if (lat is { } la && lon is { } lo && old.Latitude is { } pla && old.Longitude is { } plo && Distance(pla, plo, la, lo) > 0.05)
@@ -54,7 +59,7 @@ public static class FeedParser
                 p.GetProperty("cid").GetInt64(), p.GetProperty("name").GetString() ?? "", callsign, lat, lon,
                 Int(p, "altitude"), Int(p, "groundspeed"), p.TryGetProperty("transponder", out var t) ? t.GetString() ?? "" : "",
                 heading, Logon(p),
-                p.TryGetProperty("flight_plan", out var fp) && fp.ValueKind == JsonValueKind.String ? ParsePlan(fp.GetString()!) : null));
+                p.TryGetProperty("flight_plan", out var fp) && fp.ValueKind == JsonValueKind.String ? ParsePlan(fp.GetString()!) : null, onGround));
         }
 
         var controllers = new List<ControllerOnline>();

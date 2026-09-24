@@ -11,17 +11,18 @@ public sealed class TileProxy(IHttpClientFactory http, IOptions<SiteOptions> opt
 {
     private static readonly TimeSpan MaxAge = TimeSpan.FromDays(7);
 
-    /// <param name="style">"light" or "dark" (the site theme).</param>
-    public async Task<IResult> GetAsync(string style, int z, int x, int y, CancellationToken ct)
+    /// <param name="layer">A layer name from <see cref="SiteOptions.TileLayers"/> or <see cref="SiteOptions.DefaultTileLayers"/>.</param>
+    public async Task<IResult> GetAsync(string layer, int z, int x, int y, CancellationToken ct)
     {
-        if (style is not ("light" or "dark") || z < 0 || z > 18 || x < 0 || y < 0 || x >= 1 << z || y >= 1 << z) return Results.NotFound();
-        string file = Path.Combine(CacheDir, style, z.ToString(), x.ToString(), y + ".png");
+        if (z < 0 || z > 18 || x < 0 || y < 0 || x >= 1 << z || y >= 1 << z) return Results.NotFound();
+        // Only known layer names reach the file system.
+        if (!(options.Value.TileLayers.TryGetValue(layer, out var sources) && sources.Length > 0)
+            && !SiteOptions.DefaultTileLayers.TryGetValue(layer, out sources)) return Results.NotFound();
+        string file = Path.Combine(CacheDir, layer, z.ToString(), x.ToString(), y + ".png");
         var info = new FileInfo(file);
         if (info.Exists && DateTime.UtcNow - info.LastWriteTimeUtc < MaxAge) return Tile(file);
 
         var client = http.CreateClient("tiles");
-        var configured = style == "dark" ? options.Value.DarkTileSources : options.Value.TileSources;
-        var sources = configured is { Length: > 0 } ? configured : style == "dark" ? SiteOptions.DefaultDarkTileSources : SiteOptions.DefaultTileSources;
         foreach (var source in sources)
         {
             string url = source.Replace("{z}", z.ToString()).Replace("{x}", x.ToString()).Replace("{y}", y.ToString());
@@ -60,5 +61,11 @@ public sealed class TileProxy(IHttpClientFactory http, IOptions<SiteOptions> opt
         }
     }
 
-    private static IResult Tile(string file) => Results.File(file, "image/png");
+    // Sources answer with PNG or JPEG; the cached file keeps the bytes as they came.
+    private static IResult Tile(string file)
+    {
+        var head = new byte[2];
+        using (var f = File.OpenRead(file)) f.ReadAtLeast(head, 2, throwOnEndOfStream: false);
+        return Results.File(file, head is [0xFF, 0xD8] ? "image/jpeg" : "image/png");
+    }
 }

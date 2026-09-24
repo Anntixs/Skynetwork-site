@@ -22,6 +22,7 @@ public class TileProxyTests
                 try { ctx = await listener.GetContextAsync(); } catch { return; }
                 lock (hits) hits.Add(ctx.Request.Url!.AbsolutePath);
                 if (ctx.Request.Url!.AbsolutePath.StartsWith("/down/")) ctx.Response.StatusCode = 503;
+                else if (ctx.Request.Url!.AbsolutePath.StartsWith("/labels/")) await ctx.Response.OutputStream.WriteAsync("LBL"u8.ToArray());
                 else await ctx.Response.OutputStream.WriteAsync("PNG"u8.ToArray());
                 ctx.Response.Close();
             }
@@ -32,8 +33,9 @@ public class TileProxyTests
         using var app = site.WithWebHostBuilder(b =>
         {
             b.UseSetting("Site:TileCache", cache);
-            b.UseSetting("Site:TileSources:0", $"http://127.0.0.1:{port}/down/{{z}}/{{x}}/{{y}}.png");
-            b.UseSetting("Site:TileSources:1", $"http://127.0.0.1:{port}/up/{{z}}/{{x}}/{{y}}.png");
+            b.UseSetting("Site:TileLayers:light:0", $"http://127.0.0.1:{port}/down/{{z}}/{{x}}/{{y}}.png");
+            b.UseSetting("Site:TileLayers:light:1", $"http://127.0.0.1:{port}/up/{{z}}/{{x}}/{{y}}.png");
+            b.UseSetting("Site:TileLayers:light-labels:0", $"http://127.0.0.1:{port}/labels/{{z}}/{{x}}/{{y}}.png");
         });
         var c = app.CreateClient();
         try
@@ -49,9 +51,17 @@ public class TileProxyTests
             lock (hits) Assert.Equal(["/down/3/5/2.png", "/up/3/5/2.png"], hits);
             Assert.True(File.Exists(Path.Combine(cache, "light", "3", "5", "2.png")));
 
+            // Each layer has its own sources and cache.
+            var labels = await c.GetAsync("/tiles/light-labels/3/5/2.png");
+            Assert.Equal(HttpStatusCode.OK, labels.StatusCode);
+            Assert.Equal("LBL", await labels.Content.ReadAsStringAsync());
+            Assert.True(File.Exists(Path.Combine(cache, "light-labels", "3", "5", "2.png")));
+
             Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/tiles/light/3/8/0.png")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/tiles/light/19/0/0.png")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/tiles/sepia/3/5/2.png")).StatusCode);
+            // Unknown layers never reach the disk.
+            Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/tiles/nope/3/5/2.png")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/tiles/..%2F..%2Fetc/3/5/2.png")).StatusCode);
         }
         finally
         {

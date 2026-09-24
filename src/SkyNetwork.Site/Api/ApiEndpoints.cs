@@ -24,13 +24,64 @@ public static class ApiEndpoints
             return Results.File(path, UploadStore.ContentType(name));
         });
 
-        app.MapGet("/tiles/{style}/{z:int}/{x:int}/{y:int}.png", async (string style, int z, int x, int y, TileProxy tiles, HttpContext ctx) =>
+        app.MapGet("/tiles/{layer}/{z:int}/{x:int}/{y:int}.png", async (string layer, int z, int x, int y, TileProxy tiles, HttpContext ctx) =>
         {
             ctx.Response.Headers.CacheControl = "public, max-age=604800";
-            return await tiles.GetAsync(style, z, x, y, ctx.RequestAborted);
+            return await tiles.GetAsync(layer, z, x, y, ctx.RequestAborted);
         });
 
         var v1 = app.MapGroup("/api/v1").RequireCors("api");
+
+        // For the map: the route as points (SimBrief when the pilot uses it, otherwise worked out from the route text)
+        // and the track flown so far.
+        v1.MapGet("/pilots/{callsign}/route", async (string callsign, NetworkFeed feed, FlightPlanService plans, Simbrief simbrief, NavData nav, CancellationToken ct) =>
+        {
+            var p = feed.Current.Pilots.FirstOrDefault(x => x.Callsign.Equals(callsign, StringComparison.OrdinalIgnoreCase));
+            if (p == null) return Results.NotFound();
+            string? source = null;
+            StoredRoute? stored = null;
+            List<RoutePoint>? points = null;
+            List<string> unresolved = [];
+            if (p.FlightPlan is { } fp)
+            {
+                // A plan imported here, otherwise the pilot's latest SimBrief plan for the same flight.
+                stored = StoredRoute.Parse(plans.Waypoints(p.Cid, fp.Departure, fp.Destination)
+                    ?? await simbrief.RouteForAsync(plans.SimbriefUser(p.Cid), fp.Departure, fp.Destination, ct));
+                if (stored != null) { source = "simbrief"; points = stored.Points; }
+                else
+                {
+                    (points, unresolved) = nav.Decode(fp.Departure, fp.Destination, fp.Route);
+                    source = points.Count > 1 ? "route" : null;
+                }
+            }
+            return Results.Ok(new
+            {
+                source,
+                waypoints = source != null ? points!.Select(w => new object[] { w.Ident, Math.Round(w.Lat, 4), Math.Round(w.Lon, 4), w.Airway, w.Altitude }) : null,
+                unresolved,
+                extras = stored?.Extras(),
+                track = feed.Track(p.Callsign).Select(t => new object[] { Math.Round(t.Latitude, 4), Math.Round(t.Longitude, 4), t.Altitude, t.Groundspeed, t.Time }),
+            });
+        });
+
+        // A route text as points, for anyone building on the API (SkyPilot, event pages).
+        v1.MapGet("/routes/decode", (string? departure, string? destination, string? route, NavData nav) =>
+        {
+            if (departure is not { Length: 4 } || destination is not { Length: 4 } || route is not { Length: <= 2000 }) return Results.BadRequest();
+            var (points, unresolved) = nav.Decode(departure, destination, route);
+            return Results.Ok(new { waypoints = points.Select(w => new object[] { w.Ident, Math.Round(w.Lat, 4), Math.Round(w.Lon, 4), w.Airway }), unresolved });
+        });
+
+        v1.MapGet("/airports/{icao}/layout", async (string icao, AirportLayout layouts, HttpContext ctx) =>
+        {
+            string? json = await layouts.GetAsync(icao, ctx.RequestAborted);
+            if (json == null) return Results.StatusCode(StatusCodes.Status502BadGateway);
+            ctx.Response.Headers.CacheControl = "public, max-age=86400";
+            return Results.Text(json, "application/json");
+        });
+
+        v1.MapGet("/metar/{icao}", async (string icao, MetarService metar, CancellationToken ct) =>
+            await metar.GetAsync(icao, ct) is { } text ? Results.Ok(new { icao = icao.ToUpperInvariant(), metar = text }) : Results.NotFound());
 
         v1.MapGet("/status", (Microsoft.Extensions.Options.IOptions<SiteOptions> o, NetworkFeed feed) => new
         {
@@ -51,7 +102,7 @@ public static class ApiEndpoints
                 pilots = s.Pilots.Select(p => new
                 {
                     p.Cid, p.Name, p.Callsign, p.Latitude, p.Longitude, p.Altitude, p.Groundspeed, p.Heading, p.Transponder,
-                    logonTime = p.LogonTime, flightPlan = p.FlightPlan,
+                    onGround = p.OnGround, logonTime = p.LogonTime, flightPlan = p.FlightPlan,
                 }),
                 controllers = s.Controllers.Select(c => new
                 {

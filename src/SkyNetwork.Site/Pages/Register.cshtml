@@ -15,7 +15,15 @@
         <input name="Email" type="email" value="@Model.Email" required maxlength="120" autocomplete="email">
       </label>
       <label>@L["Country"]
-        <input name="Country" value="@Model.Country" maxlength="60" autocomplete="country-name">
+        <select name="Country" required autocomplete="country-name">
+          <option value="">@L["Choose a country"]</option>
+          @{ var chosen = Countries.Normalize(Model.Country); }
+          @if (Model.Country.Length > 0 && chosen == null) { <option value="@Model.Country" selected>@Model.Country</option> }
+          @foreach (var (value, name) in Countries.List(L.IsRu))
+          {
+            <option value="@value" selected="@(chosen == value)">@name</option>
+          }
+        </select>
       </label>
       <label>@L["Password"]
         <input name="Password" type="password" required minlength="8" autocomplete="new-password">

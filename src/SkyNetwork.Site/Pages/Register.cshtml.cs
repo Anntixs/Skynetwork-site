@@ -22,9 +22,12 @@ public sealed class RegisterModel(MemberService members) : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        Name = Name.Trim();
-        Email = Email.Trim();
-        Country = Country.Trim();
+        // An empty field binds as null.
+        Name = (Name ?? "").Trim();
+        Email = (Email ?? "").Trim();
+        Country = Countries.Normalize(Country ?? "") ?? (Country ?? "").Trim();
+        Password ??= "";
+        Confirm ??= "";
         Error = Validate();
         if (Error != null) return Page();
         long cid = members.Register(Name, Email, Country, Password);
@@ -37,6 +40,7 @@ public sealed class RegisterModel(MemberService members) : PageModel
         if (MemberService.ValidateName(Name) is { } nameError) return nameError;
         if (!MailAddress.TryCreate(Email, out _)) return "Check the email address";
         if (members.EmailTaken(Email)) return "This email is already registered. Forgot your CID? Write to support";
+        if (Countries.Normalize(Country) == null) return "Choose a country from the list";
         if (Password.Length < 8) return "The password must be at least 8 characters";
         if (Password.Contains(':')) return "The password cannot contain a colon";
         if (Password != Confirm) return "The passwords do not match";

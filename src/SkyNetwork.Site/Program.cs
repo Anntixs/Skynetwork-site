@@ -21,6 +21,7 @@ builder.Services.AddSingleton<MemberService>();
 builder.Services.AddSingleton<ContentService>();
 builder.Services.AddSingleton<FlightPlanService>();
 builder.Services.AddSingleton<SupportService>();
+builder.Services.AddSingleton<DivisionService>();
 builder.Services.AddSingleton<SessionService>();
 builder.Services.AddScoped<CurrentUser>();
 builder.Services.AddScoped<Lang>();
@@ -34,6 +35,17 @@ builder.Services.AddHttpClient("tiles", c =>
     c.DefaultRequestHeaders.UserAgent.ParseAdd("SkyNetworkSite/1.0 (+https://github.com/Anntixs/Skynetwork-site)");
 });
 builder.Services.AddSingleton<TileProxy>();
+builder.Services.AddSingleton<NavData>();
+builder.Services.AddHttpClient("simbrief", c => c.Timeout = TimeSpan.FromSeconds(15));
+builder.Services.AddSingleton<Simbrief>();
+builder.Services.AddHttpClient("metar", c => c.Timeout = TimeSpan.FromSeconds(10));
+builder.Services.AddSingleton<MetarService>();
+builder.Services.AddHttpClient("overpass", c =>
+{
+    c.Timeout = TimeSpan.FromSeconds(45);
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("SkyNetworkSite/1.0 (+https://github.com/Anntixs/Skynetwork-site)");
+});
+builder.Services.AddSingleton<AirportLayout>();
 builder.Services.AddSingleton<UploadStore>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<NetworkFeed>());
 
@@ -59,7 +71,7 @@ builder.Services.AddRazorPages(o =>
     o.Conventions.AuthorizeFolder("/Account");
     o.Conventions.AuthorizePage("/FlightPlan");
     o.Conventions.AuthorizePage("/Training");
-});
+}).AddMvcOptions(o => o.ModelMetadataDetailsProviders.Add(new KeepEmptyStrings()));
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -68,6 +80,11 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "?",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1) }));
+    // Division API: per key (or address when there is none).
+    int divisionLimit = builder.Configuration.GetValue("Site:DivisionApiRequestsPerMinute", 120);
+    o.AddPolicy("division-api", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        DivisionApi.KeyOf(ctx) ?? ctx.Connection.RemoteIpAddress?.ToString() ?? "?",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = divisionLimit, Window = TimeSpan.FromMinutes(1) }));
 });
 builder.Services.AddCors(o => o.AddPolicy("api", p => p.AllowAnyOrigin().AllowAnyHeader().WithMethods("GET")));
 
@@ -113,6 +130,7 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapSiteApi();
+app.MapDivisionApi();
 
 // Language switch: remembered for a year in a cookie, then back to the page.
 app.MapGet("/lang/{code}", (string code, string? r, HttpContext ctx) =>
@@ -127,6 +145,15 @@ static CookieOptions Preference(HttpContext ctx) => new()
 };
 
 app.Run();
+
+/// <summary>Form fields left empty bind as "" rather than null (string properties are never null).</summary>
+sealed class KeepEmptyStrings : Microsoft.AspNetCore.Mvc.ModelBinding.Metadata.IDisplayMetadataProvider
+{
+    public void CreateDisplayMetadata(Microsoft.AspNetCore.Mvc.ModelBinding.Metadata.DisplayMetadataProviderContext context)
+    {
+        if (context.Key.ModelType == typeof(string)) context.DisplayMetadata.ConvertEmptyStringToNull = false;
+    }
+}
 
 /// <summary>Entry point, visible to integration tests.</summary>
 public partial class Program;

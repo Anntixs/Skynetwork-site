@@ -13,7 +13,7 @@
     <div class="muted small">@string.Join(" · ", new[]
         {
             m.Email ?? L["no email"],
-            m.Country.Length > 0 ? m.Country : L["no country"],
+            m.Country.Length > 0 ? Countries.Display(m.Country, L.IsRu) : L["no country"],
             L["registered"] + " " + (m.Registered is { } r ? Format.Date(r) : "—"),
             L["last sign-in"] + " " + (m.LastLoginAt is { } l ? Format.Utc(Time.Utc(l)) : "—"),
         })</div>

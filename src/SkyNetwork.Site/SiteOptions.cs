@@ -15,24 +15,20 @@ public sealed class SiteOptions
     /// <summary>CID given to the first registered member.</summary>
     public int FirstCid { get; set; } = 1;
     /// <summary>
-    /// Map tile sources ({z}/{x}/{y}), tried in order (empty: <see cref="DefaultTileSources"/>). The site downloads and caches the tiles itself,
-    /// so visitors' browsers only talk to this site.
+    /// Map tile layers by name, each a list of sources ({z}/{x}/{y}) tried in order; a layer missing here uses
+    /// <see cref="DefaultTileLayers"/>. The site downloads and caches the tiles itself, so visitors' browsers only talk to this site.
     /// </summary>
-    public string[] TileSources { get; set; } = [];
-    public static readonly string[] DefaultTileSources =
-    [
-        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    ];
-    /// <summary>Tile sources for the dark theme (empty: <see cref="DefaultDarkTileSources"/>).</summary>
-    public string[] DarkTileSources { get; set; } = [];
-    public static readonly string[] DefaultDarkTileSources =
-    [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    ];
+    public Dictionary<string, string[]> TileLayers { get; set; } = [];
+    private const string Esri = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/";
+    // CARTO now answers every request without an API key with a watermarked "API KEY REQUIRED" tile.
+    public static readonly IReadOnlyDictionary<string, string[]> DefaultTileLayers = new Dictionary<string, string[]>
+    {
+        ["light"] = [Esri + "World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", "https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+        // Transparent city and country labels drawn over the base layer.
+        ["light-labels"] = [Esri + "World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"],
+        ["dark"] = [Esri + "World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", "https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+        ["dark-labels"] = [Esri + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"],
+    };
     /// <summary>Tile cache directory; empty means "tiles" next to the database.</summary>
     public string TileCache { get; set; } = "";
     /// <summary>Directory for uploaded banners; empty means "uploads" next to the database.</summary>
