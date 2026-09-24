@@ -1,0 +1,20 @@
+# /etc/systemd/system/skynetwork-site.service
+[Unit]
+Description=SkyNetwork site
+After=network.target skynet-fsd.service
+
+[Service]
+User=skynetwork
+WorkingDirectory=/opt/skynetwork/site
+ExecStart=/usr/bin/dotnet /opt/skynetwork/site/SkyNetwork.Site.dll
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:8000
+Environment=Site__Database=/var/lib/skynetwork/skynetwork.db
+Environment=Site__BehindProxy=true
+# Address shown to members on the "how to connect" pages.
+Environment=Site__FsdHost=example.com
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

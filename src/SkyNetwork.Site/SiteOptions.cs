@@ -13,7 +13,7 @@ public sealed class SiteOptions
     public string FsdHost { get; set; } = "127.0.0.1";
     public int FsdPort { get; set; } = 6809;
     /// <summary>CID given to the first registered member.</summary>
-    public int FirstCid { get; set; } = 1000001;
+    public int FirstCid { get; set; } = 1;
     /// <summary>Behind nginx or another reverse proxy: trust its X-Forwarded-For / X-Forwarded-Proto headers.</summary>
     public bool BehindProxy { get; set; }
     /// <summary>Login/registration attempts per minute from one address.</summary>
