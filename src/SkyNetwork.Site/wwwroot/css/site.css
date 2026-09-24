@@ -356,7 +356,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .leaflet-tooltip.wp-label::before { display: none; }
 .wp-hide .wp-label { display: none; }
 /* Airport codes as on radar screens: plain bold text, the bigger airports a little brighter. */
-.apt-code { display: inline-block; transform: translate(-50%, -50%); font: 700 11px var(--body); letter-spacing: .02em; color: var(--slate);
+.apt-code { display: inline-block; transform: translate(-50%, 9px); font: 700 11px var(--body); letter-spacing: .02em; color: var(--slate);
   opacity: .8; white-space: nowrap; cursor: pointer; text-shadow: 0 0 3px var(--paper), 0 0 2px var(--paper); }
 .apt-code.r0 { color: var(--ink); opacity: .75; font-size: 12px; }
 .apt-code:hover { color: var(--accent); opacity: 1; }

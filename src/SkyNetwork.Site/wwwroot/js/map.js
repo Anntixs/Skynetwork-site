@@ -8,7 +8,7 @@
   const theme = () => window.skyTheme ? window.skyTheme() : root.dataset.theme === 'dark' ? 'dark' : 'light';
   // Texts in the visitor's language, from the page (see MapTexts); English when missing.
   const texts = (() => { try { return JSON.parse(el.dataset.text || '{}'); } catch { return {}; } })();
-  const t = (key, ...args) => (texts[key] ?? key).replace(/{(d)}/g, (_, i) => args[i]);
+  const t = (key, ...args) => (texts[key] ?? key).replace(/\{(\d)\}/g, (_, i) => args[i]);
   const css = name => getComputedStyle(root).getPropertyValue(name).trim();
 
   const map = L.map(el, { zoomControl: false, worldCopyJump: true, scrollWheelZoom: !compact })
@@ -318,10 +318,16 @@
     const maxRank = z >= 9 ? 2 : z >= 7 ? 1 : z >= 5 ? 0 : -1;
     if (maxRank < 0) return;
     const view = map.getBounds().pad(.1);
-    let shown = 0;
-    for (const [code, a] of Object.entries(airports)) {
-      if ((a[3] ?? 2) > maxRank || staffedAirports.has(code) || !view.contains([a[0], a[1]])) continue;
-      if (++shown > 400) break;
+    // Bigger airports first; a code that would overlap one already placed is left out, as on a radar screen.
+    const candidates = Object.entries(airports)
+      .filter(([code, a]) => (a[3] ?? 2) <= maxRank && !staffedAirports.has(code) && view.contains([a[0], a[1]]))
+      .sort((x, y) => (x[1][3] ?? 2) - (y[1][3] ?? 2));
+    const placed = [];
+    for (const [code, a] of candidates) {
+      const p = map.latLngToContainerPoint([a[0], a[1]]);
+      if (placed.some(q => Math.abs(q.x - p.x) < 46 && Math.abs(q.y - p.y) < 18)) continue;
+      placed.push(p);
+      if (placed.length > 300) break;
       L.marker([a[0], a[1]], { pane: 'airportCodes', keyboard: false,
         icon: L.divIcon({ className: '', iconSize: null, html: `<span class="apt-code r${a[3] ?? 2}" title="${esc(a[2])}">${code}</span>` }) })
         .on('click', () => select('airport', code, false)).addTo(codesLayer);
@@ -423,10 +429,10 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') deselect(); });
   card?.addEventListener('click', e => {
     if (e.target.closest('.close')) return deselect();
-    const t = e.target.closest('[data-select]');
-    if (!t) return;
+    const target = e.target.closest('[data-select]');
+    if (!target) return;
     e.preventDefault();
-    const [kind, key] = t.dataset.select.split('|');
+    const [kind, key] = target.dataset.select.split('|');
     select(kind, key, true);
   });
 
