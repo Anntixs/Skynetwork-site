@@ -1,0 +1,114 @@
+@page "/staff/members/{cid:long}"
+@model SkyNetwork.Site.Pages.Staff.MemberModel
+@{
+    var m = Model.Member;
+    ViewData["Title"] = m.Name;
+}
+<div class="profile-head">
+  <div class="avatar">@Format.Initials(m.Name)</div>
+  <div>
+    <h1 style="font-size:28px;margin:0">@m.Name</h1>
+    <div class="muted">CID <span class="mono">@m.Cid</span> · <span class="badge accent">@m.RatingShort</span> @m.RatingLong
+      @if (m.Suspended) { <span class="badge danger">заблокирован</span> }</div>
+    <div class="muted small">@string.Join(" · ", new[]
+        {
+            m.Email ?? "почта не указана",
+            m.Country.Length > 0 ? m.Country : "страна не указана",
+            "регистрация " + (m.Registered is { } r ? Format.Date(r) : "—"),
+            "последний вход " + (m.LastLoginAt is { } l ? Format.Utc(Time.Utc(l)) : "—"),
+        })</div>
+  </div>
+  <a class="btn btn-small" style="margin-left:auto" href="/members/@m.Cid">Публичный профиль</a>
+</div>
+@if (Model.Message != null) { <div class="alert ok">@Model.Message</div> }
+@if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+@if (m.Suspended && m.SuspensionReason.Length > 0) { <div class="alert error">Причина блокировки: @m.SuspensionReason</div> }
+
+<div class="stats">
+  <div class="stat"><b>@Format.Hours(Model.Hours.PilotHours)</b><span>в воздухе</span></div>
+  <div class="stat"><b>@Format.Hours(Model.Hours.AtcHours)</b><span>на позициях</span></div>
+  <div class="stat"><b>@Model.Hours.PilotSessions</b><span>полётов</span></div>
+  <div class="stat"><b>@Model.Hours.AtcSessions</b><span>дежурств</span></div>
+</div>
+
+<div class="grid two" style="margin-bottom:28px">
+  @if (Model.RatingOptions.Count > 0)
+  {
+    <form method="post" asp-page-handler="Rating" class="card form">
+      <h3>Рейтинг</h3>
+      <label>Новый рейтинг
+        <select name="rating">
+          @foreach (var r in Model.RatingOptions) { <option value="@r" selected="@(r == m.Rating)">@Ratings.Short(r) — @Ratings.Long(r)</option> }
+        </select>
+      </label>
+      <div><button class="btn btn-primary" type="submit">Изменить рейтинг</button></div>
+    </form>
+  }
+  @if (Model.Me.Has(Perm.Suspend) && m.Cid != Model.Me.Cid)
+  {
+    <form method="post" asp-page-handler="Suspend" class="card form">
+      <h3>@(m.Suspended ? "Разблокировать" : "Заблокировать")</h3>
+      @if (!m.Suspended) { <label>Причина<input name="reason" required maxlength="300" placeholder="Нарушение правил: …"></label> }
+      <p class="muted small">@(m.Suspended ? "Участник снова сможет входить на сайт и в сеть." : "Участник не сможет войти на сайт и подключиться к сети.")</p>
+      <input type="hidden" name="suspend" value="@(!m.Suspended)">
+      <div><button class="btn @(m.Suspended ? "btn-primary" : "btn-danger")" type="submit">@(m.Suspended ? "Разблокировать" : "Заблокировать")</button></div>
+    </form>
+  }
+  @if (Model.Me.Has(Perm.ResetPasswords))
+  {
+    <form method="post" asp-page-handler="ResetPassword" class="card form">
+      <h3>Пароль</h3>
+      <p class="muted small">Создаст временный пароль. Передайте его участнику и попросите сменить в настройках.</p>
+      <div><button class="btn" type="submit">Сбросить пароль</button></div>
+    </form>
+  }
+  @if (Model.Me.Has(Perm.ManageRoles))
+  {
+    <form method="post" asp-page-handler="Roles" class="card form">
+      <h3>Роли на сайте</h3>
+      @foreach (var (key, title) in Permissions.Roles)
+      {
+        <label class="check"><input type="checkbox" name="roles" value="@key" checked="@Model.Roles.Contains(key)"> <span>@title</span></label>
+      }
+      <p class="muted small">Супервайзер (SUP), инструктор (I1–I3) и администратор (ADM) — это рейтинги, их права действуют сами.</p>
+      <div><button class="btn btn-primary" type="submit">Сохранить роли</button></div>
+    </form>
+  }
+</div>
+
+@if (Model.Me.Has(Perm.Notes))
+{
+  <h2 style="font-size:20px">Заметки команды</h2>
+  <p class="muted small">Видны только команде.</p>
+  <form method="post" asp-page-handler="Note" class="form wide" style="margin-bottom:16px">
+    <label><textarea name="body" required maxlength="3000" placeholder="Что важно знать о участнике"></textarea></label>
+    <div><button class="btn" type="submit">Добавить заметку</button></div>
+  </form>
+  <div class="thread">
+    @foreach (var n in Model.Notes)
+    {
+      <div class="msg"><div class="meta">@n.AuthorName · @Format.Utc(n.Created)</div><p>@n.Body</p></div>
+    }
+  </div>
+}
+
+<h2 style="font-size:20px;margin-top:28px">Подключения</h2>
+<div class="table-wrap" style="margin-bottom:28px">
+  <table>
+    <thead><tr><th>Позывной</th><th>Роль</th><th>Детали</th><th>Начало</th><th>Длительность</th></tr></thead>
+    <tbody>
+    @foreach (var s in Model.Sessions)
+    {
+      <tr><td class="mono">@s.Callsign</td><td>@(s.Kind == "atc" ? "диспетчер" : "пилот")</td><td class="mono small">@s.Details</td>
+          <td>@Format.Utc(s.Start)</td><td>@Format.Duration(s.Duration)</td></tr>
+    }
+    @if (Model.Sessions.Count == 0) { <tr><td colspan="5" class="muted">Подключений не было</td></tr> }
+    </tbody>
+  </table>
+</div>
+
+@if (Model.History.Count > 0)
+{
+  <h2 style="font-size:20px">История действий</h2>
+  <partial name="_AuditTable" model="Model.History" />
+}

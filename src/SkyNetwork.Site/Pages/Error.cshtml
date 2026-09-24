@@ -1,0 +1,23 @@
+@page "/error/{code:int}"
+@model ErrorModel
+@{
+    ViewData["Title"] = Model.Code == 404 ? "Страница не найдена" : "Ошибка";
+}
+<div class="wrap page">
+  <div class="eyebrow">Ошибка @Model.Code</div>
+  @if (Model.Code == 404)
+  {
+    <h1>Такой страницы нет</h1>
+    <p class="muted">Проверьте адрес или начните с <a href="/">главной</a>.</p>
+  }
+  else if (Model.Code == 429)
+  {
+    <h1>Слишком много попыток</h1>
+    <p class="muted">Подождите минуту и попробуйте снова.</p>
+  }
+  else
+  {
+    <h1>Что-то пошло не так</h1>
+    <p class="muted">Попробуйте ещё раз чуть позже. Если ошибка повторяется, напишите в <a href="/support">поддержку</a>.</p>
+  }
+</div>

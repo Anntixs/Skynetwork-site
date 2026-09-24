@@ -1,0 +1,67 @@
+@{
+    string path = Context.Request.Path.Value ?? "/";
+    string Active(string prefix) => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>@(ViewData["Title"] is string t ? t + " — SkyNetwork" : "SkyNetwork — сеть виртуальной авиации")</title>
+  <meta name="description" content="SkyNetwork — сеть виртуальной авиации: пилоты и диспетчеры в одном небе.">
+  @if (path.StartsWith("/staff", StringComparison.OrdinalIgnoreCase)) { <meta name="robots" content="noindex, nofollow"> }
+  <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true">
+  <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+  @await RenderSectionAsync("Head", required: false)
+</head>
+<body>
+  <header class="site-header" id="header">
+    <div class="wrap">
+      <a class="brand" href="/"><partial name="_Logo" /> SkyNetwork</a>
+      <button class="btn btn-small nav-toggle" type="button" aria-label="Меню"
+              onclick="document.getElementById('header').classList.toggle('open')">Меню</button>
+      <nav class="nav" aria-label="Разделы">
+        <a href="/map" class="@Active("/map")">Карта</a>
+        <a href="/online" class="@Active("/online")">Онлайн</a>
+        <a href="/events" class="@Active("/events")">Мероприятия</a>
+        <a href="/bookings" class="@Active("/bookings")">Бронирование</a>
+        <a href="/news" class="@Active("/news")">Новости</a>
+        <a href="/docs" class="@Active("/docs")">Документация</a>
+      </nav>
+      <div class="user-nav">
+        @if (Me.Member is { } m)
+        {
+          @if (Me.IsStaff) { <a href="/staff">Управление</a> }
+          <a href="/account" title="Личный кабинет">@m.Name · <span class="mono">@m.Cid</span></a>
+          <form method="post" action="/logout"><button class="btn btn-small" type="submit">Выйти</button></form>
+        }
+        else
+        {
+          <a href="/login">Войти</a>
+          <a class="btn btn-primary" href="/register">Присоединиться</a>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main>
+    @RenderBody()
+  </main>
+
+  @if (!(ViewData["HideFooter"] is true))
+  {
+    <footer class="site-footer">
+      <div class="wrap">
+        <span>© @DateTime.UtcNow.Year SkyNetwork · сеть виртуальной авиации</span>
+        <nav>
+          <a href="/docs/rules">Правила</a>
+          <a href="/docs/software">Программы</a>
+          <a href="/developers">API</a>
+          <a href="/support">Поддержка</a>
+        </nav>
+      </div>
+    </footer>
+  }
+  @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

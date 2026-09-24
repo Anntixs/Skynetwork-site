@@ -1,0 +1,31 @@
+@page "/staff/tickets/{id:long}"
+@model SkyNetwork.Site.Pages.Staff.TicketModel
+@{ var t = Model.Ticket; ViewData["Title"] = t.Subject; }
+<div class="eyebrow"><a href="/staff/tickets">Обращения</a> · № @t.Id</div>
+<h1 style="font-size:28px">@t.Subject</h1>
+<p class="muted">
+  @if (t.Cid is { } c) { <a href="/staff/members/@c">@t.Name, CID @c</a> } else { <span>без учётной записи</span> }
+  · @t.Email · <span class="badge">@SupportService.TicketStatuses[t.Status]</span>
+</p>
+<div class="thread">
+  @foreach (var m in Model.Messages)
+  {
+    <div class="msg @(m.Staff ? "staff" : "")">
+      <div class="meta">@(m.Staff ? $"{m.Name} · команда" : m.Cid != null ? m.Name : t.Email) · @Format.Utc(m.Created)</div>
+      <p>@m.Body</p>
+    </div>
+  }
+</div>
+<form method="post" asp-page-handler="Reply" class="form wide" style="margin-bottom:16px">
+  <label>Ответ<textarea name="body" required maxlength="5000"></textarea></label>
+  @if (t.Cid == null) { <p class="muted small">У отправителя нет учётной записи: ответ сохранится здесь, отправьте его и на почту @t.Email.</p> }
+  <div><button class="btn btn-primary" type="submit">Ответить</button></div>
+</form>
+<form method="post" asp-page-handler="Status" class="inline-form">
+  <label>Статус
+    <select name="status">
+      @foreach (var (key, title) in SupportService.TicketStatuses) { <option value="@key" selected="@(key == t.Status)">@title</option> }
+    </select>
+  </label>
+  <button class="btn" type="submit">Сохранить статус</button>
+</form>

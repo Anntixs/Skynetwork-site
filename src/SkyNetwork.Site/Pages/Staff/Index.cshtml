@@ -1,0 +1,38 @@
+@page "/staff"
+@model SkyNetwork.Site.Pages.Staff.IndexModel
+@{ ViewData["Title"] = "Управление"; }
+<h1 style="font-size:30px">Обзор</h1>
+<div class="kpis">
+  <div class="kpi"><b>@Model.Members</b><span>участников</span></div>
+  <div class="kpi"><b>@Model.Online.Pilots.Count / @Model.Online.Controllers.Count</b><span>пилотов / диспетчеров в эфире</span></div>
+  <div class="kpi"><b>@Model.OpenTickets</b><span>открытых обращений</span></div>
+  <div class="kpi"><b>@Model.OpenTraining</b><span>заявок на обучение</span></div>
+</div>
+@if (Model.Me.Has(Perm.ViewMembers))
+{
+  <form method="get" action="/staff/members" class="inline-form" style="margin-bottom:28px">
+    <label>Найти участника<input name="q" placeholder="CID, имя или почта" style="width:320px"></label>
+    <button class="btn" type="submit">Найти</button>
+  </form>
+}
+<div class="grid two">
+  <div>
+    <h2 style="font-size:20px">Больше всех в воздухе за 30 дней</h2>
+    <div class="table-wrap"><table><tbody>
+      @foreach (var t in Model.TopPilots) { <tr><td><a href="/staff/members/@t.Cid">@t.Name</a></td><td class="num">@Format.Hours(t.Hours)</td></tr> }
+      @if (Model.TopPilots.Count == 0) { <tr><td class="muted">Нет данных</td></tr> }
+    </tbody></table></div>
+  </div>
+  <div>
+    <h2 style="font-size:20px">Больше всех на позициях за 30 дней</h2>
+    <div class="table-wrap"><table><tbody>
+      @foreach (var t in Model.TopAtc) { <tr><td><a href="/staff/members/@t.Cid">@t.Name</a></td><td class="num">@Format.Hours(t.Hours)</td></tr> }
+      @if (Model.TopAtc.Count == 0) { <tr><td class="muted">Нет данных</td></tr> }
+    </tbody></table></div>
+  </div>
+</div>
+@if (Model.Audit.Count > 0)
+{
+  <h2 style="font-size:20px;margin-top:32px">Последние действия команды</h2>
+  <partial name="_AuditTable" model="Model.Audit" />
+}

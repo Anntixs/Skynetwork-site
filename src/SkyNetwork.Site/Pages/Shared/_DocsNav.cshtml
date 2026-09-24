@@ -1,0 +1,12 @@
+@{
+    string path = Context.Request.Path.Value ?? "";
+    string A(string p) => path.Equals(p, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+}
+<nav class="side" aria-label="Документация">
+  <div class="side-title">Документация</div>
+  <a href="/docs" class="@A("/docs")">Как начать</a>
+  <a href="/docs/software" class="@A("/docs/software")">Программы</a>
+  <a href="/docs/ratings" class="@A("/docs/ratings")">Рейтинги диспетчеров</a>
+  <a href="/docs/rules" class="@A("/docs/rules")">Правила сети</a>
+  <a href="/developers" class="@A("/developers")">API для разработчиков</a>
+</nav>

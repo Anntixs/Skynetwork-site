@@ -1,0 +1,35 @@
+@page "/staff/training"
+@model SkyNetwork.Site.Pages.Staff.TrainingModel
+@{ ViewData["Title"] = "Обучение"; }
+<h1 style="font-size:30px">Заявки на обучение</h1>
+@if (Model.Message != null) { <div class="alert ok">@Model.Message</div> }
+@if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+<div class="inline-form" style="margin-bottom:16px">
+  <a class="btn btn-small @(Model.All ? "" : "btn-primary")" href="/staff/training">Активные</a>
+  <a class="btn btn-small @(Model.All ? "btn-primary" : "")" href="/staff/training?all=1">Все</a>
+</div>
+@if (Model.List.Count == 0) { <div class="empty">Заявок нет.</div> }
+<div class="grid" style="gap:12px">
+  @foreach (var r in Model.List)
+  {
+    <div class="card">
+      <div class="section-head" style="margin-bottom:6px">
+        <h3 style="margin:0"><a href="/staff/members/@r.Cid">@r.Name</a> <span class="muted small mono">@r.Cid</span></h3>
+        <span class="badge @(r.Status == "open" ? "warn" : r.Status == "accepted" ? "accent" : "")">@SupportService.TrainingStatuses[r.Status]</span>
+      </div>
+      <div class="muted small">@Ratings.Short(r.Rating) → <b>@Ratings.Short(r.TargetRating)</b> · подана @Format.Utc(r.Created)</div>
+      @if (r.Message.Length > 0) { <p style="white-space:pre-line;margin:10px 0">@r.Message</p> }
+      <form method="post" class="inline-form" style="margin-top:10px">
+        <input type="hidden" name="id" value="@r.Id">
+        <label>Статус
+          <select name="status">
+            @foreach (var (key, title) in SupportService.TrainingStatuses) { <option value="@key" selected="@(key == r.Status)">@title</option> }
+          </select>
+        </label>
+        <label style="flex:1">Комментарий для участника<input name="comment" value="@r.StaffComment" maxlength="1000"></label>
+        <label class="check" style="align-self:center"><input type="checkbox" name="promote" value="true"> <span>присвоить @Ratings.Short(r.TargetRating)</span></label>
+        <button class="btn btn-primary" type="submit">Сохранить</button>
+      </form>
+    </div>
+  }
+</div>

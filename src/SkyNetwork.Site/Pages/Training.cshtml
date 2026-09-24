@@ -1,0 +1,37 @@
+@page "/training"
+@model TrainingModel
+@{ ViewData["Title"] = "Обучение"; var m = Me.Member!; var next = Ratings.Next(m.Rating); }
+<div class="wrap page with-side">
+  <partial name="_AccountNav" />
+  <div>
+    <h1 style="font-size:30px">Обучение диспетчеров</h1>
+    <p class="muted">Ваш рейтинг: <span class="badge accent">@m.RatingShort</span> @m.RatingLong. Инструктор назначит занятия и практический экзамен; после него рейтинг повысят. <a href="/docs/ratings">Подробнее о рейтингах</a></p>
+    @if (Model.Message != null) { <div class="alert ok">@Model.Message</div> }
+    @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+    @if (next is { } n && !Model.Requests.Any(r => r.Status is "open" or "accepted"))
+    {
+      <form method="post" class="form" style="margin-bottom:36px">
+        <input type="hidden" name="Target" value="@n">
+        <label>Заявка на рейтинг <b>@Ratings.Short(n)</b> — @Ratings.Long(n)
+          <textarea name="Text" maxlength="2000" placeholder="Когда вам удобно заниматься, опыт, вопросы"></textarea>
+        </label>
+        <div><button class="btn btn-primary" type="submit">Подать заявку</button></div>
+      </form>
+    }
+    @if (Model.Requests.Count > 0)
+    {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Рейтинг</th><th>Статус</th><th>Комментарий инструктора</th><th>Подана</th></tr></thead>
+          <tbody>
+          @foreach (var r in Model.Requests)
+          {
+            <tr><td>@Ratings.Short(r.TargetRating)</td><td><span class="badge">@SupportService.TrainingStatuses[r.Status]</span></td>
+                <td>@r.StaffComment</td><td>@Format.Utc(r.Created)</td></tr>
+          }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

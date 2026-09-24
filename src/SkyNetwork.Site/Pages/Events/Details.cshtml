@@ -1,0 +1,15 @@
+@page "/events/{id:long}"
+@model SkyNetwork.Site.Pages.Events.DetailsModel
+@{
+    var e = Model.Event;
+    ViewData["Title"] = e.Title;
+}
+<div class="wrap page">
+  <div class="eyebrow"><a href="/events">Мероприятия</a></div>
+  <h1>@e.Title</h1>
+  <p class="muted"><span class="date-chip">@Format.Span(e.Start, e.End)</span> @if (e.Airports.Length > 0) { <span class="mono">@e.Airports</span> }</p>
+  @if (!e.Published) { <div class="alert">Черновик — видно только команде.</div> }
+  @if (e.Summary.Length > 0) { <p style="font-size:18px">@e.Summary</p> }
+  <div class="prose"><p>@e.Body</p></div>
+  <p style="margin-top:28px"><a class="btn" href="/bookings">Забронировать позицию</a> <a class="btn" href="/flightplan">Подать план полёта</a></p>
+</div>

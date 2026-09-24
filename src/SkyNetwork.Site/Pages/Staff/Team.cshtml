@@ -1,0 +1,21 @@
+@page "/staff/team"
+@model SkyNetwork.Site.Pages.Staff.TeamModel
+@{ ViewData["Title"] = "Команда"; }
+<h1 style="font-size:30px">Команда</h1>
+<p class="muted">Администраторы, супервайзеры, инструкторы и участники с ролями на сайте.</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>CID</th><th>Имя</th><th>Рейтинг</th><th>Роли</th></tr></thead>
+    <tbody>
+    @foreach (var (m, roles) in Model.Team)
+    {
+      <tr>
+        <td class="mono">@if (Model.Me.Has(Perm.ViewMembers)) { <a href="/staff/members/@m.Cid">@m.Cid</a> } else { @m.Cid }</td>
+        <td>@m.Name</td>
+        <td><span class="badge accent">@m.RatingShort</span> @m.RatingLong</td>
+        <td>@string.Join(", ", roles.Select(r => Permissions.Roles[r]))</td>
+      </tr>
+    }
+    </tbody>
+  </table>
+</div>

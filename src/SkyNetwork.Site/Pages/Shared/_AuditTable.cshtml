@@ -1,0 +1,18 @@
+@model IReadOnlyList<AuditEntry>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Когда</th><th>Кто</th><th>Действие</th><th>Объект</th><th>Подробности</th></tr></thead>
+    <tbody>
+    @foreach (var a in Model)
+    {
+      <tr>
+        <td>@Format.Utc(a.Created)</td>
+        <td><a href="/staff/members/@a.ActorCid">@a.ActorName</a></td>
+        <td>@AuditService.Title(a.Action)</td>
+        <td class="mono">@a.Target</td>
+        <td>@a.Details</td>
+      </tr>
+    }
+    </tbody>
+  </table>
+</div>

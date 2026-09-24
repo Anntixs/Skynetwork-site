@@ -1,0 +1,51 @@
+@page "/bookings"
+@model BookingsModel
+@{ ViewData["Title"] = "Бронирование позиций"; }
+<div class="wrap page">
+  <div class="page-head">
+    <h1>Бронирование позиций</h1>
+    <p>Когда диспетчеры планируют выйти в эфир. Время — UTC. Бронировать могут участники с рейтингом S1 и выше.</p>
+  </div>
+  @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+  @if (Model.Saved) { <div class="alert ok">Позиция забронирована.</div> }
+  @if (Me.Member is { Rating: >= Ratings.S1 })
+  {
+    <form method="post" class="inline-form card" style="margin-bottom:28px">
+      <label>Позиция<input name="Callsign" class="mono" required maxlength="12" placeholder="UUEE_TWR" style="width:140px"></label>
+      <label>Дата<input name="Date" type="date" required value="@Format.InputDate(DateTime.UtcNow)"></label>
+      <label>С, UTC<input name="From" type="time" required value="18:00"></label>
+      <label>До, UTC<input name="To" type="time" required value="20:00"></label>
+      <button class="btn btn-primary" type="submit">Забронировать</button>
+    </form>
+  }
+  else if (Me.IsSignedIn)
+  {
+    <div class="alert">Бронирование откроется после получения рейтинга S1 — <a href="/training">подайте заявку на обучение</a>.</div>
+  }
+  @if (Model.List.Count == 0)
+  {
+    <div class="empty">Бронирований нет.</div>
+  }
+  else
+  {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Позиция</th><th>Когда</th><th>Диспетчер</th><th>Рейтинг</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var b in Model.List)
+        {
+          <tr>
+            <td class="mono">@b.Callsign</td>
+            <td>@Format.Span(b.Start, b.End)</td>
+            <td><a href="/members/@b.Cid">@b.Name</a></td>
+            <td>@Ratings.Short(b.Rating)</td>
+            <td>@if (b.Cid == Me.Cid) {
+                <form method="post" asp-page-handler="Delete"><input type="hidden" name="id" value="@b.Id"><button class="btn btn-small btn-danger" type="submit">Отменить</button></form>
+            }</td>
+          </tr>
+        }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

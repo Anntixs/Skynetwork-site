@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{89BC9014-F5CF-454D-B6F8-CD70A23F34DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkyNetwork.Site", "src\SkyNetwork.Site\SkyNetwork.Site.csproj", "{10B1F313-39D0-4FD1-AC31-1354084DBC15}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{BA06E064-9DE8-462D-B3E5-B51C1A4AFCDD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkyNetwork.Site.Tests", "tests\SkyNetwork.Site.Tests\SkyNetwork.Site.Tests.csproj", "{AAC5074A-8A1A-46DA-A007-25B67DE1C881}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{10B1F313-39D0-4FD1-AC31-1354084DBC15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10B1F313-39D0-4FD1-AC31-1354084DBC15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10B1F313-39D0-4FD1-AC31-1354084DBC15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10B1F313-39D0-4FD1-AC31-1354084DBC15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAC5074A-8A1A-46DA-A007-25B67DE1C881}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAC5074A-8A1A-46DA-A007-25B67DE1C881}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAC5074A-8A1A-46DA-A007-25B67DE1C881}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAC5074A-8A1A-46DA-A007-25B67DE1C881}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{10B1F313-39D0-4FD1-AC31-1354084DBC15} = {89BC9014-F5CF-454D-B6F8-CD70A23F34DC}
+		{AAC5074A-8A1A-46DA-A007-25B67DE1C881} = {BA06E064-9DE8-462D-B3E5-B51C1A4AFCDD}
+	EndGlobalSection
+EndGlobal

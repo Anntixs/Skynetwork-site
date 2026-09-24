@@ -1,0 +1,30 @@
+@page "/account/support/{id:long}"
+@model SkyNetwork.Site.Pages.Account.TicketModel
+@{ ViewData["Title"] = Model.Ticket.Subject; }
+<div class="wrap page with-side">
+  <partial name="_AccountNav" />
+  <div>
+    <div class="eyebrow">Обращение № @Model.Ticket.Id · @SupportService.TicketStatuses[Model.Ticket.Status]</div>
+    <h1 style="font-size:28px">@Model.Ticket.Subject</h1>
+    <div class="thread">
+      @foreach (var msg in Model.Messages)
+      {
+        <div class="msg @(msg.Staff ? "staff" : "")">
+          <div class="meta">@(msg.Staff ? "Команда SkyNetwork" : msg.Name) · @Format.Utc(msg.Created)</div>
+          <p>@msg.Body</p>
+        </div>
+      }
+    </div>
+    @if (Model.Ticket.Status != "closed")
+    {
+      <form method="post" class="form">
+        <label>Ответ<textarea name="Body" required maxlength="5000"></textarea></label>
+        <div><button class="btn btn-primary" type="submit">Отправить</button></div>
+      </form>
+    }
+    else
+    {
+      <p class="muted">Обращение закрыто. Если вопрос остался — <a href="/account/support">создайте новое</a>.</p>
+    }
+  </div>
+</div>

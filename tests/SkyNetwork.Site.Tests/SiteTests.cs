@@ -1,0 +1,306 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using SkyNetwork.Site.Data;
+using SkyNetwork.Site.Security;
+using Microsoft.Extensions.DependencyInjection;
+using SkyNetwork.Site.Services;
+
+namespace SkyNetwork.Site.Tests;
+
+public class PublicPagesTests
+{
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/map")]
+    [InlineData("/online")]
+    [InlineData("/events")]
+    [InlineData("/news")]
+    [InlineData("/bookings")]
+    [InlineData("/docs")]
+    [InlineData("/docs/software")]
+    [InlineData("/docs/ratings")]
+    [InlineData("/docs/rules")]
+    [InlineData("/developers")]
+    [InlineData("/register")]
+    [InlineData("/login")]
+    [InlineData("/support")]
+    public async Task PagesRender(string url)
+    {
+        using var site = new SiteFactory();
+        var html = await site.Browser().HtmlAsync(url);
+        Assert.Contains("SkyNetwork", html);
+        Assert.DoesNotContain("/staff", html); // the staff area is never linked for visitors
+    }
+
+    [Fact]
+    public async Task UnknownPageIs404_AndPrivatePagesAskToLogIn()
+    {
+        using var site = new SiteFactory();
+        var c = site.Browser();
+        var r = await c.GetAsync("/nope");
+        Assert.Equal(HttpStatusCode.NotFound, r.StatusCode);
+        Assert.Contains("Такой страницы нет", await r.Content.ReadAsStringAsync());
+        r = await c.GetAsync("/flightplan?callsign=AFL1");
+        Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);
+        Assert.StartsWith("/login", r.Headers.Location!.PathAndQuery);
+    }
+}
+
+public class AccountTests
+{
+    [Fact]
+    public async Task RegisterGivesCid_LoginWorks_AndBadPasswordIsRejected()
+    {
+        using var site = new SiteFactory();
+        var c = site.Browser();
+        var fields = new Dictionary<string, string>
+        {
+            ["Name"] = "Ivan Petrov", ["Email"] = "ivan@example.com", ["Country"] = "Россия",
+            ["Password"] = "secret123", ["Confirm"] = "secret123", ["AcceptRules"] = "true",
+        };
+        var r = await c.SubmitAsync("/register", fields);
+        Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);
+        Assert.Equal("/account?welcome=1", r.Headers.Location!.OriginalString);
+        var html = await c.HtmlAsync("/account?welcome=1");
+        Assert.Contains("1000001", html);
+
+        // Same email again is refused.
+        var again = await site.Browser().SubmitAsync("/register", fields);
+        Assert.Contains("уже зарегистрирована", await again.Content.ReadAsStringAsync());
+
+        var fresh = site.Browser();
+        var bad = await fresh.SubmitAsync("/login", new Dictionary<string, string> { ["Cid"] = "1000001", ["Password"] = "wrong" });
+        Assert.Contains("Неверный CID или пароль", await bad.Content.ReadAsStringAsync());
+        await fresh.LoginAsync(1000001, "secret123");
+        Assert.Contains("Ivan Petrov", await fresh.HtmlAsync("/account"));
+    }
+
+    [Fact]
+    public async Task FlightPlanIsServedToSkyPilot()
+    {
+        using var site = new SiteFactory();
+        long cid = site.Member("Pilot One");
+        var c = site.Browser();
+        Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync($"/api/flightplans/latest?cid={cid}")).StatusCode);
+        await c.LoginAsync(cid);
+        Assert.Contains("value=\"AFL123\"", await c.HtmlAsync("/flightplan?callsign=afl123"));
+
+        var plan = new Dictionary<string, string>
+        {
+            ["Plan.Callsign"] = "afl123", ["Plan.Rules"] = "IFR", ["Plan.Aircraft"] = "a20n", ["Plan.CruiseSpeed"] = "450",
+            ["Plan.Departure"] = "uuee", ["Plan.Destination"] = "ulli", ["Plan.Alternate"] = "ullo", ["Plan.DepartureTime"] = "1200",
+            ["Plan.CruiseAltitude"] = "fl350", ["Plan.EnrouteMinutes"] = "70", ["Plan.FuelMinutes"] = "180",
+            ["Plan.Route"] = "n0450f350  demo5 dm100", ["Plan.Remarks"] = "/V/",
+        };
+        var bad = await c.SubmitAsync("/flightplan", new Dictionary<string, string>(plan) { ["Plan.Departure"] = "SVO" });
+        Assert.Contains("4-буквенные коды ICAO", await bad.Content.ReadAsStringAsync());
+        var r = await c.SubmitAsync("/flightplan", plan);
+        Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);
+
+        var json = await site.Browser().GetFromJsonAsync<JsonElement>($"/api/flightplans/latest?cid={cid}");
+        Assert.Equal("IFR", json.GetProperty("rules").GetString());
+        Assert.Equal("A20N", json.GetProperty("aircraft").GetString());
+        Assert.Equal(450, json.GetProperty("cruiseSpeed").GetInt32());
+        Assert.Equal(("UUEE", "ULLI", "ULLO"), (json.GetProperty("departure").GetString(), json.GetProperty("destination").GetString(),
+            json.GetProperty("alternate").GetString()));
+        Assert.Equal(("1200", "FL350", 70, 180), (json.GetProperty("departureTime").GetString(), json.GetProperty("cruiseAltitude").GetString(),
+            json.GetProperty("enrouteMinutes").GetInt32(), json.GetProperty("fuelMinutes").GetInt32()));
+        Assert.Equal("N0450F350 DEMO5 DM100", json.GetProperty("route").GetString());
+    }
+
+    [Fact]
+    public async Task BookingsNeedRating_AndDoNotOverlap()
+    {
+        using var site = new SiteFactory();
+        long obs = site.Member("New Member");
+        long s2 = site.Member("Tower Controller", Ratings.S2);
+        var c = site.Browser();
+        await c.LoginAsync(obs);
+        Assert.Contains("после получения рейтинга S1", await c.HtmlAsync("/bookings"));
+
+        var atc = site.Browser();
+        await atc.LoginAsync(s2);
+        string date = DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd");
+        var booking = new Dictionary<string, string> { ["Callsign"] = "uuee_twr", ["Date"] = date, ["From"] = "18:00", ["To"] = "20:00" };
+        Assert.Equal(HttpStatusCode.Redirect, (await atc.SubmitAsync("/bookings", booking)).StatusCode);
+        var overlap = await atc.SubmitAsync("/bookings", new Dictionary<string, string>(booking) { ["From"] = "19:00", ["To"] = "21:00" });
+        Assert.Contains("уже забронирован", await overlap.Content.ReadAsStringAsync());
+        var api = await site.Browser().GetFromJsonAsync<JsonElement>("/api/v1/bookings");
+        Assert.Equal("UUEE_TWR", api[0].GetProperty("callsign").GetString());
+        Assert.Equal("S2", api[0].GetProperty("rating").GetString());
+    }
+}
+
+public class StaffAreaTests
+{
+    [Fact]
+    public async Task StaffAreaIsA404ForEveryoneElse()
+    {
+        using var site = new SiteFactory();
+        long member = site.Member("Plain Member");
+        foreach (var url in new[] { "/staff", "/staff/members", "/staff/audit", $"/staff/members/{member}" })
+        {
+            var anon = await site.Browser().GetAsync(url);
+            Assert.Equal(HttpStatusCode.NotFound, anon.StatusCode); // not a login redirect: nothing to discover
+        }
+        var c = site.Browser();
+        await c.LoginAsync(member);
+        Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("/staff")).StatusCode);
+        Assert.DoesNotContain("/staff", await c.HtmlAsync("/"));
+        // Posting to a staff handler is refused the same way.
+        var post = await c.PostAsync($"/staff/members/{member}?handler=Rating", new FormUrlEncodedContent(new Dictionary<string, string> { ["rating"] = "12" }));
+        Assert.Equal(HttpStatusCode.NotFound, post.StatusCode);
+        Assert.Equal(Ratings.OBS, site.Get<MemberService>().Find(member)!.Rating);
+    }
+
+    [Fact]
+    public async Task EachStaffPageNeedsItsOwnPermission()
+    {
+        using var site = new SiteFactory();
+        long sup = site.Member("Sergey Supervisor", Ratings.SUP);
+        long editor = site.Member("News Editor");
+        site.Get<MemberService>().SetRoles(0, editor, ["news"]);
+
+        var s = site.Browser();
+        await s.LoginAsync(sup);
+        Assert.Contains("Управление", await s.HtmlAsync("/"));
+        await s.HtmlAsync("/staff");
+        await s.HtmlAsync("/staff/members");
+        await s.HtmlAsync("/staff/audit");
+        var card = await s.HtmlAsync($"/staff/members/{editor}");
+        Assert.Contains("Заблокировать", card);
+        Assert.DoesNotContain("Роли на сайте", card);   // only administrators manage roles
+        Assert.DoesNotContain("Изменить рейтинг", card); // supervisors do not change ratings
+
+        var e = site.Browser();
+        await e.LoginAsync(editor);
+        await e.HtmlAsync("/staff/news");
+        await e.HtmlAsync("/staff/news/new");
+        Assert.Equal(HttpStatusCode.NotFound, (await e.GetAsync("/staff/members")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await e.GetAsync("/staff/audit")).StatusCode);
+    }
+
+    [Fact]
+    public async Task SuspensionLocksTheMemberOut_AndIsAudited()
+    {
+        using var site = new SiteFactory();
+        long sup = site.Member("Sergey Supervisor", Ratings.SUP);
+        long bad = site.Member("Rule Breaker");
+        var victim = site.Browser();
+        await victim.LoginAsync(bad);
+
+        var s = site.Browser();
+        await s.LoginAsync(sup);
+        var r = await s.SubmitAsync($"/staff/members/{bad}", new Dictionary<string, string> { ["suspend"] = "true", ["reason"] = "Помехи в эфире" },
+            $"/staff/members/{bad}?handler=Suspend");
+        Assert.Contains("Участник заблокирован", await r.Content.ReadAsStringAsync());
+        Assert.True(site.Get<MemberService>().IsSuspended(bad));
+
+        // The open session ends and a new login is refused with a clear message.
+        Assert.Equal(HttpStatusCode.Redirect, (await victim.GetAsync("/account")).StatusCode);
+        var login = await site.Browser().SubmitAsync("/login", new Dictionary<string, string> { ["Cid"] = bad.ToString(), ["Password"] = "password1" });
+        Assert.Contains("заблокирована", await login.Content.ReadAsStringAsync());
+
+        var audit = await s.HtmlAsync("/staff/audit");
+        Assert.Contains("Блокировка", audit);
+        Assert.Contains("Помехи в эфире", audit);
+    }
+
+    [Fact]
+    public async Task InstructorPromotesAfterTraining()
+    {
+        using var site = new SiteFactory();
+        long instructor = site.Member("Ilya Instructor", Ratings.I1);
+        long student = site.Member("Student Controller");
+        var st = site.Browser();
+        await st.LoginAsync(student);
+        await st.SubmitAsync("/training", new Dictionary<string, string> { ["target"] = Ratings.S1.ToString(), ["text"] = "Вечерами" });
+        var request = Assert.Single(site.Get<SupportService>().Training(student));
+
+        var i = site.Browser();
+        await i.LoginAsync(instructor);
+        Assert.Contains("Student Controller", await i.HtmlAsync("/staff/training"));
+        await i.SubmitAsync("/staff/training", new Dictionary<string, string>
+        {
+            ["id"] = request.Id.ToString(), ["status"] = "accepted", ["comment"] = "Экзамен сдан", ["promote"] = "true",
+        });
+        Assert.Equal(Ratings.S1, site.Get<MemberService>().Find(student)!.Rating);
+        Assert.Equal("completed", site.Get<SupportService>().TrainingRequest(request.Id)!.Status);
+        Assert.Contains(site.Get<AuditService>().Recent(), a => a.Action == "rating" && a.Target == student.ToString());
+    }
+}
+
+public class PermissionTests
+{
+    [Fact]
+    public void RatingsAndRolesGivePermissions()
+    {
+        Assert.Equal(Perm.All, Permissions.For(Ratings.ADM, []));
+        Assert.True(Permissions.For(Ratings.SUP, []).HasFlag(Perm.Suspend));
+        Assert.False(Permissions.For(Ratings.SUP, []).HasFlag(Perm.ManageRoles));
+        Assert.True(Permissions.For(Ratings.I2, []).HasFlag(Perm.EditRatings));
+        Assert.Equal(Perm.None, Permissions.For(Ratings.C3, []));
+        Assert.Equal(Perm.StaffArea | Perm.Events, Permissions.For(Ratings.OBS, ["events"]));
+
+        var instructor = Permissions.For(Ratings.I1, []);
+        Assert.True(Permissions.CanSetRating(Ratings.I1, instructor, Ratings.S1, Ratings.S2));
+        Assert.False(Permissions.CanSetRating(Ratings.I1, instructor, Ratings.S1, Ratings.I1));   // no staff ratings
+        Assert.False(Permissions.CanSetRating(Ratings.I1, instructor, Ratings.SUP, Ratings.OBS)); // cannot demote staff
+        Assert.True(Permissions.CanSetRating(Ratings.ADM, Perm.All, Ratings.SUP, Ratings.OBS));
+        Assert.False(Permissions.CanSetRating(Ratings.SUP, Permissions.For(Ratings.SUP, []), Ratings.S1, Ratings.S2));
+    }
+}
+
+public class FeedTests
+{
+    private const string Feed1 = """
+        {"general":{"server":"SkyNetwork","update_timestamp":1790000000},
+         "pilots":[{"cid":1000012,"name":"Dmitry Volkov","callsign":"AFL1234","logon_time":1789999000,"latitude":55.9,"longitude":37.3,
+                    "altitude":4500,"groundspeed":280,"transponder":"2000","flight_plan":"*A:I:A20N:450:UUEE:1200:0:FL350:ULLI:1:10:3:0:ULLO:/V/:DEMO5 DM100"}],
+         "controllers":[{"cid":1000010,"name":"Ivan Petrov","callsign":"UUEE_TWR","logon_time":1789998000,"latitude":55.97,"longitude":37.41,
+                    "rating":"S3","frequency":"131.500","facility":4,"visual_range":50}]}
+        """;
+
+    private const string Feed2 = """
+        {"general":{"server":"SkyNetwork","update_timestamp":1790000015},
+         "pilots":[{"cid":1000012,"name":"Dmitry Volkov","callsign":"AFL1234","logon_time":1789999000,"latitude":56.0,"longitude":37.3,
+                    "altitude":5000,"groundspeed":280,"transponder":"2000","flight_plan":null}],
+         "controllers":[]}
+        """;
+
+    [Fact]
+    public void ParsesFeed_ComputesHeading_AndPlan()
+    {
+        var a = FeedParser.Parse(Feed1);
+        var p = Assert.Single(a.Pilots);
+        Assert.Null(p.Heading);
+        Assert.Equal(("IFR", "A20N", "UUEE", "ULLI", 70, 180, "DEMO5 DM100"),
+            (p.FlightPlan!.Rules, p.FlightPlan.Aircraft, p.FlightPlan.Departure, p.FlightPlan.Destination,
+             p.FlightPlan.EnrouteMinutes, p.FlightPlan.FuelMinutes, p.FlightPlan.Route));
+        Assert.Equal("TWR", a.Controllers[0].FacilityName);
+        var b = FeedParser.Parse(Feed2, a);
+        Assert.Equal(0, b.Pilots[0].Heading!.Value, 1); // moved due north
+    }
+
+    [Fact]
+    public async Task TracksSessions_AndSurvivesRestart()
+    {
+        using var site = new SiteFactory();
+        var feed = site.Get<NetworkFeed>();
+        feed.Ingest(Feed1);
+        var sessions = site.Get<SessionService>();
+        Assert.Single(sessions.Recent(1000010));
+        feed.Ingest(Feed2); // the controller left
+        Assert.NotNull(sessions.Recent(1000010)[0].EndedAt);
+        Assert.Null(sessions.Recent(1000012)[0].EndedAt);
+
+        // A new feed instance (site restart) continues the pilot's session instead of opening a second one.
+        var restarted = ActivatorUtilities.CreateInstance<NetworkFeed>(site.Services);
+        restarted.Ingest(Feed2);
+        Assert.Single(sessions.Recent(1000012));
+
+        var online = await site.Browser().GetFromJsonAsync<JsonElement>("/api/v1/online");
+        Assert.Equal("AFL1234", online.GetProperty("pilots")[0].GetProperty("callsign").GetString());
+    }
+}

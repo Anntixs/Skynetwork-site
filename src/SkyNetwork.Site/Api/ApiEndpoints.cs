@@ -1,0 +1,118 @@
+using SkyNetwork.Site.Data;
+using SkyNetwork.Site.Services;
+
+namespace SkyNetwork.Site.Api;
+
+/// <summary>
+/// Public JSON API (read-only, CORS open) and the flight plan endpoint SkyPilot uses.
+/// Documented on /developers.
+/// </summary>
+public static class ApiEndpoints
+{
+    public static void MapSiteApi(this WebApplication app)
+    {
+        // SkyPilot (see skypilot docs/website-api.md).
+        app.MapGet("/api/flightplans/latest", (long cid, FlightPlanService plans) =>
+            plans.Latest(cid) is { } p ? Results.Ok(PlanDto(p)) : Results.NotFound()).RequireCors("api");
+
+        var v1 = app.MapGroup("/api/v1").RequireCors("api");
+
+        v1.MapGet("/status", (Microsoft.Extensions.Options.IOptions<SiteOptions> o, NetworkFeed feed) => new
+        {
+            network = o.Value.Name,
+            fsd = new { host = o.Value.FsdHost, port = o.Value.FsdPort },
+            feedAvailable = feed.Current.Available,
+            feedUpdated = feed.Current.Available ? feed.Current.Updated : (DateTime?)null,
+            api = "v1",
+        });
+
+        v1.MapGet("/online", (NetworkFeed feed) =>
+        {
+            var s = feed.Current;
+            return new
+            {
+                updated = s.Available ? s.Updated : (DateTime?)null,
+                available = s.Available,
+                pilots = s.Pilots.Select(p => new
+                {
+                    p.Cid, p.Name, p.Callsign, p.Latitude, p.Longitude, p.Altitude, p.Groundspeed, p.Heading, p.Transponder,
+                    logonTime = p.LogonTime, flightPlan = p.FlightPlan,
+                }),
+                controllers = s.Controllers.Select(c => new
+                {
+                    c.Cid, c.Name, c.Callsign, c.Rating, c.Frequency, facility = c.FacilityName, c.VisualRange, c.Latitude, c.Longitude,
+                    logonTime = c.LogonTime,
+                }),
+            };
+        });
+
+        v1.MapGet("/stats", (MemberService members, SessionService sessions, NetworkFeed feed) =>
+        {
+            var (today, month) = sessions.SessionCounts();
+            return new
+            {
+                members = members.Count(),
+                pilotsOnline = feed.Current.Pilots.Count,
+                controllersOnline = feed.Current.Controllers.Count,
+                sessionsToday = today,
+                sessionsLast30Days = month,
+            };
+        });
+
+        v1.MapGet("/members/{cid:long}", (long cid, MemberService members, SessionService sessions) =>
+        {
+            var m = members.Find(cid);
+            if (m == null) return Results.NotFound();
+            var h = sessions.Hours(cid);
+            return Results.Ok(new
+            {
+                m.Cid, m.Name, rating = m.RatingShort, ratingName = m.RatingLong, registered = m.Registered,
+                pilotHours = Math.Round(h.PilotHours, 1), atcHours = Math.Round(h.AtcHours, 1), suspended = m.Suspended,
+            });
+        });
+
+        v1.MapGet("/members/{cid:long}/sessions", (long cid, SessionService sessions) =>
+            sessions.Recent(cid, 50).Select(s => new
+            {
+                s.Callsign, s.Kind, s.Details, start = s.Start, end = s.EndedAt is { } e ? Time.Utc(e) : (DateTime?)null,
+                minutes = (int)s.Duration.TotalMinutes,
+            }));
+
+        v1.MapGet("/events", (ContentService content) => content.UpcomingEvents(50).Select(EventDto));
+        v1.MapGet("/events/{id:long}", (long id, ContentService content) =>
+            content.Event(id) is { Published: true } e ? Results.Ok(EventDto(e)) : Results.NotFound());
+
+        v1.MapGet("/bookings", (ContentService content) => content.Bookings().Select(b => new
+        {
+            b.Id, b.Callsign, b.Cid, b.Name, rating = Ratings.Short(b.Rating), start = b.Start, end = b.End,
+        }));
+
+        v1.MapGet("/news", (ContentService content) => content.News(20).Select(n => new
+        {
+            n.Id, n.Title, n.Body, author = n.AuthorName, created = n.Created,
+        }));
+    }
+
+    public static object PlanDto(FlightPlan p) => new
+    {
+        rules = p.Rules,
+        aircraft = p.Aircraft,
+        cruiseSpeed = p.CruiseSpeed,
+        departure = p.Departure,
+        destination = p.Destination,
+        alternate = p.Alternate,
+        departureTime = p.DepartureTime,
+        cruiseAltitude = p.CruiseAltitude,
+        enrouteMinutes = p.EnrouteMinutes,
+        fuelMinutes = p.FuelMinutes,
+        route = p.Route,
+        remarks = p.Remarks,
+        callsign = p.Callsign,
+        filed = p.Created,
+    };
+
+    private static object EventDto(NetworkEvent e) => new
+    {
+        e.Id, e.Title, e.Summary, e.Body, airports = e.Airports.Split(' ', StringSplitOptions.RemoveEmptyEntries), start = e.Start, end = e.End,
+    };
+}
