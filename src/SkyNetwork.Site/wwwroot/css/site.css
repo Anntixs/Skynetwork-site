@@ -26,6 +26,7 @@
   /* Map: sector borders, the selected aircraft's route, airport diagrams when zoomed in. */
   --map-fir: rgba(91,104,120,.45);
   --map-route: #1f5fbf;
+  --map-flown: #e07b2a;
   --apt-apron: #dfe4eb; --apt-building: #c9d1dc; --apt-runway: #7d8899; --apt-taxiway: #aab4c1; --apt-label: #5b6878; --apt-rwy: #c2410c;
 
   /* Strip edges by facility, as on a controller's strip board. */
@@ -70,7 +71,7 @@
   --shadow: rgba(0,0,0,.4);
   --staff-bar-bg: #06090d; --staff-bar-text: #9aa7b8; --staff-bar-strong: #e6ebf2;
   --f-del: #8a9ab0; --f-gnd: #4fb482; --f-twr: #e3ab4a; --f-app: #5b9bf0; --f-ctr: #9a83e6; --f-pilot: #5a687c;
-  --map-fir: rgba(148,161,178,.35); --map-route: #79abf6;
+  --map-fir: rgba(148,161,178,.35); --map-route: #79abf6; --map-flown: #f4a15d;
   --apt-apron: #1b222c; --apt-building: #29323f; --apt-runway: #66728a; --apt-taxiway: #465266; --apt-label: #9aa6b5; --apt-rwy: #f07a4a;
 }
 @media (prefers-color-scheme: dark) {
@@ -99,7 +100,7 @@
     --shadow: rgba(0,0,0,.4);
     --staff-bar-bg: #06090d; --staff-bar-text: #9aa7b8; --staff-bar-strong: #e6ebf2;
     --f-del: #8a9ab0; --f-gnd: #4fb482; --f-twr: #e3ab4a; --f-app: #5b9bf0; --f-ctr: #9a83e6; --f-pilot: #5a687c;
-  --map-fir: rgba(148,161,178,.35); --map-route: #79abf6;
+  --map-fir: rgba(148,161,178,.35); --map-route: #79abf6; --map-flown: #f4a15d;
   --apt-apron: #1b222c; --apt-building: #29323f; --apt-runway: #66728a; --apt-taxiway: #465266; --apt-label: #9aa6b5; --apt-rwy: #f07a4a;
 }
 }
@@ -324,8 +325,42 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .mc-route .apt span { display: block; color: var(--slate); font-size: 12px; line-height: 1.3; }
 .mc-route .apt:last-child { text-align: right; }
 .mc-route .arrow { color: var(--slate); padding-top: 4px; }
-.mc-progress { height: 6px; border-radius: 3px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
-.mc-progress i { display: block; height: 100%; background: var(--accent); }
+.mc-flight { display: grid; gap: 8px; }
+.mc-progress { position: relative; height: 6px; border-radius: 3px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.mc-progress i { display: block; height: 100%; background: var(--map-flown); }
+.mc-progress b { position: absolute; top: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--accent); border: 2px solid var(--paper); transform: translateY(-50%); box-shadow: 0 0 0 1px var(--accent); }
+.mc-times { display: flex; justify-content: space-between; gap: 8px; font: 600 13px var(--mono); }
+.mc-times span { display: grid; gap: 1px; text-align: center; }
+.mc-times span:first-child { text-align: left; }
+.mc-times span:last-child { text-align: right; }
+.mc-times small { font: 500 10.5px var(--body); color: var(--slate); text-transform: uppercase; letter-spacing: .05em; }
+.badge.phase { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+.badge.phase.on-the-ground, .badge.phase.arrived { color: var(--slate); background: var(--surface); border-color: var(--line); }
+.badge.phase.climbing, .badge.phase.departing { background: var(--live); border-color: var(--live); }
+.badge.phase.descending, .badge.phase.arriving { background: var(--warn); border-color: var(--warn); }
+.mc-grid b small { font: 500 11px var(--body); }
+details.mc-sec { border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; }
+details.mc-sec summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 9px 0;
+  font: 600 12px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--slate); }
+details.mc-sec summary::-webkit-details-marker { display: none; }
+details.mc-sec summary i { width: 8px; height: 8px; border-right: 2px solid var(--slate); border-bottom: 2px solid var(--slate); transform: rotate(45deg); transition: transform .15s; margin-right: 3px; }
+details.mc-sec[open] summary i { transform: rotate(-135deg); }
+details.mc-sec[open] summary { border-bottom: 1px solid var(--line); }
+details.mc-sec > :not(summary) { margin: 12px 0; }
+details.mc-sec .mc-block + .mc-block { margin-top: 12px; }
+.mc-chart { display: block; width: 100%; height: 90px; }
+.mc-chart polyline { fill: none; stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.mc-chart .alt { stroke: var(--accent); }
+.mc-chart .gs { stroke: var(--warn); }
+.mc-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; margin-top: 6px; }
+.mc-legend .alt { color: var(--accent); }
+.mc-legend .gs { color: var(--warn); }
+.mc-route-text b { color: var(--accent); font-weight: 600; }
+.mc-tools { position: sticky; bottom: 0; display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--panel-bg); }
+.mc-tools button { flex: 1; display: inline-flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--slate); font: 500 11px var(--body); cursor: pointer; }
+.mc-tools button:hover { color: var(--ink); border-color: var(--line-strong); }
+.mc-tools button.on { color: var(--accent); border-color: var(--accent); }
+.mc-tools svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .mc-progress-text { display: flex; justify-content: space-between; color: var(--slate); font-size: 12px; margin-top: 4px; }
 .mc-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .mc-grid div { padding: 8px 10px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -352,14 +387,22 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .apt-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--paper); border: 2px solid var(--map-route); }
 .fir-label { background: none; border: 0; box-shadow: none; font: 700 11px var(--mono); color: var(--f-ctr); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper); }
 .fir-label::before { display: none; }
-:root .leaflet-tooltip.wp-label { background: none; border: 0; box-shadow: none; padding: 0; font: 600 10px var(--mono); color: var(--ink); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper), 0 0 2px var(--paper); }
-.leaflet-tooltip.wp-label::before { display: none; }
-.wp-hide .wp-label { display: none; }
 /* Airport codes as on radar screens: plain bold text, the bigger airports a little brighter. */
 .apt-code { display: inline-block; transform: translate(-50%, 9px); font: 700 11px var(--body); letter-spacing: .02em; color: var(--slate);
   opacity: .8; white-space: nowrap; cursor: pointer; text-shadow: 0 0 3px var(--paper), 0 0 2px var(--paper); }
 .apt-code.r0 { color: var(--ink); opacity: .75; font-size: 12px; }
 .apt-code:hover { color: var(--accent); opacity: 1; }
+/* Route points and airway names of the selected flight. */
+.wp { position: relative; width: 10px; height: 10px; }
+.wp svg { display: block; width: 10px; height: 10px; }
+.wp svg path { fill: var(--map-route); }
+.wp.passed svg path { fill: var(--map-flown); opacity: .7; }
+.wp i { position: absolute; left: 13px; top: -3px; font: 600 10px var(--mono); font-style: normal; color: var(--ink); white-space: nowrap;
+  text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper), 0 0 2px var(--paper); }
+.wp.passed i { color: var(--slate); }
+.aw-lbl { display: inline-block; font: 600 9px var(--mono); letter-spacing: .04em; color: var(--map-route); white-space: nowrap; opacity: .9;
+  text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper), 0 0 2px var(--paper); }
+.aw-lbl.passed { color: var(--map-flown); }
 .apt-lbl { display: inline-block; transform: translate(-50%, -50%); font: 600 10px var(--mono); color: var(--apt-label); white-space: nowrap;
   text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper); }
 .apt-lbl.rwy { font-size: 12px; font-weight: 700; color: var(--apt-rwy); }

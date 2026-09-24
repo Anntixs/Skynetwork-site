@@ -1,4 +1,4 @@
-// Live traffic map, radar style: aircraft with their flight plans, controllers with their sectors and airports.
+// Live traffic map, radar style: aircraft with their flight plans and routes, controllers with their sectors, airports.
 (function () {
   const el = document.getElementById('map');
   if (!el || !window.L) return;
@@ -37,6 +37,9 @@
   const firToggle = document.getElementById('fir-toggle');
   let data = null, selected = null, fitted = false;
   let pendingHash = compact ? '' : decodeURIComponent(location.hash.slice(1));
+  let route = null;                 // the selected aircraft's route points, extras and flown track
+  let follow = false;               // keep the selected aircraft centred
+  const sections = { graph: false, plan: true };   // which card sections are open (kept across refreshes)
 
   // ---- helpers ----
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -46,13 +49,14 @@
   const utc = d => d.toISOString().slice(11, 16) + 'z';
   const onlineFor = iso => hm(Math.max(1, Math.round((Date.now() - new Date(iso)) / 60000)));
   const feet = ft => `${Math.round(ft).toLocaleString(root.lang || 'en')} ft`;
-  const hhmm = t => /^\d{4}$/.test(t || '') && t !== '0000' ? `${t.slice(0, 2)}:${t.slice(2)}z` : '—';
+  const hhmm = s => /^\d{4}$/.test(s || '') && s !== '0000' ? `${s.slice(0, 2)}:${s.slice(2)}z` : '—';
   const RAD = Math.PI / 180;
+  const isAirway = s => /^[A-Z]{1,2}\d{1,4}[A-Z]?$/.test(s);
 
   function distNm(a, b) {
     const dLat = (b[0] - a[0]) * RAD, dLon = (b[1] - a[1]) * RAD;
     const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * RAD) * Math.cos(b[0] * RAD) * Math.sin(dLon / 2) ** 2;
-    return 2 * 3440.065 * Math.asin(Math.sqrt(h));
+    return 2 * 3440.065 * Math.asin(Math.sqrt(Math.min(1, h)));
   }
 
   function bearing(a, b) {
@@ -78,6 +82,31 @@
       points.push([Math.atan2(z, Math.hypot(x, y)) / RAD, lon]);
     }
     return points;
+  }
+
+  // Great-circle arcs through all points, kept continuous across the date line.
+  function path(points) {
+    const out = [];
+    for (let i = 1; i < points.length; i++) {
+      let seg = arc(points[i - 1], points[i]);
+      if (out.length) {
+        const shift = Math.round((out[out.length - 1][1] - seg[0][1]) / 360) * 360;
+        seg = seg.slice(1).map(([la, lo]) => [la, lo + shift]);
+      }
+      out.push(...seg);
+    }
+    return out.length ? out : points;
+  }
+
+  // Index of the route point the aircraft is flying to: the leg it is closest to lying on.
+  function nextPoint(points, at) {
+    if (!at) return 1;
+    let best = 1, cost = Infinity;
+    for (let i = 1; i < points.length; i++) {
+      const c = distNm(points[i - 1], at) + distNm(at, points[i]) - distNm(points[i - 1], points[i]);
+      if (c < cost) { cost = c; best = i; }
+    }
+    return best;
   }
 
   const label = (html, onClick) => {
@@ -132,74 +161,14 @@
     try { localStorage.setItem('map-firs', firToggle.checked ? '1' : '0'); } catch { }
   });
 
-  // Airport coordinates (OurAirports), loaded the first time a flight or an airport is opened.
-  let airports = null, airportsLoad = null;
+  // Airport coordinates and names (OurAirports), airline names by ICAO code (OpenFlights): loaded when first needed.
+  let airports = null, airportsLoad = null, airlines = null, airlinesLoad = null;
   const loadAirports = () => airportsLoad ??= fetch('/data/airports.json').then(r => r.json()).then(a => airports = a).catch(() => airports = {});
+  const loadAirlines = () => airlinesLoad ??= fetch('/data/airlines.json').then(r => r.json()).then(a => airlines = a).catch(() => airlines = {});
   const airport = code => airports?.[String(code || '').toUpperCase()] ?? null;
-
-  // VOR and NDB positions (OurAirports), for routes typed by hand.
-  let navaids = null, navaidsLoad = null;
-  const loadNavaids = () => navaidsLoad ??= Promise.all([loadAirports(), fetch('/data/navaids.json').then(r => r.json())])
-    .then(([, n]) => navaids = n).catch(() => navaids = {});
-
-  // Route text → points: airports, VOR/NDB (the one nearest to the previous point) and coordinates like 5530N03730E.
-  // Airways, SIDs/STARs and speed/level groups are skipped, so the line goes straight between what is known.
-  function resolveRoute(fp, dep, arr) {
-    if (!navaids || !airports) return null;
-    const points = dep ? [[fp.departure, dep[0], dep[1]]] : [];
-    let prev = dep;
-    for (const raw of String(fp.route || '').toUpperCase().split(/\s+/)) {
-      const token = raw.split('/')[0];
-      if (!token || token === 'DCT' || token === fp.departure || token === fp.destination) continue;
-      let at = coordinate(token);
-      if (!at) {
-        const found = [...(navaids[token] ?? []), ...(token.length === 4 && airports[token] ? [airports[token]] : [])];
-        if (!found.length) continue;
-        const ref = prev ?? arr;
-        at = ref ? found.reduce((best, c) => distNm(ref, c) < distNm(ref, best) ? c : best) : found[0];
-        // The same identifier on another continent is not this route's point.
-        if (ref && distNm(ref, at) > 1200) continue;
-      }
-      points.push([token, at[0], at[1]]);
-      prev = at;
-    }
-    if (arr) points.push([fp.destination, arr[0], arr[1]]);
-    return points.length > 2 ? points : null;
-  }
-  function coordinate(t) {
-    const m = /^(\d{2})(\d{2})?([NS])(\d{3})(\d{2})?([EW])$/.exec(t);
-    if (!m) return null;
-    const lat = (+m[1] + (+m[2] || 0) / 60) * (m[3] === 'S' ? -1 : 1), lon = (+m[4] + (+m[5] || 0) / 60) * (m[6] === 'W' ? -1 : 1);
-    return lat <= 90 && lon <= 180 ? [lat, lon] : null;
-  }
-
-  // Great-circle arcs through all points, kept continuous across the date line.
-  function path(points) {
-    const out = [];
-    for (let i = 1; i < points.length; i++) {
-      let seg = arc(points[i - 1], points[i]);
-      if (out.length) {
-        const shift = Math.round((out[out.length - 1][1] - seg[0][1]) / 360) * 360;
-        seg = seg.slice(1).map(([la, lo]) => [la, lo + shift]);
-      }
-      out.push(...seg);
-    }
-    return out.length ? out : points;
-  }
-
-  // Index of the route point the aircraft is flying to: the leg it is closest to lying on.
-  function nextPoint(points, at) {
-    if (!at) return 1;
-    let best = 1, cost = Infinity;
-    for (let i = 1; i < points.length; i++) {
-      const c = distNm(points[i - 1], at) + distNm(at, points[i]) - distNm(points[i - 1], points[i]);
-      if (c < cost) { cost = c; best = i; }
-    }
-    return best;
-  }
+  const airlineOf = cs => { const m = /^([A-Z]{3})\d/.exec(String(cs).toUpperCase()); return m ? airlines?.[m[1]] ?? null : null; };
 
   // The selected aircraft's route points and flown track, refreshed with the live data.
-  let route = null;
   async function loadRoute(cs) {
     try {
       const r = await fetch(`/api/v1/pilots/${encodeURIComponent(cs)}/route`, { cache: 'no-store' });
@@ -221,11 +190,6 @@
     }
     return metars.get(code).text;
   }
-
-  // Route point names only when zoomed in enough to read them.
-  const labelZoom = () => el.classList.toggle('wp-hide', map.getZoom() < 6);
-  map.on('zoomend', labelZoom);
-  labelZoom();
 
   // ---- airport diagrams (OpenStreetMap) when zoomed in, like a ground radar ----
   const LAYOUT_ZOOM = 12;
@@ -270,8 +234,8 @@
       const shape = { renderer: layoutRenderer, interactive: false };
       for (const a of d.areas)
         L.polygon(a.ring, { ...shape, stroke: false, fillColor: a.kind === 'apron' ? col.apron : col.building, fillOpacity: 1 }).addTo(layoutLayer);
-      for (const t of d.taxiways)
-        L.polyline(t.line, { ...shape, color: col.taxiway, weight: px(t.width), lineCap: 'round', lineJoin: 'round' }).addTo(layoutLayer);
+      for (const tw of d.taxiways)
+        L.polyline(tw.line, { ...shape, color: col.taxiway, weight: px(tw.width), lineCap: 'round', lineJoin: 'round' }).addTo(layoutLayer);
       for (const r of d.runways)
         L.polyline(r.line, { ...shape, color: col.runway, weight: px(r.width), lineCap: 'butt' }).addTo(layoutLayer);
 
@@ -288,10 +252,10 @@
       if (z >= 14) {
         // One name per taxiway piece, not repeated within 300 m.
         const placed = new Map();
-        for (const t of d.taxiways) {
-          const name = String(t.ref).replace(/^TWYs*/i, '');
-          if (!name || t.lane) continue;
-          const mid = t.line[Math.floor(t.line.length / 2)];
+        for (const tw of d.taxiways) {
+          const name = String(tw.ref).replace(/^TWY\s*/i, '');
+          if (!name || tw.lane) continue;
+          const mid = tw.line[Math.floor(tw.line.length / 2)];
           if (!view.contains(mid) || (placed.get(name) ?? []).some(p => map.distance(p, mid) < 300)) continue;
           placed.set(name, [...(placed.get(name) ?? []), mid]);
           tag(mid, name, 'twy');
@@ -409,9 +373,9 @@
     return points;
   }
 
-  // ---- selection card ----
+  // ---- selection ----
   function select(kind, key, fly) {
-    if (!(selected?.kind === kind && selected.key === key)) route = null;
+    if (!(selected?.kind === kind && selected.key === key)) { route = null; follow = false; }
     selected = { kind, key };
     history.replaceState(null, '', '#' + encodeURIComponent(key));
     render();
@@ -422,6 +386,7 @@
     if (!selected) return;
     selected = null;
     route = null;
+    follow = false;
     history.replaceState(null, '', location.pathname);
     render();
   }
@@ -429,12 +394,27 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') deselect(); });
   card?.addEventListener('click', e => {
     if (e.target.closest('.close')) return deselect();
+    const action = e.target.closest('[data-action]');
+    if (action) {
+      e.preventDefault();
+      if (action.dataset.action === 'center') flyTo();
+      else if (action.dataset.action === 'follow') { follow = !follow; if (follow) flyTo(); updateCard(); }
+      else if (action.dataset.action === 'share') {
+        const link = location.origin + '/map#' + encodeURIComponent(selected?.key ?? '');
+        (navigator.clipboard?.writeText(link) ?? Promise.reject()).then(() => {
+          action.querySelector('span').textContent = t('Link copied');
+          setTimeout(updateCard, 2000);
+        }).catch(() => prompt(t('Share link'), link));
+      }
+      return;
+    }
     const target = e.target.closest('[data-select]');
     if (!target) return;
     e.preventDefault();
     const [kind, key] = target.dataset.select.split('|');
     select(kind, key, true);
   });
+  card?.addEventListener('toggle', e => { const s = e.target.dataset?.sec; if (s) sections[s] = e.target.open; }, true);
 
   const pilotOf = cs => data?.pilots.find(p => p.callsign === cs);
   const atcOf = cs => data?.controllers.find(c => c.callsign === cs);
@@ -458,6 +438,70 @@
     }
   }
 
+  // ---- the route on the map ----
+  let drawn = null;   // what drawRoute last drew, redrawn on zoom for the label spacing
+  map.on('zoomend', () => { if (drawn) drawRoute(drawn); });
+
+  // The flown part in one colour, the rest of the plan in another, every point a small arrow along the route with its
+  // name where there is room, airway names along the legs — like a radar's route display.
+  function drawRoute(d) {
+    drawn = d;
+    routeLayer.clearLayers();
+    const { at, dep, arr, points, track } = d;
+    const colRoute = css('--map-route'), colFlown = css('--map-flown');
+    const ll = points ? points.map(w => [w[1], w[2]]) : null;
+    const i = ll ? nextPoint(ll, at) : 1;
+    const line = (pts, opts) => L.polyline(path(pts), { interactive: false, ...opts }).addTo(routeLayer);
+
+    if (ll) line(ll, { color: colRoute, weight: 1.5, opacity: .3, dashArray: '4 6' });
+    else if (dep && arr) line([dep, arr], { color: colRoute, weight: 1.5, opacity: .3, dashArray: '4 6' });
+    if (at) {
+      const flown = track.length > 1 ? [...track.map(q => [q[0], q[1]]), at] : ll ? [...ll.slice(0, i), at] : dep ? [dep, at] : null;
+      if (flown && flown.length > 1) line(flown, { color: colFlown, weight: 2.5 });
+      if (ll) line([at, ...ll.slice(i)], { color: colRoute, weight: 2 });
+      else if (arr) line([at, arr], { color: colRoute, weight: 2, dashArray: '6 6' });
+    }
+
+    if (ll) {
+      // Names only where they do not pile up; airway names once per run of points on that airway.
+      let lastLabel = null;
+      const minGap = 34;
+      for (let k = 1; k < ll.length - 1; k++) {
+        const p = map.latLngToContainerPoint(ll[k]);
+        const show = !lastLabel || Math.hypot(p.x - lastLabel.x, p.y - lastLabel.y) >= minGap;
+        if (show) lastLabel = p;
+        const dir = bearing(ll[k], ll[Math.min(k + 1, ll.length - 1)]);
+        L.marker(ll[k], { interactive: false, keyboard: false, icon: L.divIcon({
+          className: '', iconSize: [10, 10], iconAnchor: [5, 5],
+          html: `<div class="wp${k < i ? ' passed' : ''}"><svg viewBox="0 0 10 10" style="transform:rotate(${Math.round(dir)}deg)"><path d="M5 0 10 10 5 7.5 0 10z"/></svg>${show ? `<i>${esc(points[k][0])}</i>` : ''}</div>`,
+        }) }).addTo(routeLayer);
+      }
+      for (let k = 1; k < points.length;) {
+        const aw = points[k][3];
+        if (!aw) { k++; continue; }
+        let end = k;
+        while (end + 1 < points.length && points[end + 1][3] === aw) end++;
+        const a = ll[k - 1], b = ll[end];
+        const pa = map.latLngToContainerPoint(a), pb = map.latLngToContainerPoint(b);
+        if (Math.hypot(pb.x - pa.x, pb.y - pa.y) >= 70) {
+          const m = Math.floor((k - 1 + end) / 2), s1 = ll[m], s2 = ll[m + 1];
+          let angle = bearing(s1, s2) - 90;
+          if (angle > 90) angle -= 180; else if (angle <= -90) angle += 180;
+          L.marker([(s1[0] + s2[0]) / 2, (s1[1] + s2[1]) / 2], { interactive: false, keyboard: false, icon: L.divIcon({
+            className: '', iconSize: null, html: `<span class="aw-lbl${end < i ? ' passed' : ''}" style="transform:translate(-50%,-50%) rotate(${angle.toFixed(0)}deg)">${esc(aw)}</span>`,
+          }) }).addTo(routeLayer);
+        }
+        k = end + 1;
+      }
+    }
+    for (const [code, a] of [[d.depCode, dep], [d.arrCode, arr]])
+      if (a) L.marker(a, { icon: L.divIcon({ className: '', iconSize: [10, 10], html: '<div class="apt-dot"></div>' }) })
+        .bindTooltip(esc(code), { permanent: true, direction: 'right', offset: [8, 0] })
+        .on('click', () => select('airport', code, false)).addTo(routeLayer);
+    return i;
+  }
+
+  // ---- cards ----
   const head = (title, who, chips) => `
     <div class="mc-head">
       <div>
@@ -471,102 +515,154 @@
   const aptLink = (code, info) => code
     ? `<a href="#" data-select="airport|${esc(code)}"><b>${esc(code)}</b></a><span>${esc(info?.[2] ?? '')}</span>`
     : '<b>—</b>';
+  const section = (key, title, body) => `<details class="mc-sec" data-sec="${key}"${sections[key] ? ' open' : ''}><summary>${title}<i></i></summary>${body}</details>`;
 
   function updateCard() {
-    routeLayer.clearLayers();
     if (!card) return;
-    if (!selected || !data) { card.hidden = true; return; }
+    if (!selected || !data) { routeLayer.clearLayers(); drawn = null; card.hidden = true; return; }
     const { kind, key } = selected;
+    if (kind !== 'pilot') { routeLayer.clearLayers(); drawn = null; }
+    const scroll = card.scrollTop;
     card.innerHTML = kind === 'pilot' ? pilotCard(key) : kind === 'atc' ? atcCard(key) : airportCard(key);
     card.hidden = false;
+    card.scrollTop = scroll;
   }
 
   function pilotCard(cs) {
     const p = pilotOf(cs);
-    if (!p) return head(esc(cs), t('Offline'));
+    if (!p) { routeLayer.clearLayers(); drawn = null; return head(esc(cs), t('Offline')); }
     const fp = p.flightPlan;
-    if (fp && !airports) loadAirports().then(updateCard);
+    if (!airports) loadAirports().then(updateCard);
+    if (!airlines) loadAirlines().then(updateCard);
     const at = p.latitude != null ? [p.latitude, p.longitude] : null;
     const dep = airport(fp?.departure), arr = airport(fp?.destination);
-
-    // Route points: from the SimBrief import when there is one, otherwise worked out from the route text.
     const mine = route?.callsign === p.callsign ? route : null;
-    let points = mine?.waypoints?.length > 1 ? mine.waypoints : null, fromSimbrief = !!points;
-    if (!points && fp) {
-      if (!navaids) loadNavaids().then(updateCard);
-      points = resolveRoute(fp, dep, arr);
-    }
+    const points = mine?.waypoints?.length > 1 ? mine.waypoints : null;
     const track = mine?.track ?? [];
+    const extras = mine?.extras ?? null;
+    const gs = p.groundspeed, alt = p.altitude;
 
-    // Flown track solid, the planned route dashed, like on a radar's route display.
-    const color = css('--map-route');
-    if (track.length > 1) L.polyline(path([...track, ...(at ? [at] : [])]), { color, weight: 2.5, interactive: false }).addTo(routeLayer);
-    else if (at && dep) L.polyline(arc(dep, at), { color, weight: 2, interactive: false }).addTo(routeLayer);
+    const i = drawRoute({ at, dep, arr, points, track, depCode: fp?.departure, arrCode: fp?.destination });
 
-    let next = null, flown = null, left = null;
-    if (points) {
+    // Distance flown and left, along the plan when there is one.
+    let flown = null, left = null, next = null;
+    if (at && points) {
       const ll = points.map(w => [w[1], w[2]]);
-      const i = nextPoint(ll, at);
-      L.polyline(path(ll), { color, weight: 1.5, opacity: .35, dashArray: '4 6', interactive: false }).addTo(routeLayer);
-      if (at) L.polyline(path([at, ...ll.slice(i)]), { color, weight: 2, dashArray: '6 6', interactive: false }).addTo(routeLayer);
-      points.slice(1, -1).forEach((w, k) => L.circleMarker([w[1], w[2]], {
-        radius: 3, color, weight: 1.5, fillColor: css('--paper'), fillOpacity: 1, opacity: k + 1 < i ? .45 : 1, interactive: false,
-      }).bindTooltip(esc(w[0]), { permanent: true, direction: 'right', offset: [5, 0], className: 'wp-label' }).addTo(routeLayer));
-      if (at) {
-        next = points[i];
-        left = distNm(at, ll[i]);
-        for (let k = i + 1; k < ll.length; k++) left += distNm(ll[k - 1], ll[k]);
-        let total = 0;
-        for (let k = 1; k < ll.length; k++) total += distNm(ll[k - 1], ll[k]);
-        flown = Math.max(0, total - left);
-      }
-    } else if (at && arr) {
-      L.polyline(arc(at, arr), { color, weight: 2, dashArray: '6 6', interactive: false }).addTo(routeLayer);
+      next = points[i];
+      left = distNm(at, ll[i]);
+      for (let k = i + 1; k < ll.length; k++) left += distNm(ll[k - 1], ll[k]);
+      let total = 0;
+      for (let k = 1; k < ll.length; k++) total += distNm(ll[k - 1], ll[k]);
+      flown = Math.max(0, total - left);
+    } else if (at && dep && arr) { flown = distNm(dep, at); left = distNm(at, arr); }
+
+    // Where the flight is: from the last few minutes of the track and the distance to the airports.
+    const now = Date.now() / 1000;
+    let vs = 0;
+    if (at) {
+      const recent = [...track.filter(q => now - q[4] < 240), [at[0], at[1], alt, gs, now]];
+      const a = recent[0], b = recent[recent.length - 1], dt = (b[4] - a[4]) / 60;
+      if (dt >= 0.5) vs = Math.round((b[2] - a[2]) / dt / 50) * 50;
     }
-    if (flown == null && at && dep && arr) { flown = distNm(dep, at); left = distNm(at, arr); }
+    const dDep = at && dep ? distNm(at, dep) : null, dArr = at && arr ? distNm(at, arr) : null;
+    let phase;
+    if (gs < 40) phase = dArr != null && dArr < 5 && track.length > 3 ? 'Arrived' : 'On the ground';
+    else if (dArr != null && dArr < 30 && vs <= 200 && alt < 12000) phase = 'Arriving';
+    else if (dDep != null && dDep < 30 && vs > 200) phase = 'Departing';
+    else if (vs > 300) phase = 'Climbing';
+    else if (vs < -300) phase = 'Descending';
+    else phase = 'Cruising';
 
-    for (const [code, a] of [[fp?.departure, dep], [fp?.destination, arr]])
-      if (a) L.marker(a, { icon: L.divIcon({ className: '', iconSize: [10, 10], html: '<div class="apt-dot"></div>' }) })
-        .bindTooltip(esc(code), { permanent: true, direction: 'right', offset: [8, 0] })
-        .on('click', () => select('airport', code, false)).addTo(routeLayer);
+    // Departure: when the aircraft first moved, otherwise the planned time; arrival from the speed and distance left.
+    const off = track.find(q => q[3] >= 50);
+    const depTime = off ? utc(new Date(off[4] * 1000)) : hhmm(fp?.departureTime);
+    const eta = gs > 50 && left > 1 ? utc(new Date(Date.now() + left / gs * 3600000)) : extras?.on ? utc(new Date(extras.on * 1000)) : '—';
+    const pct = flown != null ? Math.min(100, Math.round(flown / Math.max(1, flown + left) * 100)) : 0;
+    const airline = airlineOf(p.callsign);
 
-    let progress = '';
-    if (flown != null) {
-      const pct = Math.min(100, Math.round(flown / Math.max(1, flown + left) * 100));
-      const eta = p.groundspeed > 50 && left > 1 ? t('arrival ≈ {0}', utc(new Date(Date.now() + left / p.groundspeed * 3600000))) : `${pct}%`;
-      progress = `<div class="mc-progress" style="margin-top:10px"><i style="width:${pct}%"></i></div>
-        <div class="mc-progress-text"><span>${Math.round(flown)} nm</span><span>${eta}</span><span>${Math.round(left)} nm</span></div>`;
-      if (next && at && p.groundspeed >= 40)
-        progress += `<div class="small" style="margin-top:6px"><span class="muted">${t('Next point:')}</span> <b class="mono">${esc(next[0])}</b>
-          <span class="muted">· ${Math.round(distNm(at, [next[1], next[2]]))} nm</span></div>`;
-    }
-    const routeNote = points ? `<div class="muted small" style="margin-top:4px">${fromSimbrief ? t('{0} route points from SimBrief', points.length)
-      : t('{0} points found in the VOR/NDB database, without the points along airways', points.length)}</div>`
-      : fp ? `<div class="muted small" style="margin-top:4px">${t('Route points appear when the pilot plans in SimBrief and has loaded a plan on the Flight plan page once.')}</div>` : '';
+    const chips = `<span class="badge phase ${phase.toLowerCase().replace(/ /g, '-')}">${t(phase)}</span>` +
+      (fp?.aircraft ? `<span class="badge accent">${esc(fp.aircraft)}</span>` : '') +
+      (fp?.rules ? `<span class="badge">${esc(fp.rules)}</span>` : '');
+    const who = (airline ? `<b>${esc(airline)}</b> · ` : '') + `<a href="/members/${p.cid}">${esc(p.name)}</a> · CID ${p.cid}`;
 
-    const chips = (fp?.aircraft ? `<span class="badge accent">${esc(fp.aircraft)}</span>` : '') +
-      (fp?.rules ? `<span class="badge">${esc(fp.rules)}</span>` : '') +
-      (p.groundspeed < 40 ? `<span class="badge">${t('On the ground')}</span>` : '');
-    return head(esc(p.callsign), `<a href="/members/${p.cid}">${esc(p.name)}</a> · CID ${p.cid}`, chips) + `
-      <div class="mc-body">
-        ${fp ? `<div><div class="mc-route"><div class="apt">${aptLink(fp.departure, dep)}</div><div class="arrow">→</div><div class="apt">${aptLink(fp.destination, arr)}</div></div>${progress}</div>`
-             : `<div class="muted small">${t('No flight plan filed')}</div>`}
-        <div class="mc-grid">
-          ${cell(t('Altitude'), feet(p.altitude))}
-          ${cell(t('Ground speed'), p.groundspeed + ' kt')}
-          ${cell(t('Heading'), p.heading != null ? pad(Math.round(p.heading) % 360, 3) + '°' : '—')}
-          ${cell(t('Squawk'), esc(p.transponder || '—'))}
-          ${cell(t('Cruise level'), esc(fp?.cruiseAltitude || '—'))}
-          ${cell(t('TAS'), fp?.cruiseSpeed ? fp.cruiseSpeed + ' kt' : '—')}
-          ${cell(t('Departure'), hhmm(fp?.departureTime))}
-          ${cell(t('En route'), hm(fp?.enrouteMinutes ?? 0))}
-          ${cell(t('Fuel'), hm(fp?.fuelMinutes ?? 0))}
+    const flight = fp ? `
+      <div class="mc-flight">
+        <div class="mc-route"><div class="apt">${aptLink(fp.departure, dep)}</div><div class="arrow">→</div><div class="apt">${aptLink(fp.destination, arr)}</div></div>
+        <div class="mc-progress"><i style="width:${pct}%"></i><b style="left:${pct}%"></b></div>
+        <div class="mc-times">
+          <span><small>${off ? t('Departed') : t('Planned')}</small>${depTime}</span>
+          <span><small>${t('Time online')}</small>${onlineFor(p.logonTime)}</span>
+          <span><small>${t('ETA')}</small>${eta}</span>
         </div>
-        ${fp?.alternate ? `<div class="small"><span class="muted">${t('Alternate:')}</span> ${aptLink(fp.alternate, null).replace('<span></span>', '')}</div>` : ''}
-        ${fp?.route ? `<div class="mc-block"><div class="eyebrow">${t('Route')}</div><div class="mc-text">${esc(fp.route)}</div>${routeNote}</div>` : ''}
-        ${fp?.remarks ? `<div class="mc-block"><div class="eyebrow">${t('Remarks')}</div><div class="mc-text">${esc(fp.remarks)}</div></div>` : ''}
-        <div class="muted small">${t('Online for {0}', onlineFor(p.logonTime))}</div>
+        ${flown != null ? `<div class="mc-progress-text"><span>${t('Distance flown')} ${Math.round(flown)} nm</span><span>${t('Remaining')} ${Math.round(left)} nm</span></div>` : ''}
+      </div>` : `<div class="muted small">${t('No flight plan filed')}</div>`;
+
+    const grid = `
+      <div class="mc-grid">
+        ${cell(t('Ground speed'), gs + ' kt')}
+        ${cell(t('Altitude'), feet(alt))}
+        ${cell(t('Heading'), p.heading != null ? pad(Math.round(p.heading) % 360, 3) + '°' : '—')}
+        ${cell(t('Squawk'), esc(p.transponder || '—'))}
+        ${cell(t('Vertical speed'), gs < 40 ? '—' : (vs > 0 ? '+' : '') + vs + ' ft/min')}
+        ${cell(t('Next point'), next && gs >= 40 ? `${esc(next[0])} <small class="muted">${Math.round(distNm(at, [next[1], next[2]]))} nm</small>` : '—')}
       </div>`;
+
+    const steps = extras?.steps ? extras.steps.split(/\s+/).map(s => {
+      const [fix, lvl] = s.split('/');
+      return lvl ? `<span class="badge">FL${lvl.replace(/^0+/, '')} <b class="mono">${esc(fix)}</b></span>` : '';
+    }).join('') : '';
+    const source = mine?.source === 'simbrief' ? t('Route from SimBrief (AIRAC {0})', esc(extras?.airac || '—'))
+      : mine?.source === 'route' ? t('Route worked out from the flight plan') : '';
+    const unresolved = mine?.unresolved?.length ? `<div class="muted small">${t('Not found in the database: {0}', esc(mine.unresolved.join(', ')))}</div>` : '';
+    const routeText = fp?.route ? esc(fp.route).split(' ').map(w => isAirway(w) ? `<b>${w}</b>` : w).join(' ') : '';
+    const plan = fp ? `
+      <div class="mc-grid three">
+        ${cell(t('Aircraft type'), esc(extras?.type && extras.type !== fp.aircraft ? `${fp.aircraft} · ${extras.type}` : fp.aircraft || '—'))}
+        ${cell(t('Cruise TAS'), fp.cruiseSpeed ? fp.cruiseSpeed + ' kt' + (extras?.mach ? ` · M${esc(extras.mach)}` : '') : '—')}
+        ${cell(t('Cruise altitude'), esc(fp.cruiseAltitude || '—'))}
+        ${cell(t('Aircraft registration'), esc(extras?.reg || '—'))}
+        ${cell(t('Alternate'), fp.alternate ? `<a href="#" data-select="airport|${esc(fp.alternate)}">${esc(fp.alternate)}</a>` : '—')}
+        ${cell(t('Route distance'), extras?.dist ? extras.dist + ' nm' : left != null && flown != null ? Math.round(flown + left) + ' nm' : '—')}
+        ${cell(t('Departure'), hhmm(fp.departureTime))}
+        ${cell(t('En route'), hm(fp.enrouteMinutes))}
+        ${cell(t('Fuel'), hm(fp.fuelMinutes))}
+      </div>
+      ${steps ? `<div class="mc-block"><div class="eyebrow">${t('Step climbs')}</div><div class="mc-chips">${steps}</div></div>` : ''}
+      ${routeText ? `<div class="mc-block"><div class="eyebrow">${t('Route')}</div><div class="mc-text mc-route-text">${routeText}</div>
+        ${source ? `<div class="muted small">${source}</div>` : ''}${unresolved}</div>` : ''}
+      ${fp.remarks ? `<div class="mc-block"><div class="eyebrow">${t('Remarks')}</div><div class="mc-text">${esc(fp.remarks)}</div></div>` : ''}` : '';
+
+    return head(esc(p.callsign), who, chips) + `
+      <div class="mc-body">
+        ${flight}
+        ${grid}
+        ${section('graph', t('Speed & altitude graph'), chart(track, at, alt, gs))}
+        ${fp ? section('plan', t('Flight plan'), plan) : ''}
+      </div>
+      <div class="mc-tools">
+        <button type="button" data-action="center"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><span>${t('Center on aircraft')}</span></button>
+        <button type="button" data-action="follow" class="${follow ? 'on' : ''}"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8z"/></svg><span>${t(follow ? 'Following' : 'Follow')}</span></button>
+        <button type="button" data-action="share"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg><span>${t('Share link')}</span></button>
+      </div>`;
+  }
+
+  // Altitude and ground speed since the aircraft connected.
+  function chart(track, at, alt, gs) {
+    const pts = at ? [...track, [at[0], at[1], alt, gs, Date.now() / 1000]] : track;
+    if (pts.length < 3) return `<div class="muted small">${t('Not enough data yet')}</div>`;
+    const W = 320, H = 90, padT = 6, padB = 6;
+    const t0 = pts[0][4], span = Math.max(300, pts[pts.length - 1][4] - t0);
+    const maxAlt = Math.max(2000, ...pts.map(q => q[2])), maxGs = Math.max(100, ...pts.map(q => q[3]));
+    const x = q => ((q[4] - t0) / span * W).toFixed(1);
+    const yA = q => (padT + (1 - q[2] / maxAlt) * (H - padT - padB)).toFixed(1);
+    const yS = q => (padT + (1 - q[3] / maxGs) * (H - padT - padB)).toFixed(1);
+    return `
+      <svg class="mc-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+        <polyline class="alt" points="${pts.map(q => `${x(q)},${yA(q)}`).join(' ')}"/>
+        <polyline class="gs" points="${pts.map(q => `${x(q)},${yS(q)}`).join(' ')}"/>
+      </svg>
+      <div class="mc-legend"><span class="alt">${t('Altitude')} · ${feet(alt)}</span><span class="gs">${t('Ground speed')} · ${gs} kt</span>
+        <span class="muted">${utc(new Date(t0 * 1000))} – ${utc(new Date())}</span></div>`;
   }
 
   function atcCard(cs) {
@@ -651,7 +747,11 @@
     if (list) list.innerHTML = [...data.pilots, ...data.controllers].map(x => `<option value="${esc(x.callsign)}">`).join('');
 
     const points = render();
-    if (selected?.kind === 'pilot') loadRoute(selected.key);
+    if (selected?.kind === 'pilot') {
+      loadRoute(selected.key);
+      const p = pilotOf(selected.key);
+      if (follow && p?.latitude != null) map.panTo([p.latitude, p.longitude]);
+    }
     if (pendingHash) {
       const q = pendingHash;
       pendingHash = '';

@@ -7,11 +7,15 @@ public static class MapTexts
 {
     public static readonly string[] Keys =
     [
-        "Updated", "Server not responding", "Offline", "Close", "{0} min", "{0} h {1} min", "arrival ≈ {0}", "Next point:",
-        "{0} route points from SimBrief", "{0} points found in the VOR/NDB database, without the points along airways",
-        "Route points appear when the pilot plans in SimBrief and has loaded a plan on the Flight plan page once.",
-        "On the ground", "No flight plan filed", "Altitude", "Ground speed", "Heading", "Squawk", "Cruise level", "TAS", "Departure",
-        "En route", "Fuel", "Alternate:", "Route", "Remarks", "Online for {0}", "Online for", "Frequency", "Rating", "Sector:", "Airport:",
+        "Updated", "Server not responding", "Offline", "Close", "{0} min", "{0} h {1} min",
+        "On the ground", "Departing", "Climbing", "Cruising", "Descending", "Arriving", "Arrived",
+        "No flight plan filed", "Departed", "Planned", "Time online", "ETA", "Distance flown", "Remaining",
+        "Altitude", "Ground speed", "Heading", "Squawk", "Vertical speed", "Next point",
+        "Speed & altitude graph", "Not enough data yet", "Flight plan", "Aircraft type", "Cruise TAS", "Cruise altitude", "Aircraft registration",
+        "Alternate", "Route distance", "Departure", "En route", "Fuel", "Step climbs", "Route", "Remarks",
+        "Route from SimBrief (AIRAC {0})", "Route worked out from the flight plan", "Not found in the database: {0}",
+        "Center on aircraft", "Follow", "Following", "Share link", "Link copied",
+        "Online for {0}", "Online for", "Frequency", "Rating", "Sector:", "Airport:",
         "none", "no data", "Loading…", "Controllers", "nobody", "Departures", "Arrivals", "Not found: {0}",
     ];
 

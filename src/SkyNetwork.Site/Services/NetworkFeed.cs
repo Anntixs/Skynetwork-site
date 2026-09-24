@@ -75,7 +75,7 @@ public sealed class NetworkFeed(IOptions<SiteOptions> options, Database db, IHtt
                     if (FeedParser.Distance(last.Latitude, last.Longitude, lat, lon) < 0.3
                         && Math.Abs(last.Altitude - p.Altitude) < 500 && now - last.Time < 300) continue;
                 }
-                t.Points.Add(new TrackPoint(lat, lon, p.Altitude, now));
+                t.Points.Add(new TrackPoint(lat, lon, p.Altitude, p.Groundspeed, now));
                 if (t.Points.Count > MaxTrackPoints) t.Points.RemoveRange(0, t.Points.Count - MaxTrackPoints);
             }
             foreach (var gone in _tracks.Keys.Where(k => !online.Contains(k)).ToList()) _tracks.Remove(gone);

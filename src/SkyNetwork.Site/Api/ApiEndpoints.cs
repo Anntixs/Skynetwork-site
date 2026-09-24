@@ -23,20 +23,35 @@ public static class ApiEndpoints
 
         var v1 = app.MapGroup("/api/v1").RequireCors("api");
 
-        // For the map: the planned route points (SimBrief import) and the track flown so far.
-        v1.MapGet("/pilots/{callsign}/route", async (string callsign, NetworkFeed feed, FlightPlanService plans, Simbrief simbrief, CancellationToken ct) =>
+        // For the map: the route as points (SimBrief when the pilot uses it, otherwise worked out from the route text)
+        // and the track flown so far.
+        v1.MapGet("/pilots/{callsign}/route", async (string callsign, NetworkFeed feed, FlightPlanService plans, Simbrief simbrief, NavData nav, CancellationToken ct) =>
         {
             var p = feed.Current.Pilots.FirstOrDefault(x => x.Callsign.Equals(callsign, StringComparison.OrdinalIgnoreCase));
             if (p == null) return Results.NotFound();
-            string? points = null;
+            string? source = null;
+            StoredRoute? stored = null;
+            List<RoutePoint>? points = null;
+            List<string> unresolved = [];
             if (p.FlightPlan is { } fp)
+            {
                 // A plan imported here, otherwise the pilot's latest SimBrief plan for the same flight.
-                points = plans.Waypoints(p.Cid, fp.Departure, fp.Destination)
-                    ?? await simbrief.RouteForAsync(plans.SimbriefUser(p.Cid), fp.Departure, fp.Destination, ct);
+                stored = StoredRoute.Parse(plans.Waypoints(p.Cid, fp.Departure, fp.Destination)
+                    ?? await simbrief.RouteForAsync(plans.SimbriefUser(p.Cid), fp.Departure, fp.Destination, ct));
+                if (stored != null) { source = "simbrief"; points = stored.Points; }
+                else
+                {
+                    (points, unresolved) = nav.Decode(fp.Departure, fp.Destination, fp.Route);
+                    source = points.Count > 1 ? "route" : null;
+                }
+            }
             return Results.Ok(new
             {
-                waypoints = points is { Length: > 0 } ? System.Text.Json.Nodes.JsonNode.Parse(points) : null,
-                track = feed.Track(p.Callsign).Select(t => new object[] { Math.Round(t.Latitude, 4), Math.Round(t.Longitude, 4), t.Altitude }),
+                source,
+                waypoints = source != null ? points!.Select(w => new object[] { w.Ident, Math.Round(w.Lat, 4), Math.Round(w.Lon, 4), w.Airway, w.Altitude }) : null,
+                unresolved,
+                extras = stored?.Extras(),
+                track = feed.Track(p.Callsign).Select(t => new object[] { Math.Round(t.Latitude, 4), Math.Round(t.Longitude, 4), t.Altitude, t.Groundspeed, t.Time }),
             });
         });
 

@@ -34,6 +34,7 @@ builder.Services.AddHttpClient("tiles", c =>
     c.DefaultRequestHeaders.UserAgent.ParseAdd("SkyNetworkSite/1.0 (+https://github.com/Anntixs/Skynetwork-site)");
 });
 builder.Services.AddSingleton<TileProxy>();
+builder.Services.AddSingleton<NavData>();
 builder.Services.AddHttpClient("simbrief", c => c.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddSingleton<Simbrief>();
 builder.Services.AddHttpClient("metar", c => c.Timeout = TimeSpan.FromSeconds(10));

@@ -116,6 +116,17 @@ public sealed class Database
         AddColumn(c, "member_profiles", "military_rating", "INTEGER NOT NULL DEFAULT 0");
         AddColumn(c, "training_requests", "track", "TEXT NOT NULL DEFAULT 'atc'");
         AddColumn(c, "flight_plans", "waypoints", "TEXT NOT NULL DEFAULT ''");
+
+        // Waypoints and airway segments learned from imported SimBrief routes (see NavData).
+        c.Execute("""
+            CREATE TABLE IF NOT EXISTS nav_fixes (
+                ident TEXT NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL, seen_at INTEGER NOT NULL,
+                PRIMARY KEY (ident, lat, lon));
+            CREATE TABLE IF NOT EXISTS nav_airways (
+                name TEXT NOT NULL, a TEXT NOT NULL, a_lat REAL NOT NULL, a_lon REAL NOT NULL,
+                b TEXT NOT NULL, b_lat REAL NOT NULL, b_lon REAL NOT NULL, seen_at INTEGER NOT NULL,
+                PRIMARY KEY (name, a, b));
+            """);
         AddColumn(c, "member_profiles", "simbrief", "TEXT NOT NULL DEFAULT ''");
     }
 
