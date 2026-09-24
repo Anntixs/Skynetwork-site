@@ -49,7 +49,7 @@ public class SimbriefTests
     {
         var (plan, error) = Simbrief.Parse("""{"fetch":{"userid":"","status":"Error: Unknown UserID"}}""");
         Assert.Null(plan);
-        Assert.Contains("пользователя SimBrief нет", error);
+        Assert.Contains("no such SimBrief user", error);
         Assert.NotNull(Simbrief.Parse("<html>").Error);
         Assert.NotNull(Simbrief.Parse("[]").Error);
     }

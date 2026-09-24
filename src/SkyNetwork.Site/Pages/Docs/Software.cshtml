@@ -1,23 +1,28 @@
 @page "/docs/software"
-@{ ViewData["Title"] = "Программы"; }
+@{ ViewData["Title"] = L["Software"]; }
 <div class="wrap page with-side">
   <partial name="_DocsNav" />
   <div>
-    <h1 style="font-size:34px">Программы</h1>
-    <p class="muted">Всё бесплатно. Нужна Windows 10 или 11.</p>
+    <h1 style="font-size:34px">@L["Software"]</h1>
+    <p class="muted">@L["Everything is free. Windows 10 or 11 is required."]</p>
     <div class="grid two" style="margin-top:24px">
       <div class="card">
-        <div class="eyebrow">Пилотам</div>
+        <div class="eyebrow">@L["For pilots"]</div>
         <h3>SkyPilot</h3>
-        <p class="muted small">Клиент для Microsoft Flight Simulator 2020 и 2024: подключение к сети, план полёта с сайта, сообщения, список диспетчеров рядом.</p>
-        <a class="btn btn-primary" href="https://github.com/Anntixs/skypilot/releases/latest">Скачать SkyPilot</a>
+        <p class="muted small">@L["The client for Microsoft Flight Simulator 2020 and 2024: network connection, flight plan from the website, messages, nearby controllers."]</p>
+        <a class="btn btn-primary" href="https://github.com/Anntixs/skypilot/releases/latest">@L["Download SkyPilot"]</a>
       </div>
       <div class="card">
-        <div class="eyebrow">Диспетчерам</div>
+        <div class="eyebrow">@L["For controllers"]</div>
         <h3>Network-ATC</h3>
-        <p class="muted small">Радар: секторы EuroScope и .natc, передача бортов, SID/STAR, списки вылета и прилёта, STCA, плагины.</p>
-        <a class="btn btn-primary" href="https://github.com/Anntixs/Network-ATC/releases/latest">Скачать Network-ATC</a>
+        <p class="muted small">@L["Radar: EuroScope and .natc sectors, handoffs, SID/STAR, departure and arrival lists, STCA, plugins."]</p>
+        <a class="btn btn-primary" href="https://github.com/Anntixs/Network-ATC/releases/latest">@L["Download Network-ATC"]</a>
       </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="eyebrow">@L["Voice"]</div>
+      <h3>@L["Radio voice is built in"]</h3>
+      <p class="muted small" style="margin:0">@L["Both programs talk on the radio themselves: nothing else to install. Choose the microphone, speakers and push-to-talk key or joystick button in the settings. You hear stations tuned to your frequencies within radio range; weak signals sound noisy, as on a real VHF radio. The voice server uses UDP port 3782."]</p>
     </div>
   </div>
 </div>

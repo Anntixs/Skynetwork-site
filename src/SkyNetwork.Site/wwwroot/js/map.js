@@ -4,7 +4,11 @@
   if (!el || !window.L) return;
   const compact = el.dataset.compact === '1';
   const root = document.documentElement;
-  const theme = () => root.dataset.theme === 'dark' ? 'dark' : 'light';
+  // The site theme (theme.js): the header switch, otherwise the system setting.
+  const theme = () => window.skyTheme ? window.skyTheme() : root.dataset.theme === 'dark' ? 'dark' : 'light';
+  // Texts in the visitor's language, from the page (see MapTexts); English when missing.
+  const texts = (() => { try { return JSON.parse(el.dataset.text || '{}'); } catch { return {}; } })();
+  const t = (key, ...args) => (texts[key] ?? key).replace(/{(d)}/g, (_, i) => args[i]);
   const css = name => getComputedStyle(root).getPropertyValue(name).trim();
 
   const map = L.map(el, { zoomControl: false, worldCopyJump: true, scrollWheelZoom: !compact })
@@ -38,10 +42,10 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const prefix = cs => String(cs).split('_')[0].toUpperCase();
   const pad = (n, w) => String(n).padStart(w, '0');
-  const hm = min => !(min > 0) ? '—' : min < 60 ? `${min} мин` : `${Math.floor(min / 60)} ч ${pad(min % 60, 2)} мин`;
+  const hm = min => !(min > 0) ? '—' : min < 60 ? t('{0} min', min) : t('{0} h {1} min', Math.floor(min / 60), pad(min % 60, 2));
   const utc = d => d.toISOString().slice(11, 16) + 'z';
   const onlineFor = iso => hm(Math.max(1, Math.round((Date.now() - new Date(iso)) / 60000)));
-  const feet = ft => `${Math.round(ft).toLocaleString('ru-RU')} ft`;
+  const feet = ft => `${Math.round(ft).toLocaleString(root.lang || 'en')} ft`;
   const hhmm = t => /^\d{4}$/.test(t || '') && t !== '0000' ? `${t.slice(0, 2)}:${t.slice(2)}z` : '—';
   const RAD = Math.PI / 180;
 
@@ -303,6 +307,29 @@
   }
   map.on('moveend', loadLayouts);
 
+  // ---- airport codes (ICAO): big airports from zoom 5, medium from 7, small from 9 ----
+  map.createPane('airportCodes').style.zIndex = 455;
+  const codesLayer = L.layerGroup().addTo(map);
+  let staffedAirports = new Set();   // these already have a controller badge
+  function drawCodes() {
+    codesLayer.clearLayers();
+    if (compact || !airports) return;
+    const z = map.getZoom();
+    const maxRank = z >= 9 ? 2 : z >= 7 ? 1 : z >= 5 ? 0 : -1;
+    if (maxRank < 0) return;
+    const view = map.getBounds().pad(.1);
+    let shown = 0;
+    for (const [code, a] of Object.entries(airports)) {
+      if ((a[3] ?? 2) > maxRank || staffedAirports.has(code) || !view.contains([a[0], a[1]])) continue;
+      if (++shown > 400) break;
+      L.marker([a[0], a[1]], { pane: 'airportCodes', keyboard: false,
+        icon: L.divIcon({ className: '', iconSize: null, html: `<span class="apt-code r${a[3] ?? 2}" title="${esc(a[2])}">${code}</span>` }) })
+        .on('click', () => select('airport', code, false)).addTo(codesLayer);
+    }
+  }
+  map.on('moveend', drawCodes);
+  if (!compact) loadAirports().then(drawCodes);
+
   // ---- drawing ----
   function render() {
     if (!data) return [];
@@ -349,6 +376,9 @@
     }
 
     const order = ['DEL', 'GND', 'TWR', 'APP'];
+    const staffedBefore = [...staffedAirports].join();
+    staffedAirports = new Set(towers.keys());
+    if (staffedBefore !== [...staffedAirports].join()) drawCodes();
     for (const [code, list] of towers) {
       const c = list.find(x => x.latitude != null);
       const at = c ? [c.latitude, c.longitude] : airport(code);
@@ -429,7 +459,7 @@
         ${who ? `<div class="who">${who}</div>` : ''}
         ${chips ? `<div class="mc-chips">${chips}</div>` : ''}
       </div>
-      <button class="close" type="button" aria-label="Закрыть">×</button>
+      <button class="close" type="button" aria-label="${t('Close')}">×</button>
     </div>`;
   const cell = (name, value) => `<div><span>${name}</span><b>${value}</b></div>`;
   const aptLink = (code, info) => code
@@ -447,7 +477,7 @@
 
   function pilotCard(cs) {
     const p = pilotOf(cs);
-    if (!p) return head(esc(cs), 'Не в сети');
+    if (!p) return head(esc(cs), t('Offline'));
     const fp = p.flightPlan;
     if (fp && !airports) loadAirports().then(updateCard);
     const at = p.latitude != null ? [p.latitude, p.longitude] : null;
@@ -497,56 +527,57 @@
     let progress = '';
     if (flown != null) {
       const pct = Math.min(100, Math.round(flown / Math.max(1, flown + left) * 100));
-      const eta = p.groundspeed > 50 && left > 1 ? 'прибытие ≈ ' + utc(new Date(Date.now() + left / p.groundspeed * 3600000)) : `${pct}%`;
+      const eta = p.groundspeed > 50 && left > 1 ? t('arrival ≈ {0}', utc(new Date(Date.now() + left / p.groundspeed * 3600000))) : `${pct}%`;
       progress = `<div class="mc-progress" style="margin-top:10px"><i style="width:${pct}%"></i></div>
         <div class="mc-progress-text"><span>${Math.round(flown)} nm</span><span>${eta}</span><span>${Math.round(left)} nm</span></div>`;
       if (next && at && p.groundspeed >= 40)
-        progress += `<div class="small" style="margin-top:6px"><span class="muted">Следующая точка:</span> <b class="mono">${esc(next[0])}</b>
+        progress += `<div class="small" style="margin-top:6px"><span class="muted">${t('Next point:')}</span> <b class="mono">${esc(next[0])}</b>
           <span class="muted">· ${Math.round(distNm(at, [next[1], next[2]]))} nm</span></div>`;
     }
-    const routeNote = points ? `<div class="muted small" style="margin-top:4px">${fromSimbrief ? `${points.length} точек маршрута из SimBrief`
-      : `${points.length} точек найдено по базе VOR/NDB — без промежуточных точек трасс`}</div>` : '';
+    const routeNote = points ? `<div class="muted small" style="margin-top:4px">${fromSimbrief ? t('{0} route points from SimBrief', points.length)
+      : t('{0} points found in the VOR/NDB database, without the points along airways', points.length)}</div>`
+      : fp ? `<div class="muted small" style="margin-top:4px">${t('Route points appear when the pilot plans in SimBrief and has loaded a plan on the Flight plan page once.')}</div>` : '';
 
     const chips = (fp?.aircraft ? `<span class="badge accent">${esc(fp.aircraft)}</span>` : '') +
       (fp?.rules ? `<span class="badge">${esc(fp.rules)}</span>` : '') +
-      (p.groundspeed < 40 ? '<span class="badge">На земле</span>' : '');
+      (p.groundspeed < 40 ? `<span class="badge">${t('On the ground')}</span>` : '');
     return head(esc(p.callsign), `<a href="/members/${p.cid}">${esc(p.name)}</a> · CID ${p.cid}`, chips) + `
       <div class="mc-body">
         ${fp ? `<div><div class="mc-route"><div class="apt">${aptLink(fp.departure, dep)}</div><div class="arrow">→</div><div class="apt">${aptLink(fp.destination, arr)}</div></div>${progress}</div>`
-             : '<div class="muted small">План полёта не подан</div>'}
+             : `<div class="muted small">${t('No flight plan filed')}</div>`}
         <div class="mc-grid">
-          ${cell('Высота', feet(p.altitude))}
-          ${cell('Скорость', p.groundspeed + ' kt')}
-          ${cell('Курс', p.heading != null ? pad(Math.round(p.heading) % 360, 3) + '°' : '—')}
-          ${cell('Сквок', esc(p.transponder || '—'))}
-          ${cell('Эшелон', esc(fp?.cruiseAltitude || '—'))}
-          ${cell('TAS', fp?.cruiseSpeed ? fp.cruiseSpeed + ' kt' : '—')}
-          ${cell('Вылет', hhmm(fp?.departureTime))}
-          ${cell('В пути', hm(fp?.enrouteMinutes ?? 0))}
-          ${cell('Топливо', hm(fp?.fuelMinutes ?? 0))}
+          ${cell(t('Altitude'), feet(p.altitude))}
+          ${cell(t('Ground speed'), p.groundspeed + ' kt')}
+          ${cell(t('Heading'), p.heading != null ? pad(Math.round(p.heading) % 360, 3) + '°' : '—')}
+          ${cell(t('Squawk'), esc(p.transponder || '—'))}
+          ${cell(t('Cruise level'), esc(fp?.cruiseAltitude || '—'))}
+          ${cell(t('TAS'), fp?.cruiseSpeed ? fp.cruiseSpeed + ' kt' : '—')}
+          ${cell(t('Departure'), hhmm(fp?.departureTime))}
+          ${cell(t('En route'), hm(fp?.enrouteMinutes ?? 0))}
+          ${cell(t('Fuel'), hm(fp?.fuelMinutes ?? 0))}
         </div>
-        ${fp?.alternate ? `<div class="small"><span class="muted">Запасной:</span> ${aptLink(fp.alternate, null).replace('<span></span>', '')}</div>` : ''}
-        ${fp?.route ? `<div class="mc-block"><div class="eyebrow">Маршрут</div><div class="mc-text">${esc(fp.route)}</div>${routeNote}</div>` : ''}
-        ${fp?.remarks ? `<div class="mc-block"><div class="eyebrow">Примечания</div><div class="mc-text">${esc(fp.remarks)}</div></div>` : ''}
-        <div class="muted small">В сети ${onlineFor(p.logonTime)}</div>
+        ${fp?.alternate ? `<div class="small"><span class="muted">${t('Alternate:')}</span> ${aptLink(fp.alternate, null).replace('<span></span>', '')}</div>` : ''}
+        ${fp?.route ? `<div class="mc-block"><div class="eyebrow">${t('Route')}</div><div class="mc-text">${esc(fp.route)}</div>${routeNote}</div>` : ''}
+        ${fp?.remarks ? `<div class="mc-block"><div class="eyebrow">${t('Remarks')}</div><div class="mc-text">${esc(fp.remarks)}</div></div>` : ''}
+        <div class="muted small">${t('Online for {0}', onlineFor(p.logonTime))}</div>
       </div>`;
   }
 
   function atcCard(cs) {
     const c = atcOf(cs);
-    if (!c) return head(esc(cs), 'Не в сети');
+    if (!c) return head(esc(cs), t('Offline'));
     const sector = (c.facility === 'CTR' || c.facility === 'FSS') ? sectorOf(c) : null;
     const code = prefix(c.callsign);
     return head(esc(c.callsign), `<a href="/members/${c.cid}">${esc(c.name)}</a> · CID ${c.cid}`,
       `<span class="badge accent">${esc(c.facility)}</span><span class="badge">${esc(c.rating)}</span>`) + `
       <div class="mc-body">
         <div class="mc-grid">
-          ${cell('Частота', esc(c.frequency || '—'))}
-          ${cell('Рейтинг', esc(c.rating || '—'))}
-          ${cell('В сети', onlineFor(c.logonTime))}
+          ${cell(t('Frequency'), esc(c.frequency || '—'))}
+          ${cell(t('Rating'), esc(c.rating || '—'))}
+          ${cell(t('Online for'), onlineFor(c.logonTime))}
         </div>
-        ${sector ? `<div class="small"><span class="muted">Сектор:</span> ${esc(sector.name)}</div>`
-                 : `<div class="small"><span class="muted">Аэропорт:</span> <a href="#" data-select="airport|${esc(code)}">${esc(code)}</a></div>`}
+        ${sector ? `<div class="small"><span class="muted">${t('Sector:')}</span> ${esc(sector.name)}</div>`
+                 : `<div class="small"><span class="muted">${t('Airport:')}</span> <a href="#" data-select="airport|${esc(code)}">${esc(code)}</a></div>`}
       </div>`;
   }
 
@@ -560,15 +591,15 @@
         <span class="cs">${esc(c.callsign)}</span><span class="who">${esc(c.name)}</span><span class="freq">${esc(c.frequency)}</span></a>`).join('');
     const flights = list => list.length
       ? `<div class="mc-chips">${list.map(p => `<a class="badge" href="#" data-select="pilot|${esc(p.callsign)}">${esc(p.callsign)}</a>`).join('')}</div>`
-      : '<div class="muted small">нет</div>';
+      : `<div class="muted small">${t('none')}</div>`;
     const metar = metarOf(code);
     return head(esc(code), esc(info?.[2] ?? '')) + `
       <div class="mc-body">
         <div class="mc-block"><div class="eyebrow">METAR</div>${metar ? `<div class="mc-text">${esc(metar)}</div>`
-          : `<div class="muted small">${metar === '' ? 'нет данных' : 'загрузка…'}</div>`}</div>
-        <div class="mc-block"><div class="eyebrow">Диспетчеры</div>${strips ? `<div class="mc-list">${strips}</div>` : '<div class="muted small">никого</div>'}</div>
-        <div class="mc-block"><div class="eyebrow">Вылеты · ${deps.length}</div>${flights(deps)}</div>
-        <div class="mc-block"><div class="eyebrow">Прилёты · ${arrs.length}</div>${flights(arrs)}</div>
+          : `<div class="muted small">${metar === '' ? t('no data') : t('Loading…')}</div>`}</div>
+        <div class="mc-block"><div class="eyebrow">${t('Controllers')}</div>${strips ? `<div class="mc-list">${strips}</div>` : `<div class="muted small">${t('nobody')}</div>`}</div>
+        <div class="mc-block"><div class="eyebrow">${t('Departures')} · ${deps.length}</div>${flights(deps)}</div>
+        <div class="mc-block"><div class="eyebrow">${t('Arrivals')} · ${arrs.length}</div>${flights(arrs)}</div>
       </div>`;
   }
 
@@ -587,18 +618,18 @@
     const sp = starts(data.pilots), sc = starts(data.controllers);
     if (sp) return select('pilot', sp.callsign, true);
     if (sc) return select('atc', sc.callsign, true);
-    if (search) { search.value = ''; search.placeholder = `Не найдено: ${q}`; }
+    if (search) { search.value = ''; search.placeholder = t('Not found: {0}', q); }
   }
   search?.addEventListener('change', () => find(search.value));
 
   // ---- theme ----
-  new MutationObserver(() => {
+  window.addEventListener('themechange', () => {
     base.setUrl(`/tiles/${theme()}/{z}/{x}/{y}.png`);
     labels.setUrl(`/tiles/${theme()}-labels/{z}/{x}/{y}.png`);
     drawOutline();
     drawLayouts();
     render();
-  }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  });
 
   // ---- live data ----
   async function refresh() {
@@ -609,7 +640,7 @@
     const pc = document.getElementById('pilot-count'), ac = document.getElementById('atc-count'), up = document.getElementById('map-updated');
     if (pc) pc.textContent = data.pilots.length;
     if (ac) ac.textContent = data.controllers.length;
-    if (up) up.textContent = data.available ? 'Обновлено ' + utc(new Date(data.updated)) : 'Сервер не отвечает';
+    if (up) up.textContent = data.available ? t('Updated') + ' ' + utc(new Date(data.updated)) : t('Server not responding');
     const list = document.getElementById('map-callsigns');
     if (list) list.innerHTML = [...data.pilots, ...data.controllers].map(x => `<option value="${esc(x.callsign)}">`).join('');
 

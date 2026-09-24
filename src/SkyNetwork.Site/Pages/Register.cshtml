@@ -1,38 +1,40 @@
 @page "/register"
 @model RegisterModel
-@{ ViewData["Title"] = "Регистрация"; }
+@{ ViewData["Title"] = L["Registration"]; }
 <div class="wrap page">
   <div class="auth-box">
-    <h1 style="font-size:34px">Регистрация</h1>
-    <p class="muted">После регистрации вы получите CID — номер участника для входа на сайт и в сеть.</p>
-    @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+    <h1 style="font-size:34px">@L["Registration"]</h1>
+    <p class="muted">@L["After registering you get a CID, your member number for the website and the network."]</p>
+    @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
     <form method="post" class="form">
-      <label>Имя и фамилия
+      <label>@L["First and last name"]
         <input name="Name" value="@Model.Name" required maxlength="60" autocomplete="name">
-        <span class="hint">Так вас увидят другие участники.</span>
+        <span class="hint">@L["This is how other members will see you."]</span>
       </label>
-      <label>Электронная почта
+      <label>@L["Email"]
         <input name="Email" type="email" value="@Model.Email" required maxlength="120" autocomplete="email">
       </label>
-      <label>Страна
+      <label>@L["Country"]
         <select name="Country" required autocomplete="country-name">
-          <option value="">Выберите страну</option>
-          @foreach (var country in SkyNetwork.Site.Data.Countries.All)
+          <option value="">@L["Choose a country"]</option>
+          @{ var chosen = Countries.Normalize(Model.Country); }
+          @if (Model.Country.Length > 0 && chosen == null) { <option value="@Model.Country" selected>@Model.Country</option> }
+          @foreach (var (value, name) in Countries.List(L.IsRu))
           {
-            <option value="@country" selected="@(Model.Country == country)">@country</option>
+            <option value="@value" selected="@(chosen == value)">@name</option>
           }
         </select>
       </label>
-      <label>Пароль
+      <label>@L["Password"]
         <input name="Password" type="password" required minlength="8" autocomplete="new-password">
-        <span class="hint">Не короче 8 символов.</span>
+        <span class="hint">@L["At least 8 characters."]</span>
       </label>
-      <label>Пароль ещё раз
+      <label>@L["Repeat password"]
         <input name="Confirm" type="password" required minlength="8" autocomplete="new-password">
       </label>
-      <label class="check"><input type="checkbox" name="AcceptRules" value="true" required> <span>Я прочитал <a href="/docs/rules" target="_blank">правила сети</a> и согласен их соблюдать.</span></label>
-      <button class="btn btn-primary" type="submit">Зарегистрироваться</button>
-      <p class="muted small">Уже есть CID? <a href="/login">Войти</a></p>
+      <label class="check"><input type="checkbox" name="AcceptRules" value="true" required> <span>@L["I have read the"] <a href="/docs/rules" target="_blank">@L["network rules"]</a> @L["and agree to follow them."]</span></label>
+      <button class="btn btn-primary" type="submit">@L["Register"]</button>
+      <p class="muted small">@L["Already have a CID?"] <a href="/login">@L["Sign in"]</a></p>
     </form>
   </div>
 </div>

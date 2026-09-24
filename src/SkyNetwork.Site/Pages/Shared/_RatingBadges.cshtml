@@ -1,0 +1,16 @@
+@model Member
+@* The three rating ladders of a member, shown on profiles and in the account. *@
+<div class="rating-cards">
+  <div class="rating-card">
+    <span class="label">@L["Controller rating"]</span>
+    <b><span class="badge accent">@Model.RatingShort</span> @L[Model.RatingLong]</b>
+  </div>
+  <div class="rating-card">
+    <span class="label">@L["Pilot rating"]</span>
+    <b><span class="badge">@PilotRatings.Pilot.Short(Model.PilotRating)</span> @L[PilotRatings.Pilot.Long(Model.PilotRating)]</b>
+  </div>
+  <div class="rating-card">
+    <span class="label">@L["Military rating"]</span>
+    <b><span class="badge">@PilotRatings.Military.Short(Model.MilitaryRating)</span> @L[PilotRatings.Military.Long(Model.MilitaryRating)]</b>
+  </div>
+</div>

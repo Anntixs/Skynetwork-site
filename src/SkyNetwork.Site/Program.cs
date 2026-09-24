@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using SkyNetwork.Site;
 using SkyNetwork.Site.Api;
 using SkyNetwork.Site.Data;
+using SkyNetwork.Site.Localization;
 using SkyNetwork.Site.Security;
 using SkyNetwork.Site.Services;
 
@@ -22,6 +23,8 @@ builder.Services.AddSingleton<FlightPlanService>();
 builder.Services.AddSingleton<SupportService>();
 builder.Services.AddSingleton<SessionService>();
 builder.Services.AddScoped<CurrentUser>();
+builder.Services.AddScoped<Lang>();
+builder.Services.AddHostedService<SuspensionExpiry>();
 builder.Services.AddHttpClient("feed", c => c.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddSingleton<NetworkFeed>();
 builder.Services.AddHttpClient("tiles", c =>
@@ -96,6 +99,10 @@ app.UseCors();
 app.UseAuthentication();
 app.Use(async (ctx, next) =>
 {
+    // Language from the cookie (English by default); dates and units follow it.
+    var lang = ctx.RequestServices.GetRequiredService<Lang>();
+    lang.Set(ctx.Request.Cookies[Lang.Cookie]);
+    System.Globalization.CultureInfo.CurrentUICulture = lang.Culture;
     var user = ctx.RequestServices.GetRequiredService<CurrentUser>();
     await user.LoadAsync(ctx);
     // The staff area does not exist for anyone else: plain 404, no login redirect, not indexed.
@@ -115,6 +122,18 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapSiteApi();
+
+// Language switch: remembered for a year in a cookie, then back to the page.
+app.MapGet("/lang/{code}", (string code, string? r, HttpContext ctx) =>
+{
+    ctx.Response.Cookies.Append(Lang.Cookie, code == "ru" ? "ru" : "en", Preference(ctx));
+    return Results.LocalRedirect(r is { Length: > 0 } && r.StartsWith('/') && !r.StartsWith("//") ? r : "/");
+});
+
+static CookieOptions Preference(HttpContext ctx) => new()
+{
+    MaxAge = TimeSpan.FromDays(365), HttpOnly = true, SameSite = SameSiteMode.Lax, Secure = ctx.Request.IsHttps, IsEssential = true,
+};
 
 app.Run();
 

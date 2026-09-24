@@ -1,36 +1,36 @@
 @page "/bookings"
 @model BookingsModel
-@{ ViewData["Title"] = "Бронирование позиций"; }
+@{ ViewData["Title"] = L["Position bookings"]; }
 <div class="wrap page">
   <div class="page-head">
-    <h1>Бронирование позиций</h1>
-    <p>Когда диспетчеры планируют выйти в эфир. Время — UTC. Бронировать могут участники с рейтингом S1 и выше.</p>
+    <h1>@L["Position bookings"]</h1>
+    <p>@L["When controllers plan to be on the air. Times are UTC. Members rated S1 and above can book."]</p>
   </div>
   @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
-  @if (Model.Saved) { <div class="alert ok">Позиция забронирована.</div> }
+  @if (Model.Saved) { <div class="alert ok">@L["Position booked."]</div> }
   @if (Me.Member is { Rating: >= Ratings.S1 })
   {
     <form method="post" class="inline-form card" style="margin-bottom:28px">
-      <label>Позиция<input name="Callsign" class="mono" required maxlength="12" placeholder="UUEE_TWR" style="width:140px"></label>
-      <label>Дата<input name="Date" type="date" required value="@Format.InputDate(DateTime.UtcNow)"></label>
-      <label>С, UTC<input name="From" type="time" required value="18:00"></label>
-      <label>До, UTC<input name="To" type="time" required value="20:00"></label>
-      <button class="btn btn-primary" type="submit">Забронировать</button>
+      <label>@L["Position"]<input name="Callsign" class="mono" required maxlength="12" placeholder="UUEE_TWR" style="width:140px"></label>
+      <label>@L["Date"]<input name="Date" type="date" required value="@Format.InputDate(DateTime.UtcNow)"></label>
+      <label>@L["From, UTC"]<input name="From" type="time" required value="18:00"></label>
+      <label>@L["To, UTC"]<input name="To" type="time" required value="20:00"></label>
+      <button class="btn btn-primary" type="submit">@L["Book"]</button>
     </form>
   }
   else if (Me.IsSignedIn)
   {
-    <div class="alert">Бронирование откроется после получения рейтинга S1 — <a href="/training">подайте заявку на обучение</a>.</div>
+    <div class="alert">@L["Booking opens once you hold the S1 rating —"] <a href="/training">@L["apply for training"]</a>.</div>
   }
   @if (Model.List.Count == 0)
   {
-    <div class="empty">Бронирований нет.</div>
+    <div class="empty">@L["No bookings."]</div>
   }
   else
   {
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Позиция</th><th>Когда</th><th>Диспетчер</th><th>Рейтинг</th><th></th></tr></thead>
+        <thead><tr><th>@L["Position"]</th><th>@L["When"]</th><th>@L["Controller"]</th><th>@L["Rating"]</th><th></th></tr></thead>
         <tbody>
         @foreach (var b in Model.List)
         {
@@ -40,7 +40,7 @@
             <td><a href="/members/@b.Cid">@b.Name</a></td>
             <td>@Ratings.Short(b.Rating)</td>
             <td>@if (b.Cid == Me.Cid) {
-                <form method="post" asp-page-handler="Delete"><input type="hidden" name="id" value="@b.Id"><button class="btn btn-small btn-danger" type="submit">Отменить</button></form>
+                <form method="post" asp-page-handler="Delete"><input type="hidden" name="id" value="@b.Id"><button class="btn btn-small btn-danger" type="submit">@L["Cancel"]</button></form>
             }</td>
           </tr>
         }

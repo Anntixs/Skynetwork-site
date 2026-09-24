@@ -2,13 +2,13 @@
     string path = Context.Request.Path.Value ?? "";
     string A(string p) => path.Equals(p, StringComparison.OrdinalIgnoreCase) ? "active" : "";
 }
-<nav class="side" aria-label="Личный кабинет">
-  <div class="side-title">Кабинет</div>
-  <a href="/account" class="@A("/account")">Обзор</a>
-  <a href="/flightplan" class="@A("/flightplan")">План полёта</a>
-  <a href="/training" class="@A("/training")">Обучение</a>
-  <a href="/bookings" class="@A("/bookings")">Бронирование</a>
-  <a href="/account/support" class="@A("/account/support")">Обращения</a>
-  <a href="/account/settings" class="@A("/account/settings")">Настройки</a>
-  <a href="/members/@Me.Cid">Публичный профиль</a>
+<nav class="side" aria-label="@L["My account"]">
+  <div class="side-title">@L["Account"]</div>
+  <a href="/account" class="@A("/account")">@L["Overview"]</a>
+  <a href="/flightplan" class="@A("/flightplan")">@L["Flight plan"]</a>
+  <a href="/training" class="@A("/training")">@L["Training"]</a>
+  <a href="/bookings" class="@A("/bookings")">@L["Bookings"]</a>
+  <a href="/account/support" class="@A("/account/support")">@L["Support tickets"]</a>
+  <a href="/account/settings" class="@A("/account/settings")">@L["Settings"]</a>
+  <a href="/members/@Me.Cid">@L["Public profile"]</a>
 </nav>

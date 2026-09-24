@@ -1,10 +1,10 @@
 @page "/staff/events"
 @model SkyNetwork.Site.Pages.Staff.EventsModel
-@{ ViewData["Title"] = "Мероприятия"; }
-<div class="section-head"><h1 style="font-size:30px;margin:0">Мероприятия</h1><a class="btn btn-primary" href="/staff/events/new">Новое мероприятие</a></div>
+@{ ViewData["Title"] = L["Events"]; }
+<div class="section-head"><h1 style="font-size:30px;margin:0">@L["Events"]</h1><a class="btn btn-primary" href="/staff/events/new">@L["New event"]</a></div>
 <div class="table-wrap">
   <table>
-    <thead><tr><th>Название</th><th>Когда</th><th>Аэродромы</th><th>Статус</th></tr></thead>
+    <thead><tr><th>@L["Title"]</th><th>@L["When"]</th><th>@L["Airports"]</th><th>@L["Status"]</th></tr></thead>
     <tbody>
     @foreach (var e in Model.List)
     {
@@ -12,10 +12,10 @@
         <td><a href="/staff/events/@e.Id">@e.Title</a></td>
         <td>@Format.Span(e.Start, e.End)</td>
         <td class="mono">@e.Airports</td>
-        <td>@if (!e.Published) { <span class="badge">черновик</span> } else if (e.End < DateTime.UtcNow) { <span class="badge">прошло</span> } else { <span class="badge ok">опубликовано</span> }</td>
+        <td>@if (!e.Published) { <span class="badge">@L["draft"]</span> } else if (e.End < DateTime.UtcNow) { <span class="badge">@L["past"]</span> } else { <span class="badge ok">@L["published"]</span> }</td>
       </tr>
     }
-    @if (Model.List.Count == 0) { <tr><td colspan="4" class="muted">Мероприятий нет</td></tr> }
+    @if (Model.List.Count == 0) { <tr><td colspan="4" class="muted">@L["No events"]</td></tr> }
     </tbody>
   </table>
 </div>

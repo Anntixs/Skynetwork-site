@@ -1,22 +1,22 @@
 @page "/login"
 @model LoginModel
-@{ ViewData["Title"] = "Вход"; }
+@{ ViewData["Title"] = L["Sign in"]; }
 <div class="wrap page">
   <div class="auth-box">
-    <h1 style="font-size:34px">Вход</h1>
-    <p class="muted">CID и пароль те же, что и для подключения к сети.</p>
-    @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+    <h1 style="font-size:34px">@L["Sign in"]</h1>
+    <p class="muted">@L["Your CID and password are the same as for connecting to the network."]</p>
+    @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
     <form method="post" class="form">
       <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl">
       <label>CID
         <input name="Cid" value="@(Model.Cid == 0 ? "" : Model.Cid)" inputmode="numeric" required autocomplete="username" class="mono">
       </label>
-      <label>Пароль
+      <label>@L["Password"]
         <input name="Password" type="password" required autocomplete="current-password">
       </label>
-      <label class="check"><input type="checkbox" name="Remember" value="true" checked> <span>Запомнить меня</span></label>
-      <button class="btn btn-primary" type="submit">Войти</button>
-      <p class="muted small">Нет CID? <a href="/register">Зарегистрируйтесь</a>. Забыли пароль — <a href="/support">напишите в поддержку</a>.</p>
+      <label class="check"><input type="checkbox" name="Remember" value="true" checked> <span>@L["Remember me"]</span></label>
+      <button class="btn btn-primary" type="submit">@L["Sign in"]</button>
+      <p class="muted small">@L["No CID yet?"] <a href="/register">@L["Register"]</a>. @L["Forgot your password?"] <a href="/support">@L["Write to support"]</a>.</p>
     </form>
   </div>
 </div>

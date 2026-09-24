@@ -1,57 +1,50 @@
 @{
     string path = Context.Request.Path.Value ?? "/";
+    string here = path + Context.Request.QueryString;
     string Active(string prefix) => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    // Theme: "light" / "dark" from the cookie; without it the page follows the system setting.
+    string? theme = Context.Request.Cookies["theme"] is "light" or "dark" ? Context.Request.Cookies["theme"] : null;
 }
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="@L.Code" data-theme="@theme">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>@(ViewData["Title"] is string t ? t + " — SkyNetwork" : "SkyNetwork — сеть виртуальной авиации")</title>
-  <meta name="description" content="SkyNetwork — сеть виртуальной авиации: пилоты и диспетчеры в одном небе.">
-  @* Before the stylesheets, so a dark page never flashes white: the saved choice, otherwise the system's. *@
-  <script>
-    (function () {
-      var t; try { t = localStorage.getItem('theme'); } catch (e) { }
-      if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      document.documentElement.dataset.theme = t;
-    })();
-  </script>
+  <meta name="color-scheme" content="light dark">
+  <title>@(ViewData["Title"] is string t ? t + " — SkyNetwork" : "SkyNetwork — " + L["virtual aviation network"])</title>
+  <meta name="description" content="@L["SkyNetwork is a virtual aviation network: pilots and controllers in one sky."]">
   @if (path.StartsWith("/staff", StringComparison.OrdinalIgnoreCase)) { <meta name="robots" content="noindex, nofollow"> }
   <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true">
   <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+  <script src="~/js/theme.js" asp-append-version="true"></script>
   @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
   <header class="site-header" id="header">
     <div class="wrap">
       <a class="brand" href="/"><partial name="_Logo" /> SkyNetwork</a>
-      <button class="btn btn-small nav-toggle" type="button" aria-label="Меню"
-              onclick="document.getElementById('header').classList.toggle('open')">Меню</button>
-      <nav class="nav" aria-label="Разделы">
-        <a href="/map" class="@Active("/map")">Карта</a>
-        <a href="/online" class="@Active("/online")">Онлайн</a>
-        <a href="/events" class="@Active("/events")">Мероприятия</a>
-        <a href="/bookings" class="@Active("/bookings")">Бронирование</a>
-        <a href="/news" class="@Active("/news")">Новости</a>
-        <a href="/docs" class="@Active("/docs")">Документация</a>
+      <button class="btn btn-small nav-toggle" type="button" aria-label="@L["Menu"]"
+              onclick="document.getElementById('header').classList.toggle('open')">@L["Menu"]</button>
+      <nav class="nav" aria-label="@L["Sections"]">
+        <a href="/map" class="@Active("/map")">@L["Map"]</a>
+        <a href="/online" class="@Active("/online")">@L["Online"]</a>
+        <a href="/events" class="@Active("/events")">@L["Events"]</a>
+        <a href="/bookings" class="@Active("/bookings")">@L["Bookings"]</a>
+        <a href="/news" class="@Active("/news")">@L["News"]</a>
+        <a href="/docs" class="@Active("/docs")">@L["Docs"]</a>
       </nav>
-      <button class="theme-toggle" type="button" aria-label="Светлая или тёмная тема" title="Светлая или тёмная тема"
-              onclick="var t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; try { localStorage.setItem('theme', t); } catch (e) { }">
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-      </button>
       <div class="user-nav">
+        <partial name="_Preferences" model="here" />
         @if (Me.Member is { } m)
         {
-          @if (Me.IsStaff) { <a href="/staff">Управление</a> }
-          <a href="/account" title="Личный кабинет">@m.Name · <span class="mono">@m.Cid</span></a>
-          <form method="post" action="/logout"><button class="btn btn-small" type="submit">Выйти</button></form>
+          @if (Me.IsStaff) { <a href="/staff">@L["Management"]</a> }
+          <a href="/account" class="me" title="@L["My account"] · @m.Name · CID @m.Cid"><span class="initials">@Format.Initials(m.Name)</span><span class="name">@m.Name</span></a>
+          <form method="post" action="/logout"><button class="btn btn-small" type="submit">@L["Sign out"]</button></form>
         }
         else
         {
-          <a href="/login">Войти</a>
-          <a class="btn btn-primary" href="/register">Присоединиться</a>
+          <a href="/login">@L["Sign in"]</a>
+          <a class="btn btn-primary" href="/register">@L["Join"]</a>
         }
       </div>
     </div>
@@ -65,12 +58,12 @@
   {
     <footer class="site-footer">
       <div class="wrap">
-        <span>© @DateTime.UtcNow.Year SkyNetwork · сеть виртуальной авиации</span>
+        <span>© @DateTime.UtcNow.Year SkyNetwork · @L["virtual aviation network"]</span>
         <nav>
-          <a href="/docs/rules">Правила</a>
-          <a href="/docs/software">Программы</a>
+          <a href="/docs/rules">@L["Rules"]</a>
+          <a href="/docs/software">@L["Software"]</a>
           <a href="/developers">API</a>
-          <a href="/support">Поддержка</a>
+          <a href="/support">@L["Support"]</a>
         </nav>
       </div>
     </footer>

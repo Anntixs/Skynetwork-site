@@ -1,25 +1,26 @@
 @page "/docs"
 @inject Microsoft.Extensions.Options.IOptions<SiteOptions> Options
-@{ ViewData["Title"] = "Как начать"; var o = Options.Value; }
+@{ ViewData["Title"] = L["Getting started"]; var o = Options.Value; }
 <div class="wrap page with-side">
   <partial name="_DocsNav" />
   <div class="prose">
-    <h1 style="font-size:34px">Как начать</h1>
-    <p class="muted">Всё, что нужно для первого подключения: учётная запись, программа и несколько правил эфира.</p>
+    <h1 style="font-size:34px">@L["Getting started"]</h1>
+    <p class="muted">@L["Everything you need for your first connection: an account, the software and a few rules of the air."]</p>
 
-    <h2 style="font-size:22px;margin-top:32px">Пилоту</h2>
+    <h2 style="font-size:22px;margin-top:32px">@L["For pilots"]</h2>
     <div class="steps" style="grid-template-columns:1fr">
-      <div class="step"><h3>Зарегистрируйтесь</h3><p class="muted">На странице <a href="/register">регистрации</a> вы получите CID. CID и пароль — ваши данные для входа в SkyPilot.</p></div>
-      <div class="step"><h3>Установите SkyPilot</h3><p class="muted">Клиент для MSFS 2020 и 2024. <a href="/docs/software">Скачать</a>. В настройках укажите сервер <span class="mono">@o.FsdHost:@o.FsdPort</span>, CID и пароль.</p></div>
-      <div class="step"><h3>Подайте план полёта</h3><p class="muted">На странице <a href="/flightplan">плана полёта</a>. В SkyPilot нажмите «Обновить» — план появится у диспетчеров.</p></div>
-      <div class="step"><h3>Подключитесь и слушайте частоту</h3><p class="muted">Посмотрите на <a href="/online">странице онлайн</a>, кто работает рядом. Если диспетчера нет, ведите радиообмен на UNICOM 122.800.</p></div>
+      <div class="step"><h3>@L["Register"]</h3><p class="muted">@L["On the"] <a href="/register">@L["registration page"]</a> @L["you get a CID. Your CID and password are your SkyPilot login."]</p></div>
+      <div class="step"><h3>@L["Install SkyPilot"]</h3><p class="muted">@L["The client for MSFS 2020 and 2024."] <a href="/docs/software">@L["Download"]</a>. @L["In the settings enter the server"] <span class="mono">@o.FsdHost:@o.FsdPort</span>, @L["your CID and password."]</p></div>
+      <div class="step"><h3>@L["File a flight plan"]</h3><p class="muted">@L["On the"] <a href="/flightplan">@L["flight plan page"]</a>. @L["Press “Refresh” in SkyPilot and the plan appears at the controllers."]</p></div>
+      <div class="step"><h3>@L["Set up the radio"]</h3><p class="muted">@L["In the SkyPilot settings choose the microphone, speakers and the push-to-talk key. Voice connects together with the network; tune COM1 to the controller's frequency and hold the key to talk."]</p></div>
+      <div class="step"><h3>@L["Connect and listen to the frequency"]</h3><p class="muted">@L["Check the"] <a href="/online">@L["online page"]</a> @L["to see who is working nearby. With no controller around, use UNICOM 122.800."]</p></div>
     </div>
 
-    <h2 style="font-size:22px;margin-top:40px">Диспетчеру</h2>
+    <h2 style="font-size:22px;margin-top:40px">@L["For controllers"]</h2>
     <div class="steps" style="grid-template-columns:1fr">
-      <div class="step"><h3>Получите рейтинг</h3><p class="muted">Новые участники — наблюдатели (OBS): можно подключиться и слушать, но не управлять. Подайте <a href="/training">заявку на обучение</a> на S1.</p></div>
-      <div class="step"><h3>Установите Network-ATC</h3><p class="muted">Радар диспетчера с секторами EuroScope и собственным форматом .natc. <a href="/docs/software">Скачать</a>.</p></div>
-      <div class="step"><h3>Забронируйте позицию</h3><p class="muted">В <a href="/bookings">расписании</a> пилоты увидят, когда вы будете в эфире.</p></div>
+      <div class="step"><h3>@L["Get a rating"]</h3><p class="muted">@L["New members are observers (OBS): they can connect and listen but not control. Send a"] <a href="/training">@L["training request"]</a> @L["for S1."]</p></div>
+      <div class="step"><h3>@L["Install Network-ATC"]</h3><p class="muted">@L["The controller radar with EuroScope sector files and its own .natc format."] <a href="/docs/software">@L["Download"]</a>.</p></div>
+      <div class="step"><h3>@L["Book a position"]</h3><p class="muted">@L["In the"] <a href="/bookings">@L["schedule"]</a> @L["pilots will see when you are on the air."]</p></div>
     </div>
   </div>
 </div>

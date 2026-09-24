@@ -1,36 +1,36 @@
 @page "/account/settings"
 @model SkyNetwork.Site.Pages.Account.SettingsModel
-@{ ViewData["Title"] = "Настройки"; }
+@{ ViewData["Title"] = L["Settings"]; }
 <div class="wrap page with-side">
   <partial name="_AccountNav" />
   <div>
-    <h1 style="font-size:30px">Настройки</h1>
-    @if (Model.Message != null) { <div class="alert ok">@Model.Message</div> }
-    @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
-    <h2 style="font-size:20px;margin-top:24px">Профиль</h2>
-    <p class="muted small">Имя меняется через <a href="/account/support">поддержку</a> — по нему вас узнают в эфире.</p>
+    <h1 style="font-size:30px">@L["Settings"]</h1>
+    @if (Model.Message != null) { <div class="alert ok">@L[Model.Message]</div> }
+    @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
+    <h2 style="font-size:20px;margin-top:24px">@L["Profile"]</h2>
+    <p class="muted small">@L["Your name is changed through"] <a href="/account/support">@L["support"]</a> — @L["people recognise you by it on the air."]</p>
     <form method="post" asp-page-handler="Profile" class="form">
-      <label>Электронная почта<input name="Email" type="email" value="@Model.Email" required maxlength="120"></label>
-      <label>Страна
-        <select name="Country">
-          <option value="">Не указана</option>
-          @* A country typed before the list existed stays selectable until changed. *@
-          @if (Model.Country.Length > 0 && !SkyNetwork.Site.Data.Countries.IsKnown(Model.Country)) { <option value="@Model.Country" selected>@Model.Country</option> }
-          @foreach (var country in SkyNetwork.Site.Data.Countries.All)
+      <label>@L["Email"]<input name="Email" type="email" value="@Model.Email" required maxlength="120"></label>
+      <label>@L["Country"]
+        <select name="Country" autocomplete="country-name">
+          <option value="">@L["Not specified"]</option>
+          @{ var chosen = Countries.Normalize(Model.Country); }
+          @if (Model.Country.Length > 0 && chosen == null) { <option value="@Model.Country" selected>@Model.Country</option> }
+          @foreach (var (value, name) in Countries.List(L.IsRu))
           {
-            <option value="@country" selected="@(Model.Country == country)">@country</option>
+            <option value="@value" selected="@(chosen == value)">@name</option>
           }
         </select>
       </label>
-      <div><button class="btn btn-primary" type="submit">Сохранить профиль</button></div>
+      <div><button class="btn btn-primary" type="submit">@L["Save profile"]</button></div>
     </form>
-    <h2 style="font-size:20px;margin-top:40px">Пароль</h2>
-    <p class="muted small">Пароль один для сайта и для подключения к сети.</p>
+    <h2 style="font-size:20px;margin-top:40px">@L["Password"]</h2>
+    <p class="muted small">@L["One password for the website and for connecting to the network."]</p>
     <form method="post" asp-page-handler="Password" class="form">
-      <label>Текущий пароль<input name="Current" type="password" required autocomplete="current-password"></label>
-      <label>Новый пароль<input name="NewPassword" type="password" required minlength="8" autocomplete="new-password"></label>
-      <label>Новый пароль ещё раз<input name="Confirm" type="password" required minlength="8" autocomplete="new-password"></label>
-      <div><button class="btn btn-primary" type="submit">Сменить пароль</button></div>
+      <label>@L["Current password"]<input name="Current" type="password" required autocomplete="current-password"></label>
+      <label>@L["New password"]<input name="NewPassword" type="password" required minlength="8" autocomplete="new-password"></label>
+      <label>@L["Repeat new password"]<input name="Confirm" type="password" required minlength="8" autocomplete="new-password"></label>
+      <div><button class="btn btn-primary" type="submit">@L["Change password"]</button></div>
     </form>
   </div>
 </div>

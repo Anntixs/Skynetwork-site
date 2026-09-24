@@ -8,81 +8,118 @@
   <div class="avatar">@Format.Initials(m.Name)</div>
   <div>
     <h1 style="font-size:28px;margin:0">@m.Name</h1>
-    <div class="muted">CID <span class="mono">@m.Cid</span> · <span class="badge accent">@m.RatingShort</span> @m.RatingLong
-      @if (m.Suspended) { <span class="badge danger">заблокирован</span> }</div>
+    <div class="muted">CID <span class="mono">@m.Cid</span>
+      @if (m.Suspended) { <span class="badge danger">@L["suspended"]</span> }</div>
     <div class="muted small">@string.Join(" · ", new[]
         {
-            m.Email ?? "почта не указана",
-            m.Country.Length > 0 ? m.Country : "страна не указана",
-            "регистрация " + (m.Registered is { } r ? Format.Date(r) : "—"),
-            "последний вход " + (m.LastLoginAt is { } l ? Format.Utc(Time.Utc(l)) : "—"),
+            m.Email ?? L["no email"],
+            m.Country.Length > 0 ? Countries.Display(m.Country, L.IsRu) : L["no country"],
+            L["registered"] + " " + (m.Registered is { } r ? Format.Date(r) : "—"),
+            L["last sign-in"] + " " + (m.LastLoginAt is { } l ? Format.Utc(Time.Utc(l)) : "—"),
         })</div>
   </div>
-  <a class="btn btn-small" style="margin-left:auto" href="/members/@m.Cid">Публичный профиль</a>
+  <a class="btn btn-small" style="margin-left:auto" href="/members/@m.Cid">@L["Public profile"]</a>
 </div>
-@if (Model.Message != null) { <div class="alert ok">@Model.Message</div> }
-@if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
-@if (m.Suspended && m.SuspensionReason.Length > 0) { <div class="alert error">Причина блокировки: @m.SuspensionReason</div> }
+@if (Model.Message != null) { <div class="alert ok">@L[Model.Message]</div> }
+@if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
+@if (m.Suspended)
+{
+  <div class="alert error">
+    <b>@(m.SuspensionEnds is { } until ? L.F("Suspended until {0}", Format.Utc(until)) : L["Suspended permanently"])</b>
+    @if (m.SuspensionReason.Length > 0) { <div>@L["Reason:"] @m.SuspensionReason</div> }
+  </div>
+}
 
+<partial name="_RatingBadges" model="m" />
 <div class="stats">
-  <div class="stat"><b>@Format.Hours(Model.Hours.PilotHours)</b><span>в воздухе</span></div>
-  <div class="stat"><b>@Format.Hours(Model.Hours.AtcHours)</b><span>на позициях</span></div>
-  <div class="stat"><b>@Model.Hours.PilotSessions</b><span>полётов</span></div>
-  <div class="stat"><b>@Model.Hours.AtcSessions</b><span>дежурств</span></div>
+  <div class="stat"><b>@Format.Hours(Model.Hours.PilotHours)</b><span>@L["flying"]</span></div>
+  <div class="stat"><b>@Format.Hours(Model.Hours.AtcHours)</b><span>@L["on position"]</span></div>
+  <div class="stat"><b>@Model.Hours.PilotSessions</b><span>@L["flights"]</span></div>
+  <div class="stat"><b>@Model.Hours.AtcSessions</b><span>@L["controlling sessions"]</span></div>
 </div>
 
 <div class="grid two" style="margin-bottom:28px">
   @if (Model.RatingOptions.Count > 0)
   {
     <form method="post" asp-page-handler="Rating" class="card form">
-      <h3>Рейтинг</h3>
-      <label>Новый рейтинг
+      <h3>@L["Controller rating"]</h3>
+      <label>@L["New rating"]
         <select name="rating">
-          @foreach (var r in Model.RatingOptions) { <option value="@r" selected="@(r == m.Rating)">@Ratings.Short(r) — @Ratings.Long(r)</option> }
+          @foreach (var r in Model.RatingOptions) { <option value="@r" selected="@(r == m.Rating)">@Ratings.Short(r) — @L[Ratings.Long(r)]</option> }
         </select>
       </label>
-      <div><button class="btn btn-primary" type="submit">Изменить рейтинг</button></div>
+      <div><button class="btn btn-primary" type="submit">@L["Change rating"]</button></div>
     </form>
   }
-  @if (Model.Me.Has(Perm.Suspend) && m.Cid != Model.Me.Cid)
+  @if (Model.Me.Has(Perm.PilotRatings) && m.Cid != Model.Me.Cid)
+  {
+    <form method="post" asp-page-handler="PilotRatings" class="card form">
+      <h3>@L["Pilot and military ratings"]</h3>
+      <label>@L["Pilot rating"]
+        <select name="pilot">
+          @foreach (var r in PilotRatings.Pilot.All) { <option value="@r" selected="@(r == m.PilotRating)">@PilotRatings.Pilot.Short(r) — @L[PilotRatings.Pilot.Long(r)]</option> }
+        </select>
+      </label>
+      <label>@L["Military rating"]
+        <select name="military">
+          @foreach (var r in PilotRatings.Military.All) { <option value="@r" selected="@(r == m.MilitaryRating)">@PilotRatings.Military.Short(r) — @L[PilotRatings.Military.Long(r)]</option> }
+        </select>
+      </label>
+      <div><button class="btn btn-primary" type="submit">@L["Save ratings"]</button></div>
+    </form>
+  }
+  @if (Model.CanSuspend)
   {
     <form method="post" asp-page-handler="Suspend" class="card form">
-      <h3>@(m.Suspended ? "Разблокировать" : "Заблокировать")</h3>
-      @if (!m.Suspended) { <label>Причина<input name="reason" required maxlength="300" placeholder="Нарушение правил: …"></label> }
-      <p class="muted small">@(m.Suspended ? "Участник снова сможет входить на сайт и в сеть." : "Участник не сможет войти на сайт и подключиться к сети.")</p>
+      <h3>@(m.Suspended ? L["Lift suspension"] : L["Suspend"])</h3>
+      @if (!m.Suspended)
+      {
+        <label>@L["Reason"]<input name="reason" required maxlength="300" placeholder="@L["Rule violation: …"]"></label>
+        <label>@L["For how long"]
+          <select name="days">
+            <option value="1">@L["1 day"]</option>
+            <option value="3">@L["3 days"]</option>
+            <option value="7" selected>@L["7 days"]</option>
+            <option value="30">@L["30 days"]</option>
+            <option value="90">@L["90 days"]</option>
+            <option value="0">@L["Permanently"]</option>
+          </select>
+        </label>
+      }
+      <p class="muted small">@(m.Suspended ? L["The member will be able to sign in to the website and the network again."] : L["The member is signed out of the website, disconnected from the network within 10 seconds and cannot reconnect until the suspension ends."])</p>
       <input type="hidden" name="suspend" value="@(!m.Suspended)">
-      <div><button class="btn @(m.Suspended ? "btn-primary" : "btn-danger")" type="submit">@(m.Suspended ? "Разблокировать" : "Заблокировать")</button></div>
+      <div><button class="btn @(m.Suspended ? "btn-primary" : "btn-danger")" type="submit">@(m.Suspended ? L["Lift suspension"] : L["Suspend"])</button></div>
     </form>
   }
   @if (Model.Me.Has(Perm.ResetPasswords))
   {
     <form method="post" asp-page-handler="ResetPassword" class="card form">
-      <h3>Пароль</h3>
-      <p class="muted small">Создаст временный пароль. Передайте его участнику и попросите сменить в настройках.</p>
-      <div><button class="btn" type="submit">Сбросить пароль</button></div>
+      <h3>@L["Password"]</h3>
+      <p class="muted small">@L["Creates a temporary password. Give it to the member and ask them to change it in their settings."]</p>
+      <div><button class="btn" type="submit">@L["Reset password"]</button></div>
     </form>
   }
   @if (Model.Me.Has(Perm.ManageRoles))
   {
     <form method="post" asp-page-handler="Roles" class="card form">
-      <h3>Роли на сайте</h3>
+      <h3>@L["Website roles"]</h3>
       @foreach (var (key, title) in Permissions.Roles)
       {
-        <label class="check"><input type="checkbox" name="roles" value="@key" checked="@Model.Roles.Contains(key)"> <span>@title</span></label>
+        <label class="check"><input type="checkbox" name="roles" value="@key" checked="@Model.Roles.Contains(key)"> <span>@L[title]</span></label>
       }
-      <p class="muted small">Супервайзер (SUP), инструктор (I1–I3) и администратор (ADM) — это рейтинги, их права действуют сами.</p>
-      <div><button class="btn btn-primary" type="submit">Сохранить роли</button></div>
+      <p class="muted small">@L["Supervisor (SUP), instructor (I1–I3) and administrator (ADM) are ratings; their rights apply automatically."]</p>
+      <div><button class="btn btn-primary" type="submit">@L["Save roles"]</button></div>
     </form>
   }
 </div>
 
 @if (Model.Me.Has(Perm.Notes))
 {
-  <h2 style="font-size:20px">Заметки команды</h2>
-  <p class="muted small">Видны только команде.</p>
+  <h2 style="font-size:20px">@L["Team notes"]</h2>
+  <p class="muted small">@L["Visible to the team only."]</p>
   <form method="post" asp-page-handler="Note" class="form wide" style="margin-bottom:16px">
-    <label><textarea name="body" required maxlength="3000" placeholder="Что важно знать о участнике"></textarea></label>
-    <div><button class="btn" type="submit">Добавить заметку</button></div>
+    <label><textarea name="body" required maxlength="3000" placeholder="@L["What the team should know about this member"]"></textarea></label>
+    <div><button class="btn" type="submit">@L["Add note"]</button></div>
   </form>
   <div class="thread">
     @foreach (var n in Model.Notes)
@@ -92,23 +129,23 @@
   </div>
 }
 
-<h2 style="font-size:20px;margin-top:28px">Подключения</h2>
+<h2 style="font-size:20px;margin-top:28px">@L["Connections"]</h2>
 <div class="table-wrap" style="margin-bottom:28px">
   <table>
-    <thead><tr><th>Позывной</th><th>Роль</th><th>Детали</th><th>Начало</th><th>Длительность</th></tr></thead>
+    <thead><tr><th>@L["Callsign"]</th><th>@L["Role"]</th><th>@L["Details"]</th><th>@L["Start"]</th><th>@L["Duration"]</th></tr></thead>
     <tbody>
     @foreach (var s in Model.Sessions)
     {
-      <tr><td class="mono">@s.Callsign</td><td>@(s.Kind == "atc" ? "диспетчер" : "пилот")</td><td class="mono small">@s.Details</td>
+      <tr><td class="mono">@s.Callsign</td><td>@(s.Kind == "atc" ? L["controller"] : L["pilot"])</td><td class="mono small">@s.Details</td>
           <td>@Format.Utc(s.Start)</td><td>@Format.Duration(s.Duration)</td></tr>
     }
-    @if (Model.Sessions.Count == 0) { <tr><td colspan="5" class="muted">Подключений не было</td></tr> }
+    @if (Model.Sessions.Count == 0) { <tr><td colspan="5" class="muted">@L["No connections yet."]</td></tr> }
     </tbody>
   </table>
 </div>
 
 @if (Model.History.Count > 0)
 {
-  <h2 style="font-size:20px">История действий</h2>
+  <h2 style="font-size:20px">@L["Action history"]</h2>
   <partial name="_AuditTable" model="Model.History" />
 }

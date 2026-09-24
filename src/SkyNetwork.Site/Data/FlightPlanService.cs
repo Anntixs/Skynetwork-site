@@ -36,6 +36,19 @@ public sealed class FlightPlanService(Database db)
             """, new { cid, departure = departure.ToUpperInvariant(), destination = destination.ToUpperInvariant(), since = Database.Now() - 86400 });
     }
 
+    /// <summary>The member's SimBrief username or Pilot ID, remembered from their last import ("" when none).</summary>
+    public string SimbriefUser(long cid)
+    {
+        using var c = db.Open();
+        return c.QuerySingleOrDefault<string>("SELECT simbrief FROM member_profiles WHERE cid = @cid", new { cid }) ?? "";
+    }
+
+    public void SetSimbriefUser(long cid, string user)
+    {
+        using var c = db.Open();
+        c.Execute("UPDATE member_profiles SET simbrief = @user WHERE cid = @cid", new { cid, user });
+    }
+
     public IReadOnlyList<FlightPlan> Recent(long cid, int limit = 20)
     {
         using var c = db.Open();

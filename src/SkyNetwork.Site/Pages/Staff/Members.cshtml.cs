@@ -8,11 +8,13 @@ public sealed class MembersModel(CurrentUser me, MemberService members) : StaffP
     protected override Perm Required => Perm.ViewMembers;
 
     public string Query { get; private set; } = "";
+    public bool SuspendedOnly { get; private set; }
     public IReadOnlyList<Member> Results { get; private set; } = [];
 
-    public void OnGet(string? q)
+    public void OnGet(string? q, int? suspended)
     {
         Query = q ?? "";
-        Results = members.Search(q);
+        SuspendedOnly = suspended == 1;
+        Results = members.Search(q, SuspendedOnly);
     }
 }

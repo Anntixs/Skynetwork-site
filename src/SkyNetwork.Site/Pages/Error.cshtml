@@ -1,23 +1,23 @@
 @page "/error/{code:int}"
 @model ErrorModel
 @{
-    ViewData["Title"] = Model.Code == 404 ? "Страница не найдена" : "Ошибка";
+    ViewData["Title"] = Model.Code == 404 ? L["Page not found"] : L["Error"];
 }
 <div class="wrap page">
-  <div class="eyebrow">Ошибка @Model.Code</div>
+  <div class="eyebrow">@L["Error"] @Model.Code</div>
   @if (Model.Code == 404)
   {
-    <h1>Такой страницы нет</h1>
-    <p class="muted">Проверьте адрес или начните с <a href="/">главной</a>.</p>
+    <h1>@L["There is no such page"]</h1>
+    <p class="muted">@L["Check the address or start from the"] <a href="/">@L["home page"]</a>.</p>
   }
   else if (Model.Code == 429)
   {
-    <h1>Слишком много попыток</h1>
-    <p class="muted">Подождите минуту и попробуйте снова.</p>
+    <h1>@L["Too many attempts"]</h1>
+    <p class="muted">@L["Wait a minute and try again."]</p>
   }
   else
   {
-    <h1>Что-то пошло не так</h1>
-    <p class="muted">Попробуйте ещё раз чуть позже. Если ошибка повторяется, напишите в <a href="/support">поддержку</a>.</p>
+    <h1>@L["Something went wrong"]</h1>
+    <p class="muted">@L["Please try again a little later. If the error keeps happening, write to"] <a href="/support">@L["support"]</a>.</p>
   }
 </div>

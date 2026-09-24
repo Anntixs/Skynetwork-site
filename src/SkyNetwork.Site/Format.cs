@@ -2,21 +2,28 @@ using System.Globalization;
 
 namespace SkyNetwork.Site;
 
-/// <summary>Formatting shared by pages: everything on the network runs in UTC.</summary>
+/// <summary>
+/// Formatting shared by pages: everything on the network runs in UTC. Month names and units follow
+/// the visitor's language (the request's UI culture, set from the language cookie).
+/// </summary>
 public static class Format
 {
-    private static readonly CultureInfo Ru = CultureInfo.GetCultureInfo("ru-RU");
+    private static CultureInfo Culture => CultureInfo.CurrentUICulture;
+    private static bool Ru => Culture.TwoLetterISOLanguageName == "ru";
 
-    public static string Utc(DateTime t) => t.ToString("dd.MM.yyyy HH:mm", Ru) + "z";
-    public static string Date(DateTime t) => t.ToString("d MMMM yyyy", Ru);
-    public static string DayMonth(DateTime t) => t.ToString("d MMM", Ru).TrimEnd('.');
-    public static string Time(DateTime t) => t.ToString("HH:mm", Ru) + "z";
+    public static string Utc(DateTime t) => t.ToString(Ru ? "dd.MM.yyyy HH:mm" : "dd MMM yyyy HH:mm", Culture) + "z";
+    public static string Date(DateTime t) => t.ToString("d MMMM yyyy", Culture);
+    public static string DayMonth(DateTime t) => t.ToString("d MMM", Culture).TrimEnd('.');
+    public static string Time(DateTime t) => t.ToString("HH:mm", CultureInfo.InvariantCulture) + "z";
     public static string Span(DateTime a, DateTime b) =>
         a.Date == b.Date ? $"{DayMonth(a)}, {Time(a)}–{Time(b)}" : $"{DayMonth(a)} {Time(a)} — {DayMonth(b)} {Time(b)}";
 
-    public static string Hours(double hours) => hours.ToString(hours < 10 ? "0.0" : "0", CultureInfo.InvariantCulture) + " ч";
+    public static string Hours(double hours) =>
+        hours.ToString(hours < 10 ? "0.0" : "0", CultureInfo.InvariantCulture) + (Ru ? " ч" : " h");
 
-    public static string Duration(TimeSpan d) => d.TotalHours >= 1 ? $"{(int)d.TotalHours} ч {d.Minutes:00} мин" : $"{d.Minutes} мин";
+    public static string Duration(TimeSpan d) => Ru
+        ? (d.TotalHours >= 1 ? $"{(int)d.TotalHours} ч {d.Minutes:00} мин" : $"{d.Minutes} мин")
+        : (d.TotalHours >= 1 ? $"{(int)d.TotalHours} h {d.Minutes:00} min" : $"{d.Minutes} min");
 
     public static string Initials(string name) =>
         string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => char.ToUpperInvariant(w[0])));

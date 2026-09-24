@@ -24,7 +24,7 @@ public sealed class RegisterModel(MemberService members) : PageModel
     {
         Name = Name.Trim();
         Email = Email.Trim();
-        Country = Country.Trim();
+        Country = Countries.Normalize(Country) ?? Country.Trim();
         Error = Validate();
         if (Error != null) return Page();
         long cid = members.Register(Name, Email, Country, Password);
@@ -34,15 +34,15 @@ public sealed class RegisterModel(MemberService members) : PageModel
 
     private string? Validate()
     {
-        if (Name.Length < 3 || !Name.Contains(' ')) return "Укажите имя и фамилию";
-        if (Name.Any(char.IsControl) || Name.Contains(':')) return "Имя содержит недопустимые символы";
-        if (!MailAddress.TryCreate(Email, out _)) return "Проверьте адрес почты";
-        if (members.EmailTaken(Email)) return "Эта почта уже зарегистрирована. Забыли CID — напишите в поддержку";
-        if (!Countries.IsKnown(Country)) return "Выберите страну из списка";
-        if (Password.Length < 8) return "Пароль — не короче 8 символов";
-        if (Password.Contains(':')) return "Пароль не может содержать двоеточие";
-        if (Password != Confirm) return "Пароли не совпадают";
-        if (!AcceptRules) return "Нужно согласиться с правилами";
+        if (Name.Length < 3 || !Name.Contains(' ')) return "Enter your first and last name";
+        if (Name.Any(char.IsControl) || Name.Contains(':')) return "The name contains characters that are not allowed";
+        if (!MailAddress.TryCreate(Email, out _)) return "Check the email address";
+        if (members.EmailTaken(Email)) return "This email is already registered. Forgot your CID? Write to support";
+        if (Countries.Normalize(Country) == null) return "Choose a country from the list";
+        if (Password.Length < 8) return "The password must be at least 8 characters";
+        if (Password.Contains(':')) return "The password cannot contain a colon";
+        if (Password != Confirm) return "The passwords do not match";
+        if (!AcceptRules) return "You need to accept the rules";
         return null;
     }
 }

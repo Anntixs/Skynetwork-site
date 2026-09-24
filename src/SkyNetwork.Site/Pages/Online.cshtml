@@ -1,19 +1,19 @@
 @page "/online"
 @inject NetworkFeed Feed
 @{
-    ViewData["Title"] = "Онлайн";
+    ViewData["Title"] = L["Online"];
     var s = Feed.Current;
 }
 <div class="wrap page">
   <div class="page-head">
-    <h1>Кто в эфире</h1>
-    <p>@(s.Available ? $"Данные сервера на {Format.Time(s.Updated)}. Список обновляется каждые 15 секунд." : "Сервер сейчас не отвечает — показаны последние известные данные.")</p>
+    <h1>@L["Who is on the air"]</h1>
+    <p>@(s.Available ? L.F("Server data as of {0}. The list updates every 15 seconds.", Format.Time(s.Updated)) : L["The server is not responding — showing the last known data."])</p>
   </div>
 
-  <div class="section-head"><h2>Диспетчеры · @s.Controllers.Count</h2></div>
+  <div class="section-head"><h2>@L["Controllers"] · @s.Controllers.Count</h2></div>
   @if (s.Controllers.Count == 0)
   {
-    <div class="empty">На позициях никого нет.</div>
+    <div class="empty">@L["No one is on position."]</div>
   }
   else
   {
@@ -22,23 +22,23 @@
       {
         <div class="strip @c.FacilityName">
           <a class="cs" href="/members/@c.Cid">@c.Callsign</a>
-          <span class="who">@c.Name · @c.Rating · с @Format.Time(c.LogonTime)</span>
+          <span class="who">@c.Name · @c.Rating · @L["since"] @Format.Time(c.LogonTime)</span>
           <span class="freq">@c.Frequency</span>
         </div>
       }
     </div>
   }
 
-  <div class="section-head" style="margin-top:40px"><h2>Пилоты · @s.Pilots.Count</h2></div>
+  <div class="section-head" style="margin-top:40px"><h2>@L["Pilots"] · @s.Pilots.Count</h2></div>
   @if (s.Pilots.Count == 0)
   {
-    <div class="empty">В воздухе никого нет. Самое время <a href="/flightplan">подать план</a>.</div>
+    <div class="empty">@L["No one is flying. A good time to"] <a href="/flightplan">@L["file a plan"]</a>.</div>
   }
   else
   {
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Позывной</th><th>Пилот</th><th>Тип</th><th>Маршрут</th><th>Высота</th><th>Скорость</th></tr></thead>
+        <thead><tr><th>@L["Callsign"]</th><th>@L["Pilot"]</th><th>@L["Type"]</th><th>@L["Route"]</th><th>@L["Altitude"]</th><th>@L["Speed"]</th></tr></thead>
         <tbody>
           @foreach (var p in s.Pilots)
           {
@@ -46,7 +46,7 @@
               <td class="mono"><a href="/members/@p.Cid">@p.Callsign</a></td>
               <td>@p.Name</td>
               <td class="mono">@(p.FlightPlan?.Aircraft ?? "—")</td>
-              <td class="mono">@(p.FlightPlan is { } fp ? $"{fp.Departure} → {fp.Destination}" : "нет плана")</td>
+              <td class="mono">@(p.FlightPlan is { } fp ? $"{fp.Departure} → {fp.Destination}" : L["no plan"])</td>
               <td class="num">@p.Altitude ft</td>
               <td class="num">@p.Groundspeed kt</td>
             </tr>

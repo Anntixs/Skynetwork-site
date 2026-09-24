@@ -1,24 +1,17 @@
 @page "/docs/rules"
-@{ ViewData["Title"] = "Правила сети"; }
+@{ ViewData["Title"] = L["Network rules"]; }
 <div class="wrap page with-side">
   <partial name="_DocsNav" />
   <div class="prose">
-    <h1 style="font-size:34px">Правила сети</h1>
-    <p class="muted">Короткий свод правил. Супервайзеры следят за их соблюдением и могут отключить или заблокировать нарушителя.</p>
-    <h3 style="margin-top:28px">Общие</h3>
-    <p>Одна учётная запись на человека. Не передавайте CID и пароль другим.
-Уважайте других участников в эфире и в сообщениях.
-Используйте настоящие имя и фамилию.</p>
-    <h3>Пилотам</h3>
-    <p>Подавайте план полёта до подключения.
-Не подключайтесь на ВПП и рулёжных дорожках — только на стоянке.
-Выполняйте указания диспетчера; если это невозможно — сообщите.
-Отходя от компьютера больше чем на 30 минут, отключайтесь.</p>
-    <h3>Диспетчерам</h3>
-    <p>Работайте только на позициях своего рейтинга.
-Заполняйте информацию о диспетчере (ATIS) и передавайте борта соседям.
-Бронируйте позицию, если планируете длинную смену.</p>
-    <h3>Нарушения</h3>
-    <p>Сообщайте о нарушениях через <a href="/support">поддержку</a> или супервайзеру в сети командой <span class="mono">.wallop</span>.</p>
+    <h1 style="font-size:34px">@L["Network rules"]</h1>
+    <p class="muted">@L["A short set of rules. Supervisors make sure they are followed and can disconnect or suspend offenders."]</p>
+    <h3 style="margin-top:28px">@L["General"]</h3>
+    <p>@L["One account per person. Do not share your CID and password.\nRespect other members on the air and in messages.\nUse your real first and last name."]</p>
+    <h3>@L["For pilots"]</h3>
+    <p>@L["File a flight plan before connecting.\nDo not connect on runways or taxiways — only at a stand.\nFollow controller instructions; if you cannot, say so.\nIf you leave your computer for more than 30 minutes, disconnect."]</p>
+    <h3>@L["For controllers"]</h3>
+    <p>@L["Only staff positions your rating allows.\nKeep your controller information (ATIS) up to date and hand aircraft off to your neighbours.\nBook the position if you plan a long session."]</p>
+    <h3>@L["Violations"]</h3>
+    <p>@L["Report violations through"] <a href="/support">@L["support"]</a> @L["or to a supervisor on the network with the"] <span class="mono">.wallop</span> @L["command."]</p>
   </div>
 </div>

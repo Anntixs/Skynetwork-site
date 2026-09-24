@@ -109,17 +109,17 @@ public sealed class ContentService(Database db, AuditService audit)
             """, new { now = Database.Now(), cid, limit }).ToList();
     }
 
-    /// <summary>Books a position; returns an error text or null.</summary>
+    /// <summary>Books a position; returns an English error (a format string with {0} = callsign) or null.</summary>
     public string? Book(long cid, string callsign, long start, long end)
     {
-        if (end <= start) return "Конец должен быть позже начала";
-        if (end - start > 12 * 3600) return "Не больше 12 часов";
-        if (start < Database.Now() - 600) return "Время уже прошло";
+        if (end <= start) return "The end must be after the start";
+        if (end - start > 12 * 3600) return "At most 12 hours";
+        if (start < Database.Now() - 600) return "This time has already passed";
         using var c = db.Open();
         bool overlap = c.ExecuteScalar<long>("""
             SELECT COUNT(*) FROM bookings WHERE callsign = @callsign COLLATE NOCASE AND starts_at < @end AND ends_at > @start
             """, new { callsign, start, end }) > 0;
-        if (overlap) return $"{callsign} уже забронирован на это время";
+        if (overlap) return "{0} is already booked for this time";
         c.Execute("INSERT INTO bookings (cid, callsign, starts_at, ends_at, created_at) VALUES (@cid, @callsign, @start, @end, @now)",
             new { cid, callsign, start, end, now = Database.Now() });
         return null;

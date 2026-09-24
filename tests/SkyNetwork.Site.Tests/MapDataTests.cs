@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using SkyNetwork.Site.Data;
+using SkyNetwork.Site.Localization;
 using SkyNetwork.Site.Services;
 
 namespace SkyNetwork.Site.Tests;
@@ -12,16 +13,34 @@ public class MapDataTests
     {
         using var site = new SiteFactory();
         var c = site.Browser();
-        Assert.Contains("<option value=\"Россия\">Россия</option>", await c.HtmlAsync("/register"));
+        Assert.Contains("<option value=\"Russia\">Russia</option>", await c.HtmlAsync("/register"));
         var fields = new Dictionary<string, string>
         {
-            ["Name"] = "Anna Smirnova", ["Email"] = "anna@example.com", ["Country"] = "Нарния",
+            ["Name"] = "Anna Smirnova", ["Email"] = "anna@example.com", ["Country"] = "Narnia",
             ["Password"] = "secret123", ["Confirm"] = "secret123", ["AcceptRules"] = "true",
         };
-        Assert.Contains("Выберите страну из списка", await (await c.SubmitAsync("/register", fields)).Content.ReadAsStringAsync());
+        Assert.Contains("Choose a country from the list", await (await c.SubmitAsync("/register", fields)).Content.ReadAsStringAsync());
+        // A Russian name from before the list is recognised and stored in English.
         Assert.Equal(HttpStatusCode.Redirect, (await c.SubmitAsync("/register", new Dictionary<string, string>(fields) { ["Country"] = "Казахстан" })).StatusCode);
-        Assert.True(Countries.IsKnown("россия"));
-        Assert.Equal("Россия", Countries.All[0]);
+        Assert.Equal("Kazakhstan", site.Get<MemberService>().Find(1)!.Country);
+    }
+
+    [Fact]
+    public void CountriesShowInTheVisitorsLanguage()
+    {
+        Assert.Equal(("Russia", "Россия"), Countries.List(russian: true).First());
+        Assert.Equal("Russia", Countries.List(russian: false).First().Name);
+        Assert.Equal("Германия", Countries.Display("Germany", russian: true));
+        Assert.Equal("Germany", Countries.Normalize("германия"));
+        Assert.Null(Countries.Normalize("Narnia"));
+        Assert.Equal("Narnia", Countries.Display("Narnia", russian: true));
+    }
+
+    [Fact]
+    public void EveryMapTextHasARussianTranslation()
+    {
+        var missing = MapTexts.Keys.Where(k => !Ru.Texts.ContainsKey(k)).ToList();
+        Assert.True(missing.Count == 0, "Missing: " + string.Join(", ", missing));
     }
 
     [Fact]

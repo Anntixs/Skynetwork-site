@@ -11,11 +11,31 @@ namespace SkyNetwork.Site.Services;
 public sealed class Simbrief(IHttpClientFactory http, ILogger<Simbrief> log)
 {
     public const int MaxWaypoints = 400;
+    private static readonly TimeSpan RouteCache = TimeSpan.FromMinutes(10);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime At, FlightPlan? Plan)> _latest = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Route points of the member's latest SimBrief plan when it is this flight (same departure and destination), for pilots
+    /// who plan in SimBrief but file some other way. One request per member every 10 minutes at most.
+    /// </summary>
+    public async Task<string?> RouteForAsync(string user, string departure, string destination, CancellationToken ct)
+    {
+        if (user.Length == 0) return null;
+        if (!_latest.TryGetValue(user, out var hit) || DateTime.UtcNow - hit.At > RouteCache)
+        {
+            var (plan, _) = await FetchAsync(user, ct);
+            _latest[user] = hit = (DateTime.UtcNow, plan);
+            if (_latest.Count > 2000) _latest.Clear();
+        }
+        return hit.Plan is { Waypoints.Length: > 0 } p
+            && p.Departure.Equals(departure, StringComparison.OrdinalIgnoreCase) && p.Destination.Equals(destination, StringComparison.OrdinalIgnoreCase)
+            ? p.Waypoints : null;
+    }
 
     public async Task<(FlightPlan? Plan, string? Error)> FetchAsync(string user, CancellationToken ct)
     {
         user = user.Trim();
-        if (user.Length is 0 or > 64) return (null, "Укажите имя пользователя или Pilot ID SimBrief");
+        if (user.Length is 0 or > 64) return (null, "Enter your SimBrief username or Pilot ID");
         string query = user.All(char.IsAsciiDigit) ? "userid=" : "username=";
         string url = $"https://www.simbrief.com/api/xml.fetcher.php?{query}{Uri.EscapeDataString(user)}&json=v2";
         try
@@ -27,7 +47,7 @@ public sealed class Simbrief(IHttpClientFactory http, ILogger<Simbrief> log)
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
         {
             log.LogWarning("SimBrief {User}: {Error}", user, e.Message);
-            return (null, "SimBrief не отвечает, попробуйте позже");
+            return (null, "SimBrief is not answering, try again later");
         }
     }
 
@@ -36,17 +56,17 @@ public sealed class Simbrief(IHttpClientFactory http, ILogger<Simbrief> log)
     {
         JsonElement root;
         try { root = JsonDocument.Parse(json).RootElement; }
-        catch (JsonException) { return (null, "SimBrief вернул непонятный ответ"); }
-        if (root.ValueKind != JsonValueKind.Object) return (null, "SimBrief вернул непонятный ответ");
+        catch (JsonException) { return (null, "SimBrief sent an answer we cannot read"); }
+        if (root.ValueKind != JsonValueKind.Object) return (null, "SimBrief sent an answer we cannot read");
 
         string status = Str(root, "fetch", "status");
         if (!status.Equals("Success", StringComparison.OrdinalIgnoreCase))
             return (null, status.Contains("UserID", StringComparison.OrdinalIgnoreCase)
-                ? "Такого пользователя SimBrief нет — проверьте имя или Pilot ID"
-                : $"SimBrief: {(status.Length > 0 ? status : "план не найден")}");
+                ? "There is no such SimBrief user: check the username or Pilot ID"
+                : status.Length > 0 ? $"SimBrief: {status}" : "SimBrief has no plan for this user");
 
         string dep = Str(root, "origin", "icao_code"), dest = Str(root, "destination", "icao_code");
-        if (dep.Length != 4 || dest.Length != 4) return (null, "В последнем плане SimBrief нет аэродромов вылета и назначения");
+        if (dep.Length != 4 || dest.Length != 4) return (null, "The latest SimBrief plan has no departure or destination airport");
 
         string callsign = Str(root, "atc", "callsign");
         if (callsign.Length == 0) callsign = Str(root, "general", "icao_airline") + Str(root, "general", "flight_number");

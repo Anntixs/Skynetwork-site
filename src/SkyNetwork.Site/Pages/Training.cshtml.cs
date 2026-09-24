@@ -13,10 +13,11 @@ public sealed class TrainingModel(CurrentUser me, SupportService support) : Page
 
     public void OnGet() => Requests = support.Training(me.Cid);
 
-    public IActionResult OnPost(int target, string? text)
+    public IActionResult OnPost(string track, int target, string? text)
     {
-        Error = support.RequestTraining(me.Cid, me.Member!.Rating, target, (text ?? "").Trim());
-        if (Error == null) Message = "Заявка подана. Инструктор ответит здесь";
+        track = TrainingTracks.Valid(track) ? track : "atc";
+        Error = support.RequestTraining(me.Cid, track, TrainingTracks.Current(track, me.Member!), target, (text ?? "").Trim());
+        if (Error == null) Message = "Request filed. The instructor will answer here";
         OnGet();
         return Page();
     }

@@ -24,11 +24,15 @@ public static class ApiEndpoints
         var v1 = app.MapGroup("/api/v1").RequireCors("api");
 
         // For the map: the planned route points (SimBrief import) and the track flown so far.
-        v1.MapGet("/pilots/{callsign}/route", (string callsign, NetworkFeed feed, FlightPlanService plans) =>
+        v1.MapGet("/pilots/{callsign}/route", async (string callsign, NetworkFeed feed, FlightPlanService plans, Simbrief simbrief, CancellationToken ct) =>
         {
             var p = feed.Current.Pilots.FirstOrDefault(x => x.Callsign.Equals(callsign, StringComparison.OrdinalIgnoreCase));
             if (p == null) return Results.NotFound();
-            string? points = p.FlightPlan is { } fp ? plans.Waypoints(p.Cid, fp.Departure, fp.Destination) : null;
+            string? points = null;
+            if (p.FlightPlan is { } fp)
+                // A plan imported here, otherwise the pilot's latest SimBrief plan for the same flight.
+                points = plans.Waypoints(p.Cid, fp.Departure, fp.Destination)
+                    ?? await simbrief.RouteForAsync(plans.SimbriefUser(p.Cid), fp.Departure, fp.Destination, ct);
             return Results.Ok(new
             {
                 waypoints = points is { Length: > 0 } ? System.Text.Json.Nodes.JsonNode.Parse(points) : null,
@@ -96,7 +100,10 @@ public static class ApiEndpoints
             var h = sessions.Hours(cid);
             return Results.Ok(new
             {
-                m.Cid, m.Name, rating = m.RatingShort, ratingName = m.RatingLong, registered = m.Registered,
+                m.Cid, m.Name, rating = m.RatingShort, ratingName = m.RatingLong,
+                pilotRating = PilotRatings.Pilot.Short(m.PilotRating), pilotRatingName = PilotRatings.Pilot.Long(m.PilotRating),
+                militaryRating = PilotRatings.Military.Short(m.MilitaryRating), militaryRatingName = PilotRatings.Military.Long(m.MilitaryRating),
+                registered = m.Registered,
                 pilotHours = Math.Round(h.PilotHours, 1), atcHours = Math.Round(h.AtcHours, 1), suspended = m.Suspended,
             });
         });

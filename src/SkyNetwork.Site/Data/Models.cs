@@ -16,9 +16,14 @@ public sealed class Member
     public long? RegisteredAt { get; set; }
     public long? LastLoginAt { get; set; }
     public string SuspensionReason { get; set; } = "";
+    /// <summary>When a temporary suspension ends (unix seconds); null for a permanent one.</summary>
+    public long? SuspendedUntil { get; set; }
+    public int PilotRating { get; set; }
+    public int MilitaryRating { get; set; }
 
     public string RatingShort => Ratings.Short(Rating);
     public string RatingLong => Ratings.Long(Rating);
+    public DateTime? SuspensionEnds => SuspendedUntil is { } u ? Time.Utc(u) : null;
     public DateTime? Registered => RegisteredAt is { } r ? Time.Utc(r) : null;
 }
 
@@ -129,8 +134,13 @@ public sealed class TrainingRequest
     public long Id { get; set; }
     public long Cid { get; set; }
     public string Name { get; set; } = "";
+    /// <summary>atc, pilot or military (see <see cref="TrainingTracks"/>).</summary>
+    public string Track { get; set; } = "atc";
+    /// <summary>The member's current level on this track.</summary>
     public int Rating { get; set; }
     public int TargetRating { get; set; }
+    public string CurrentShort => TrainingTracks.Short(Track, Rating);
+    public string TargetShort => TrainingTracks.Short(Track, TargetRating);
     public string Message { get; set; } = "";
     public string Status { get; set; } = "open";
     public long? InstructorCid { get; set; }
