@@ -63,16 +63,16 @@ public class AccountTests
         Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);
         Assert.Equal("/account?welcome=1", r.Headers.Location!.OriginalString);
         var html = await c.HtmlAsync("/account?welcome=1");
-        Assert.Contains("1000001", html);
+        Assert.Contains("<div class=\"big-cid\">1</div>", html);
 
         // Same email again is refused.
         var again = await site.Browser().SubmitAsync("/register", fields);
         Assert.Contains("уже зарегистрирована", await again.Content.ReadAsStringAsync());
 
         var fresh = site.Browser();
-        var bad = await fresh.SubmitAsync("/login", new Dictionary<string, string> { ["Cid"] = "1000001", ["Password"] = "wrong" });
+        var bad = await fresh.SubmitAsync("/login", new Dictionary<string, string> { ["Cid"] = "1", ["Password"] = "wrong" });
         Assert.Contains("Неверный CID или пароль", await bad.Content.ReadAsStringAsync());
-        await fresh.LoginAsync(1000001, "secret123");
+        await fresh.LoginAsync(1, "secret123");
         Assert.Contains("Ivan Petrov", await fresh.HtmlAsync("/account"));
     }
 

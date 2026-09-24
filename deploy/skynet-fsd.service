@@ -1,0 +1,13 @@
+# /etc/systemd/system/skynet-fsd.service
+[Unit]
+Description=SkyNetwork FSD server
+After=network.target
+
+[Service]
+User=skynetwork
+ExecStart=/opt/skynetwork/fsd/skynet-fsd --db /var/lib/skynetwork/skynetwork.db --port 6809 --http-port 8080 --name SkyNetwork
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

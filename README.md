@@ -50,7 +50,7 @@
 # сервер сети
 skynet-fsd --db /srv/skynetwork/skynetwork.db --port 6809 --http-port 8080
 # первый администратор
-skynet-admin --db /srv/skynetwork/skynetwork.db adduser 1000000 "Имя Фамилия" пароль ADM
+skynet-admin --db /srv/skynetwork/skynetwork.db adduser 1 "Имя Фамилия" пароль ADM
 # сайт
 dotnet run --project src/SkyNetwork.Site -- --Site:Database=/srv/skynetwork/skynetwork.db
 ```
@@ -62,11 +62,52 @@ dotnet run --project src/SkyNetwork.Site -- --Site:Database=/srv/skynetwork/skyn
 | `Database` | `skynetwork.db` | файл базы, общий с `skynet-fsd` |
 | `DataFeedUrl` | `http://127.0.0.1:8080/data.json` | поток данных FSD-сервера; пусто — без онлайна |
 | `FsdHost`, `FsdPort` | `127.0.0.1`, `6809` | адрес сервера на страницах «Как начать» |
-| `FirstCid` | `1000001` | CID первого зарегистрированного |
+| `FirstCid` | `1` | CID первого зарегистрированного; дальше по порядку: 1, 2, 3… |
 | `BehindProxy` | `false` | за nginx: доверять `X-Forwarded-For/Proto` |
 | `AuthAttemptsPerMinute` | `10` | попыток входа и регистрации в минуту с одного адреса |
 
 Сайт слушает `http://0.0.0.0:8000` (`Urls` в `appsettings.json`), это адрес по умолчанию в SkyPilot. В продакшене поставьте перед ним nginx с HTTPS и включите `BehindProxy`.
+
+## Установка на сервер
+
+Готовые файлы лежат в `deploy/`: службы systemd для FSD-сервера и сайта, конфиг nginx. Пример для Ubuntu 22.04/24.04, домен `example.com`:
+
+```sh
+# пакеты
+sudo apt update
+sudo apt install -y git cmake g++ libssl-dev libsqlite3-dev dotnet-sdk-8.0 nginx certbot python3-certbot-nginx
+sudo useradd --system --home /var/lib/skynetwork --create-home skynetwork
+
+# FSD-сервер
+git clone https://github.com/Anntixs/Skynetwork-fsd.git ~/Skynetwork-fsd
+cmake -S ~/Skynetwork-fsd -B ~/Skynetwork-fsd/build && cmake --build ~/Skynetwork-fsd/build -j
+sudo install -D -t /opt/skynetwork/fsd ~/Skynetwork-fsd/build/skynet-fsd ~/Skynetwork-fsd/build/skynet-admin
+
+# сайт
+git clone https://github.com/Anntixs/Skynetwork-site.git ~/Skynetwork-site
+dotnet publish ~/Skynetwork-site/src/SkyNetwork.Site -c Release -o ~/site-build
+sudo mkdir -p /opt/skynetwork/site && sudo cp -r ~/site-build/. /opt/skynetwork/site/
+
+# службы и nginx (в файлах замените example.com на свой домен)
+sudo cp ~/Skynetwork-site/deploy/*.service /etc/systemd/system/
+sudo cp ~/Skynetwork-site/deploy/nginx.conf /etc/nginx/sites-available/skynetwork
+sudo ln -s /etc/nginx/sites-available/skynetwork /etc/nginx/sites-enabled/
+sudo systemctl daemon-reload
+sudo systemctl enable --now skynet-fsd skynetwork-site
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d example.com
+
+# порты: сайт (80, 443), FSD (6809); 8000 и 8080 остаются внутренними
+sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw allow 6809/tcp && sudo ufw enable
+```
+
+Оба процесса работают от пользователя `skynetwork` с одной базой `/var/lib/skynetwork/skynetwork.db`. Первый зарегистрированный на сайте получает CID 1. Права администратора ему выдаются так:
+
+```sh
+sudo -u skynetwork /opt/skynetwork/fsd/skynet-admin --db /var/lib/skynetwork/skynetwork.db rating 1 ADM
+```
+
+Обновление сайта: `git pull`, снова `dotnet publish` и копирование в `/opt/skynetwork/site`, затем `sudo systemctl restart skynetwork-site`. Логи: `journalctl -u skynetwork-site -f`.
 
 ## API
 
