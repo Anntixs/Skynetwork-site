@@ -82,30 +82,34 @@
   });
 
   // ---- reference data ----
-  let firById = new Map(), firFeatures = [];
-  fetch('/data/firs.json').then(r => r.json()).then(gj => {
-    firFeatures = gj.features;
-    for (const f of firFeatures) {
-      const list = firById.get(f.properties.id) ?? [];
-      list.push(f);
-      firById.set(f.properties.id, list);
-    }
+  // Sector borders (see data/firs.LICENSE.txt): features by id, callsign prefixes → sector, upper sectors → several FIRs.
+  let firs = { features: [], prefixes: {}, uirs: {} }, firById = new Map();
+  fetch('/data/firs.json').then(r => r.json()).then(d => {
+    firs = d;
+    firById = new Map(d.features.map(f => [f.properties.id, f]));
     drawOutline();
     render();
   }).catch(() => { });
 
-  // Sector of a CTR/FSS position by its callsign prefix (EDGG_CTR, EDGG_N_CTR → EDGG); FIR shapes win over UIR ones.
+  // Sector of a CTR/FSS position, the longest callsign prefix first: UUWV_N_CTR → UUWV-N, UUWV_CTR → UUWV, RU-WRC_FSS → UMMV+UUWV+UWWW.
   function sectorOf(c) {
-    const list = firById.get(prefix(c.callsign));
-    if (!list) return null;
-    const lower = list.filter(f => f.properties.level !== 'upper');
-    return lower.length ? lower : list;
+    const parts = String(c.callsign).toUpperCase().split('_').slice(0, -1);
+    for (let n = parts.length; n > 0; n--) {
+      const key = parts.slice(0, n).join('_');
+      const fir = firs.prefixes[key], f = fir && firById.get(fir.b);
+      if (f) return { id: fir.b, name: fir.n, features: [f], label: f.properties.lat != null ? [f.properties.lat, f.properties.lon] : null };
+      const uir = firs.uirs[key], list = uir ? uir.b.map(id => firById.get(id)).filter(Boolean) : [];
+      if (list.length) return { id: key, name: uir.n, features: list, label: null };
+    }
+    return null;
   }
 
+  // Canvas: hundreds of borders draw much faster there than as SVG.
+  const outlineRenderer = L.canvas({ padding: .5 });
   function drawOutline() {
     firOutline.clearLayers();
-    L.geoJSON(firFeatures.filter(f => f.properties.level !== 'upper'), {
-      interactive: false, style: { color: css('--map-fir'), weight: 1, fill: false }
+    L.geoJSON(firs.features.filter(f => f.properties.top), {
+      interactive: false, renderer: outlineRenderer, style: { color: css('--map-fir'), weight: 1, fill: false }
     }).addTo(firOutline);
   }
   try { if (firToggle && localStorage.getItem('map-firs') === '0') firToggle.checked = false; } catch { }
@@ -136,12 +140,11 @@
       const at = c.latitude != null ? [c.latitude, c.longitude] : null;
       if (at) points.push(at);
       if (c.facility === 'CTR' || c.facility === 'FSS') {
-        const features = sectorOf(c);
-        if (features) {
-          const key = features[0].properties.id;
-          const s = staffed.get(key) ?? { features, controllers: [] };
+        const sector = sectorOf(c);
+        if (sector) {
+          const s = staffed.get(sector.id) ?? { ...sector, controllers: [] };
           s.controllers.push(c);
-          staffed.set(key, s);
+          staffed.set(sector.id, s);
         } else if (at) {
           // No known border for this callsign: a circle of the usual size instead.
           L.circle(at, { radius: (c.facility === 'FSS' ? 250 : 180) * 1852, color: ctr, weight: 1.2, fillOpacity: .06, bubblingMouseEvents: false })
@@ -164,7 +167,7 @@
         .on('click', open('atc', cs)).addTo(sectors);
       const names = s.controllers.map(c => esc(c.callsign)).join('<br>');
       label(`<span class="atc-label" style="transform:translate(-50%,-50%);display:inline-block;text-align:center">${names}</span>`, open('atc', cs))
-        .setLatLng(shape.getBounds().getCenter()).addTo(traffic);
+        .setLatLng(s.label ?? shape.getBounds().getCenter()).addTo(traffic);
     }
 
     const order = ['DEL', 'GND', 'TWR', 'APP'];
@@ -226,8 +229,8 @@
       const p = pilotOf(key);
       if (p?.latitude != null) map.flyTo([p.latitude, p.longitude], Math.max(map.getZoom(), 6), { duration: .8 });
     } else if (kind === 'atc') {
-      const c = atcOf(key), features = c && sectorOf(c);
-      if (features) map.flyToBounds(L.geoJSON(features).getBounds(), { padding: [40, 40], duration: .8 });
+      const c = atcOf(key), sector = c && sectorOf(c);
+      if (sector) map.flyToBounds(L.geoJSON(sector.features).getBounds(), { padding: [40, 40], duration: .8 });
       else if (c?.latitude != null) map.flyTo([c.latitude, c.longitude], Math.max(map.getZoom(), 6), { duration: .8 });
     } else {
       await loadAirports();
@@ -324,7 +327,7 @@
           ${cell('Рейтинг', esc(c.rating || '—'))}
           ${cell('В сети', onlineFor(c.logonTime))}
         </div>
-        ${sector ? `<div class="small"><span class="muted">Сектор:</span> ${esc(sector[0].properties.name)}</div>`
+        ${sector ? `<div class="small"><span class="muted">Сектор:</span> ${esc(sector.name)}</div>`
                  : `<div class="small"><span class="muted">Аэропорт:</span> <a href="#" data-select="airport|${esc(code)}">${esc(code)}</a></div>`}
       </div>`;
   }
