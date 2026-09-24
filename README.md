@@ -109,7 +109,7 @@ sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw allow 6809/tcp
 sudo -u skynetwork /opt/skynetwork/fsd/skynet-admin --db /var/lib/skynetwork/skynetwork.db rating 1 ADM
 ```
 
-Обновление сайта: `git pull`, снова `dotnet publish` и копирование в `/opt/skynetwork/site`, затем `sudo systemctl restart skynetwork-site`. Логи: `journalctl -u skynetwork-site -f`.
+Обновление FSD-сервера и сайта одной командой: `sudo bash ~/Skynetwork-site/deploy/update.sh` (скачивает свежие версии с GitHub, собирает, перезапускает и проверяет). Логи: `journalctl -u skynetwork-site -f`.
 
 ## API
 
