@@ -21,4 +21,12 @@
   document.addEventListener('click', e => {
     document.querySelectorAll('details.lang-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; });
   });
+  // Header edge: the hairline under the header hides while the page sits at the top (a 1px sentinel before the header).
+  // This script runs in <head>, so the sentinel is looked up once the body has parsed.
+  document.addEventListener('DOMContentLoaded', () => {
+    const top = document.getElementById('scroll-top');
+    if (top && 'IntersectionObserver' in window) {
+      new IntersectionObserver(([e]) => root.classList.toggle('at-top', e.isIntersecting), { threshold: 0 }).observe(top);
+    }
+  });
 })();

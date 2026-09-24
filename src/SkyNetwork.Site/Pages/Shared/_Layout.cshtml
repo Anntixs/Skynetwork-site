@@ -20,6 +20,7 @@
   @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
+  <div id="scroll-top" aria-hidden="true"></div>
   <header class="site-header" id="header">
     <div class="wrap">
       <a class="brand" href="/"><partial name="_Logo" /> SkyNetwork</a>
@@ -44,7 +45,7 @@
         else
         {
           <a href="/login">@L["Sign in"]</a>
-          <a class="btn btn-primary" href="/register">@L["Join"]</a>
+          <a class="btn btn-primary btn-pill" href="/register">@L["Join"]</a>
         }
       </div>
     </div>

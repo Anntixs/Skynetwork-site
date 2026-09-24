@@ -22,6 +22,11 @@
   --header-bg: rgba(255,255,255,.92);
   --panel-bg: rgba(255,255,255,.96);
   --shadow: rgba(14,23,38,.08);
+  /* Layered chrome: raised card, bright top edge, translucent header and glass chips. */
+  --card-bg: #ffffff;
+  --edge-bright: rgba(255,255,255,.7);
+  --chrome-bg: rgba(255,255,255,.72);
+  --glass-bg: rgba(255,255,255,.8);
   --staff-bar-bg: #0e1726; --staff-bar-text: #c9d2de; --staff-bar-strong: #ffffff;
   /* Map: sector borders, the selected aircraft's route, airport diagrams when zoomed in. */
   --map-fir: rgba(91,104,120,.45);
@@ -43,6 +48,11 @@
 
   --radius: 8px;
   --wrap: 1120px;
+
+  /* Motion: one curve, no overshoot; things appear from where they are. */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-reveal: 600ms; --t-hover: 200ms; --t-press: 120ms; --t-fade: 700ms;
+  --r-panel: 24px; --r-card: 20px;
 }
 
 /* Dark theme: chosen with the header switch (data-theme), otherwise the system setting. */
@@ -69,6 +79,10 @@
   --header-bg: rgba(15,20,27,.9);
   --panel-bg: rgba(22,29,39,.96);
   --shadow: rgba(0,0,0,.4);
+  --card-bg: #1b2430;
+  --edge-bright: rgba(255,255,255,.06);
+  --chrome-bg: rgba(15,20,27,.72);
+  --glass-bg: rgba(22,29,39,.8);
   --staff-bar-bg: #06090d; --staff-bar-text: #9aa7b8; --staff-bar-strong: #e6ebf2;
   --f-del: #8a9ab0; --f-gnd: #4fb482; --f-twr: #e3ab4a; --f-app: #5b9bf0; --f-ctr: #9a83e6; --f-pilot: #5a687c;
   --map-fir: rgba(148,161,178,.35); --map-route: #79abf6; --map-flown: #f4a15d;
@@ -98,6 +112,10 @@
     --header-bg: rgba(15,20,27,.9);
     --panel-bg: rgba(22,29,39,.96);
     --shadow: rgba(0,0,0,.4);
+    --card-bg: #1b2430;
+    --edge-bright: rgba(255,255,255,.06);
+    --chrome-bg: rgba(15,20,27,.72);
+    --glass-bg: rgba(22,29,39,.8);
     --staff-bar-bg: #06090d; --staff-bar-text: #9aa7b8; --staff-bar-strong: #e6ebf2;
     --f-del: #8a9ab0; --f-gnd: #4fb482; --f-twr: #e3ab4a; --f-app: #5b9bf0; --f-ctr: #9a83e6; --f-pilot: #5a687c;
   --map-fir: rgba(148,161,178,.35); --map-route: #79abf6; --map-flown: #f4a15d;
@@ -129,14 +147,23 @@ p { margin: 0 0 1em; }
 .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 24px; }
 
 /* ---- header ---- */
-.site-header { border-bottom: 1px solid var(--line); background: var(--header-bg); backdrop-filter: saturate(1.4) blur(8px); position: sticky; top: 0; z-index: 1000; }
+/* A translucent layer the page scrolls under: bright top edge, hairline below that hides while the page sits at the top. */
+.site-header { position: sticky; top: 0; z-index: 1000; background: var(--header-bg); }
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .site-header { background: var(--chrome-bg); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); }
+}
+.site-header::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--edge-bright); pointer-events: none; }
+.site-header::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--line); pointer-events: none; transition: opacity 300ms var(--ease); }
+html.at-top .site-header::after { opacity: 0; }
+.site-header.open { background: var(--paper); -webkit-backdrop-filter: none; backdrop-filter: none; }
+#scroll-top { position: absolute; top: 0; left: 0; width: 1px; height: 1px; pointer-events: none; }
 .site-header .wrap { display: flex; align-items: center; gap: 20px; height: 64px; }
 .brand { display: flex; align-items: center; gap: 10px; font: 800 18px var(--display); color: var(--ink); letter-spacing: -0.02em; }
 .brand:hover { color: var(--ink); text-decoration: none; }
 .brand svg { width: 26px; height: 26px; }
 .nav { display: flex; gap: 0; flex: 1; white-space: nowrap; }
-.nav a, .user-nav a { color: var(--slate); font-weight: 500; padding: 6px 9px; border-radius: 6px; }
-.nav a:hover, .user-nav a:hover { color: var(--ink); background: var(--surface); text-decoration: none; }
+.nav a, .user-nav a { color: var(--slate); font-weight: 500; padding: 6px 9px; border-radius: 6px; transition: color var(--t-hover) var(--ease); }
+.nav a:hover, .user-nav a:hover { color: var(--ink); text-decoration: none; }
 .nav a.active { color: var(--ink); }
 .user-nav { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .user-nav .me { display: inline-flex; align-items: center; gap: 8px; }
@@ -169,6 +196,7 @@ p { margin: 0 0 1em; }
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   font: 600 14px var(--body); padding: 9px 16px; border-radius: var(--radius);
   border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer;
+  transition: background-color var(--t-hover) var(--ease), border-color var(--t-hover) var(--ease), color var(--t-hover) var(--ease);
 }
 .btn:hover { border-color: var(--line-strong); text-decoration: none; color: var(--ink); }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
@@ -177,6 +205,17 @@ p { margin: 0 0 1em; }
 .btn-small { padding: 5px 10px; font-size: 13px; }
 .user-nav .btn-primary { color: var(--on-accent); padding: 8px 14px; }
 .user-nav .btn-primary:hover { background: var(--accent-ink); }
+/* Pill: the primary call to action; presses down on pointer-down. */
+.btn-pill { border-radius: 999px; padding: 12px 24px; font-size: 15px; min-height: 44px;
+  transition: background-color var(--t-hover) var(--ease), border-color var(--t-hover) var(--ease), color var(--t-hover) var(--ease), transform var(--t-press) var(--ease); }
+.btn-pill:active { transform: scale(.97); }
+.user-nav .btn-pill { padding: 8px 16px; font-size: 14px; min-height: 0; }
+.btn-pill:focus-visible { outline-offset: 3px; border-radius: 999px; }
+/* Text link with a chevron that nudges on hover. */
+.chev-link { display: inline-flex; align-items: center; gap: 4px; font: 500 15px var(--body); color: var(--accent); transition: color var(--t-hover) var(--ease); }
+.chev-link:hover { color: var(--accent-ink); text-decoration: none; }
+.chev-link .chev { flex: none; transition: transform var(--t-hover) var(--ease); }
+.chev-link:hover .chev { transform: translateX(2px); }
 
 /* ---- page ---- */
 main { min-height: calc(100vh - 64px - 120px); }
@@ -191,15 +230,9 @@ main { min-height: calc(100vh - 64px - 120px); }
 .section-head > a { white-space: nowrap; }
 .band { background: var(--surface); }
 
-/* ---- hero ---- */
-.hero { padding: 64px 0 56px; }
-.hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; }
-.hero p.lead { font-size: 18px; color: var(--slate); max-width: 520px; margin: 18px 0 28px; }
-.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.live-line { display: flex; align-items: center; gap: 10px; margin-top: 28px; color: var(--slate); font-size: 14px; }
+/* ---- live dot ---- */
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 4px var(--ok-soft); flex: none; }
 .dot.off { background: var(--dot-off); box-shadow: none; }
-.hero-map { height: 380px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
 
 /* ---- strips (live traffic) ---- */
 .strips { display: grid; gap: 6px; }
@@ -465,15 +498,133 @@ details.mc-sec .mc-block + .mc-block { margin-top: 12px; }
 .msg p { white-space: pre-line; margin: 0; }
 
 /* ---- footer ---- */
-.site-footer { border-top: 1px solid var(--line); padding: 32px 0; color: var(--slate); font-size: 13.5px; }
+.site-footer { border-top: 1px solid var(--line); padding: 48px 0 56px; color: var(--slate); font-size: 13.5px; }
 .site-footer .wrap { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
 .site-footer nav { display: flex; gap: 18px; flex-wrap: wrap; }
-.site-footer a { color: var(--slate); }
+.site-footer a { color: var(--slate); transition: color var(--t-hover) var(--ease); }
+.site-footer a:hover { color: var(--ink); text-decoration: none; }
+
+/* ---- home ----
+   Bands alternate paper / surface by position; panels sit one step above their band.
+   Everything here is scoped to .sec so the other pages keep their bordered cards and 56 px rhythm. */
+.sec { padding: clamp(72px, 10vw, 128px) 0; }
+main > .sec:nth-child(even) { background: var(--surface); }
+.sec :is(.card, .board, .step, .empty) { background: var(--surface); }
+main > .sec:nth-child(even) :is(.card, .board, .step, .empty) { background: var(--card-bg); }
+.sec .card-media { background: var(--paper); }
+main > .sec:nth-child(even) .card-media { background: var(--surface); }
+
+/* hero */
+.sec.hero { padding: clamp(56px, 8vw, 96px) 0 clamp(72px, 10vw, 128px); }
+.hero-text { text-align: center; max-width: 720px; margin: 0 auto; }
+.hero-text .eyebrow { margin-bottom: 16px; }
+.hero h1 { font: 800 clamp(40px, 6.5vw, 76px)/1.04 var(--display); letter-spacing: -0.03em; max-width: 16ch; margin: 0 auto 20px; text-wrap: balance; }
+.hero p.lead { font-size: clamp(17px, 1.6vw, 21px); line-height: 1.5; letter-spacing: -0.005em; color: var(--slate); max-width: 620px; margin: 0 auto 32px; }
+.hero-actions { display: flex; justify-content: center; align-items: center; gap: 24px; flex-wrap: wrap; }
+
+/* The screen: the live map in a rounded panel with a bright top edge and a layered shadow.
+   Stacking inside it: Leaflet panes <= 700, chip and link 800, Leaflet controls 1000, the edge 1001 (no pointer events). */
+.hero-screen { position: relative; isolation: isolate; margin-top: 48px; border-radius: var(--r-panel); overflow: hidden; background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line), 0 2px 6px var(--shadow), 0 24px 64px var(--shadow); }
+.hero-screen::before { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 1px 0 var(--edge-bright); pointer-events: none; z-index: 1001; }
+.hero-screen .hero-map { height: clamp(360px, 52vw, 560px); border: 0; border-radius: 0; background: var(--surface); }
+.screen-chip, .screen-link { position: absolute; top: 16px; z-index: 800; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px 8px 12px;
+  border-radius: 999px; background: var(--panel-bg); box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px var(--shadow); color: var(--ink); font: 500 13px/1 var(--body); white-space: nowrap; }
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .screen-chip, .screen-link { background: var(--glass-bg); -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4); }
+}
+.screen-chip { left: 16px; pointer-events: none; }
+.screen-chip b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.screen-chip .sep { color: var(--slate); }
+.screen-chip .dot { position: relative; box-shadow: none; }
+.screen-chip .dot:not(.off)::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--live); animation: halo 2.4s ease-out infinite; }
+@keyframes halo { from { transform: scale(1); opacity: .6; } to { transform: scale(1.9); opacity: 0; } }
+.screen-link { right: 16px; gap: 4px; font-weight: 600; }
+.screen-link:hover { color: var(--ink); text-decoration: none; }
+.screen-link:focus-visible { outline-offset: 3px; border-radius: 999px; }
+.screen-link .chev { transition: transform var(--t-hover) var(--ease); }
+.screen-link:hover .chev { transform: translateX(2px); }
+
+/* numbers strip */
+.nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-top: 40px; text-align: center; }
+.nums .num b { display: block; font: 800 clamp(32px, 4.5vw, 52px)/1 var(--display); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; min-width: 3ch; color: var(--ink); }
+.nums .num span { display: block; margin-top: 6px; font: 500 13.5px/1.4 var(--body); color: var(--slate); }
+.nums .num small { display: block; margin-top: 2px; font-size: 13px; color: var(--slate); }
+
+/* section heads, board, strips, empty states */
+.sec-head { text-align: center; max-width: 620px; margin: 0 auto 48px; }
+.sec-head h2 { font: 700 clamp(30px, 4vw, 48px)/1.08 var(--display); letter-spacing: -0.025em; max-width: 20ch; margin: 0 auto 12px; text-wrap: balance; }
+.sec-head p { font-size: clamp(17px, 1.5vw, 21px); line-height: 1.45; letter-spacing: -0.005em; color: var(--slate); max-width: 560px; margin: 0 auto; }
+.sec-more { text-align: center; margin: 40px 0 0; }
+
+.board { border-radius: var(--r-card); padding: 16px; box-shadow: inset 0 0 0 1px var(--line); }
+.sec .strips.two { gap: 8px; }
+.sec .strip { border-width: 0 0 0 4px; border-radius: 12px; padding: 12px 16px; background: var(--surface); }
+.sec .empty { border: 0; padding: 48px 24px; border-radius: var(--r-card); box-shadow: inset 0 0 0 1px var(--line); color: var(--slate); font-size: 15px; text-align: center; }
+.board .empty { box-shadow: none; padding: 32px 24px; }
+.empty-icon { display: block; width: 40px; height: 40px; margin: 0 auto 12px; color: var(--slate); opacity: .7; }
+.sec .empty p { margin: 0; }
+.sec .empty .dot { display: inline-block; vertical-align: middle; margin-right: 8px; }
+
+/* cards: the hairline is an inset layer, the hover shadow a separate layer that fades in (transform and opacity only) */
+.sec .grid.three { grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+.sec .card { position: relative; isolation: isolate; border: 0; border-radius: var(--r-card); padding: 0; transition: transform var(--t-hover) var(--ease); }
+.sec .card::before { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px var(--line); pointer-events: none; z-index: 1; }
+.sec .card::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 1px 2px var(--shadow), 0 12px 32px var(--shadow); opacity: 0; transition: opacity var(--t-hover) var(--ease); pointer-events: none; z-index: -1; }
+.sec a.card:hover { transform: translateY(-4px); text-decoration: none; color: inherit; }
+.sec a.card:hover::after { opacity: 1; }
+.sec a.card:active { transform: scale(.99); }
+.sec a.card:focus-visible { outline-offset: 3px; border-radius: var(--r-card); }
+.card-media { display: block; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--r-card) var(--r-card) 0 0; }
+.card-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.card-media .arc { display: block; width: 100%; height: 100%; color: var(--line-strong); }
+.card-body { display: block; padding: 24px; }
+.sec .card h3 { font-size: 19px; line-height: 1.25; letter-spacing: -0.015em; margin: 0 0 8px; }
+.sec .card p { font-size: 14.5px; line-height: 1.5; color: var(--slate); margin: 0; }
+.sec .card .airports { display: block; margin-top: 12px; font-size: 13px; color: var(--slate); }
+.sec .card .date-chip { margin-bottom: 12px; }
+.card-date { display: block; font-size: 13px; color: var(--slate); margin-bottom: 8px; }
+
+/* steps */
+.sec .steps { gap: 20px; }
+.sec .step { border: 0; border-radius: var(--r-card); padding: 28px 24px; box-shadow: inset 0 0 0 1px var(--line); }
+.sec .step::before { width: 32px; height: 32px; font-size: 14px; margin-bottom: 16px; }
+.sec .step h3 { font-size: 19px; letter-spacing: -0.015em; margin-bottom: 8px; }
+.sec .step p { font-size: 14.5px; line-height: 1.5; color: var(--slate); margin: 0; }
+
+/* closing band */
+.cta { text-align: center; max-width: 640px; }
+.cta h2 { font: 700 clamp(30px, 4vw, 48px)/1.08 var(--display); letter-spacing: -0.025em; margin: 0 0 12px; text-wrap: balance; }
+.cta p { font-size: clamp(17px, 1.5vw, 21px); line-height: 1.45; color: var(--slate); margin: 0 auto; max-width: 560px; }
+.cta .cta-actions { margin-top: 32px; }
+
+/* gallery: cross-fade; the outgoing slide (.was) stays opaque underneath so the frame never shows through */
+.gallery-frame { position: relative; isolation: isolate; aspect-ratio: 16 / 9; border-radius: var(--r-panel); overflow: hidden; background: var(--line);
+  box-shadow: inset 0 0 0 1px var(--line), 0 2px 6px var(--shadow), 0 24px 64px var(--shadow); }
+.gallery-frame::before { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 1px 0 var(--edge-bright); pointer-events: none; z-index: 3; }
+.gallery-frame .slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--t-fade) var(--ease); }
+.gallery-frame .slide.active { opacity: 1; z-index: 2; }
+.gallery-frame .slide.was { opacity: 1; z-index: 1; transition: none; }
+.gallery-dots { display: flex; justify-content: center; gap: 4px; margin-top: 16px; }
+.gallery-dots[hidden] { display: none; }
+.gallery-dots button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.gallery-dots button:focus-visible { border-radius: 50%; }
+.gallery-dots button i { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); transition: background-color var(--t-hover) var(--ease), transform var(--t-hover) var(--ease); }
+.gallery-dots button:hover i { background: var(--slate); }
+.gallery-dots button[aria-pressed="true"] i { background: var(--ink); transform: scale(1.25); }
+
+/* Reveals: hidden only under html.motion (set in the page head when motion is allowed); home.js adds .in once and then drops the attribute.
+   Last in the home block on purpose: it must outrank the card hover transition while the reveal runs. */
+html.motion [data-reveal] { opacity: 0; transform: translateY(16px); transition: opacity var(--t-reveal) var(--ease), transform var(--t-reveal) var(--ease); transition-delay: calc(var(--i, 0) * 70ms); }
+html.motion [data-reveal].in { opacity: 1; transform: none; }
+@media print { [data-reveal] { opacity: 1 !important; transform: none !important; } }
 
 /* ---- responsive ---- */
 @media (max-width: 960px) {
-  .hero-grid, .with-side, .grid.three, .grid.two, .strips.two, .steps { grid-template-columns: 1fr; }
-  .hero-map { height: 300px; }
+  .with-side, .grid.three, .grid.two, .strips.two, .steps { grid-template-columns: 1fr; }
+  .nums { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .hero-screen .hero-map { height: clamp(320px, 75vw, 420px); }
+  .sec .grid.three, .sec .steps, .sec .strips.two { grid-template-columns: 1fr; }
   .stats, .kpis { grid-template-columns: repeat(2, 1fr); }
   .rating-cards { grid-template-columns: 1fr; }
   .news-item.with-thumb { grid-template-columns: 1fr; }
@@ -496,6 +647,16 @@ details.mc-sec .mc-block + .mc-block { margin-top: 12px; }
   .map-card { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 55%; border-radius: 12px 12px 0 0; }
   .strip { grid-template-columns: 104px 1fr; }
   .strip .freq { grid-column: 2; }
+  .gallery-frame { aspect-ratio: 4 / 3; }
+  .screen-link { top: auto; right: auto; bottom: 16px; left: 16px; }
+}
+@media (max-width: 480px) {
+  .wrap { padding: 0 16px; }
+  .hero-actions { gap: 16px; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .site-header { background: var(--paper); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .screen-chip, .screen-link { background: var(--panel-bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
