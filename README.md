@@ -83,7 +83,7 @@ dotnet run --project src/SkyNetwork.Site -- --Site:Database=/srv/skynetwork/skyn
 
 ## Установка на сервер
 
-Готовые файлы лежат в `deploy/`: службы systemd для FSD-сервера и сайта, конфиг nginx. Пример для Ubuntu 22.04/24.04, домен `example.com`:
+Готовые файлы лежат в `deploy/`: службы systemd для FSD-сервера, голосового сервера и сайта, конфиг nginx. Пример для Ubuntu 22.04/24.04, домен `example.com`:
 
 ```sh
 # пакеты
@@ -96,6 +96,11 @@ git clone https://github.com/Anntixs/Skynetwork-fsd.git ~/Skynetwork-fsd
 cmake -S ~/Skynetwork-fsd -B ~/Skynetwork-fsd/build && cmake --build ~/Skynetwork-fsd/build -j
 sudo install -D -t /opt/skynetwork/fsd ~/Skynetwork-fsd/build/skynet-fsd ~/Skynetwork-fsd/build/skynet-admin
 
+# голосовой сервер
+git clone https://github.com/Anntixs/Skynetwork-voice.git ~/Skynetwork-voice
+cmake -S ~/Skynetwork-voice -B ~/Skynetwork-voice/build && cmake --build ~/Skynetwork-voice/build -j
+sudo install -D -t /opt/skynetwork/voice ~/Skynetwork-voice/build/skynet-voice
+
 # сайт
 git clone https://github.com/Anntixs/Skynetwork-site.git ~/Skynetwork-site
 dotnet publish ~/Skynetwork-site/src/SkyNetwork.Site -c Release -o ~/site-build
@@ -106,12 +111,12 @@ sudo cp ~/Skynetwork-site/deploy/*.service /etc/systemd/system/
 sudo cp ~/Skynetwork-site/deploy/nginx.conf /etc/nginx/sites-available/skynetwork
 sudo ln -s /etc/nginx/sites-available/skynetwork /etc/nginx/sites-enabled/
 sudo systemctl daemon-reload
-sudo systemctl enable --now skynet-fsd skynetwork-site
+sudo systemctl enable --now skynet-fsd skynet-voice skynetwork-site
 sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d example.com
 
-# порты: сайт (80, 443), FSD (6809); 8000 и 8080 остаются внутренними
-sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw allow 6809/tcp && sudo ufw enable
+# порты: сайт (80, 443), FSD (6809/tcp), голос (3782/udp); 8000 и 8080 остаются внутренними
+sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw allow 6809/tcp && sudo ufw allow 3782/udp && sudo ufw enable
 ```
 
 Оба процесса работают от пользователя `skynetwork` с одной базой `/var/lib/skynetwork/skynetwork.db`. Первый зарегистрированный на сайте получает CID 1. Права администратора ему выдаются так:
@@ -120,7 +125,7 @@ sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw allow 6809/tcp
 sudo -u skynetwork /opt/skynetwork/fsd/skynet-admin --db /var/lib/skynetwork/skynetwork.db rating 1 ADM
 ```
 
-Обновление FSD-сервера и сайта одной командой: `sudo bash ~/Skynetwork-site/deploy/update.sh` (скачивает свежие версии с GitHub, собирает, перезапускает и проверяет). Логи: `journalctl -u skynetwork-site -f`.
+Обновление FSD-сервера, голосового сервера и сайта одной командой: `sudo bash ~/Skynetwork-site/deploy/update.sh`. Скрипт скачивает свежие версии с GitHub, собирает, перезапускает и проверяет. Если голосового сервера ещё нет, скрипт сам скачает его, установит службу и откроет порт 3782/UDP. Логи: `journalctl -u skynetwork-site -f`.
 
 ## API
 
