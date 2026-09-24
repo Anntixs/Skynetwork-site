@@ -8,7 +8,7 @@
 <div class="staff-bar">
   <div class="wrap">
     <b>@L["Network management"]</b>
-    <span>· @Me.Member!.Name, @Me.Member.RatingShort@(Me.Roles.Count > 0 ? " · " + string.Join(", ", Me.Roles.Select(r => L[Permissions.Roles[r]])) : "")</span>
+    <span>· @Me.Member!.Name, @Me.Member.DisplayShort@(Me.Roles.Count > 0 ? " · " + string.Join(", ", Me.Roles.Select(r => L[Permissions.Roles[r]])) : "")</span>
   </div>
 </div>
 <div class="wrap page with-side">

@@ -27,7 +27,7 @@ public sealed class TrainingModel(CurrentUser me, SupportService support, Member
             {
                 // Promotion completes the request; only allowed within the actor's rating powers.
                 bool allowed = r.Cid != Me.Cid && (r.Track == "atc"
-                    ? Permissions.CanSetRating(Me.Member!.Rating, Me.Permissions, r.Rating, r.TargetRating)
+                    ? Permissions.CanSetRating(Me.Member!.StaffRank, Me.Permissions, r.Rating, r.TargetRating)
                     : Me.Has(Perm.PilotRatings));
                 if (!allowed) Error = "You cannot grant this rating";
                 else if (members.Find(r.Cid) is { } m)

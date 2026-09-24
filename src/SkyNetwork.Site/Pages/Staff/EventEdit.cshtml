@@ -4,7 +4,7 @@
 <div class="eyebrow"><a href="/staff/events">@L["Events"]</a></div>
 <h1 style="font-size:28px">@(e.Id == 0 ? L["New event"] : e.Title)</h1>
 @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
-<form method="post" class="form wide">
+<form method="post" class="form wide" enctype="multipart/form-data">
   <label>@L["Title"]<input name="Title" value="@e.Title" required maxlength="120"></label>
   <label>@L["Summary"]<input name="Summary" value="@e.Summary" maxlength="240"><span class="hint">@L["One line for the card on the home page."]</span></label>
   <label>@L["Airports"]<input name="Airports" value="@e.Airports" class="mono" maxlength="120" placeholder="UUEE UUDD"></label>
@@ -15,6 +15,12 @@
     <label>@L["Time"]<input name="EndTime" type="time" value="@Format.InputTime(e.End)" required></label>
   </div>
   <label>@L["Description"]<textarea name="Body" maxlength="10000" style="min-height:220px">@e.Body</textarea></label>
+  <div class="banner-field">
+    @if (e.BannerUrl is { } url) { <img class="banner-preview" src="@url" alt=""> }
+    <label>@L["Banner"]<input type="file" name="banner" accept="image/jpeg,image/png,image/webp">
+      <span class="hint">@L["JPEG, PNG or WebP up to 5 MB; wide pictures (about 1600 × 600) look best."]</span></label>
+    @if (e.BannerUrl != null) { <label class="check"><input type="checkbox" name="removeBanner" value="true"> <span>@L["Remove the banner"]</span></label> }
+  </div>
   <label class="check"><input type="checkbox" name="Published" value="true" checked="@e.Published"> <span>@L["Publish"]</span></label>
   <div class="inline-form">
     <button class="btn btn-primary" type="submit">@L["Save"]</button>

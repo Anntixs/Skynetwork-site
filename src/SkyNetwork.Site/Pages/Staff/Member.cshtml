@@ -51,6 +51,31 @@
       <div><button class="btn btn-primary" type="submit">@L["Change rating"]</button></div>
     </form>
   }
+  @if (Model.CanEditName)
+  {
+    <form method="post" asp-page-handler="Name" class="card form">
+      <h3>@L["Name"]</h3>
+      <label>@L["First and last name"]<input name="name" value="@m.Name" required maxlength="60"></label>
+      <p class="muted small">@L["Members ask for a name change through support. The network shows the new name from the next connection."]</p>
+      <div><button class="btn btn-primary" type="submit">@L["Save name"]</button></div>
+    </form>
+  }
+  @if (Model.CanSetStaffRank)
+  {
+    <form method="post" asp-page-handler="StaffRank" class="card form">
+      <h3>@L["Staff rank"]</h3>
+      <label>@L["Rank"]
+        <select name="rank">
+          @foreach (var r in Ratings.StaffRanks)
+          {
+            <option value="@r" selected="@(r == m.StaffRank)">@(r == 0 ? L["None"] : Ratings.Short(r) + " — " + L[Ratings.Long(r)])</option>
+          }
+        </select>
+      </label>
+      <p class="muted small">@L["Supervisor and administrator are staff ranks, held alongside the controller rating. The profile shows them together as one rating; on the network the member may connect up to the higher of the two."]</p>
+      <div><button class="btn btn-primary" type="submit">@L["Save rank"]</button></div>
+    </form>
+  }
   @if (Model.Me.Has(Perm.PilotRatings) && m.Cid != Model.Me.Cid)
   {
     <form method="post" asp-page-handler="PilotRatings" class="card form">
@@ -87,7 +112,8 @@
         </label>
       }
       <p class="muted small">@(m.Suspended ? L["The member will be able to sign in to the website and the network again."] : L["The member is signed out of the website, disconnected from the network within 10 seconds and cannot reconnect until the suspension ends."])</p>
-      <input type="hidden" name="suspend" value="@(!m.Suspended)">
+      @* A string, not a bool: Razor writes value="value" for true and drops the attribute for false. *@
+      <input type="hidden" name="suspend" value="@(m.Suspended ? "false" : "true")">
       <div><button class="btn @(m.Suspended ? "btn-primary" : "btn-danger")" type="submit">@(m.Suspended ? L["Lift suspension"] : L["Suspend"])</button></div>
     </form>
   }

@@ -17,7 +17,7 @@
         <td class="mono"><a href="/staff/members/@m.Cid">@m.Cid</a></td>
         <td>@m.Name</td>
         <td class="small">@m.Email</td>
-        <td class="mono small">@m.RatingShort · @PilotRatings.Pilot.Short(m.PilotRating) · @PilotRatings.Military.Short(m.MilitaryRating)</td>
+        <td class="mono small">@m.DisplayShort · @PilotRatings.Pilot.Short(m.PilotRating) · @PilotRatings.Military.Short(m.MilitaryRating)</td>
         <td>@(m.Registered is { } r ? Format.Date(r) : "—")</td>
         <td>@if (m.Suspended)
             {

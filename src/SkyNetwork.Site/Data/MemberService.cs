@@ -7,7 +7,7 @@ namespace SkyNetwork.Site.Data;
 public sealed class MemberService(Database db, IOptions<SiteOptions> options, AuditService audit)
 {
     private const string Select = """
-        SELECT m.cid, m.name, m.rating, m.suspended, p.email, COALESCE(p.country, '') AS country,
+        SELECT m.cid, m.name, m.rating, m.staff_rank, m.suspended, p.email, COALESCE(p.country, '') AS country,
                p.registered_at, p.last_login_at, COALESCE(p.suspension_reason, '') AS suspension_reason,
                p.suspended_until, COALESCE(p.pilot_rating, 0) AS pilot_rating, COALESCE(p.military_rating, 0) AS military_rating
         FROM members m LEFT JOIN member_profiles p ON p.cid = m.cid
@@ -113,7 +113,8 @@ public sealed class MemberService(Database db, IOptions<SiteOptions> options, Au
     {
         using var c = db.Open();
         return c.Query<Member>(Select + """
-             WHERE m.rating >= 8 OR m.cid IN (SELECT cid FROM staff_roles) ORDER BY m.rating DESC, m.cid
+             WHERE m.staff_rank > 0 OR m.rating >= 8 OR m.cid IN (SELECT cid FROM staff_roles)
+             ORDER BY m.staff_rank DESC, m.rating DESC, m.cid
             """).ToList();
     }
 
@@ -125,8 +126,10 @@ public sealed class MemberService(Database db, IOptions<SiteOptions> options, Au
 
     // ---- staff actions (always audited) ----------------------------------------------------------
 
+    /// <summary>Controller rating (OBS…I3); staff ranks go through <see cref="SetStaffRank"/>.</summary>
     public void SetRating(long actor, long cid, int rating)
     {
+        if (!Ratings.IsController(rating)) throw new ArgumentOutOfRangeException(nameof(rating));
         using var c = db.Open();
         int old = c.ExecuteScalar<int>("SELECT rating FROM members WHERE cid = @cid", new { cid });
         c.Execute("UPDATE members SET rating = @rating WHERE cid = @cid", new { cid, rating });
@@ -184,6 +187,34 @@ public sealed class MemberService(Database db, IOptions<SiteOptions> options, Au
     {
         ChangePassword(cid, password);
         audit.Log(actor, "password-reset", cid.ToString());
+    }
+
+    /// <summary>Staff rank: 0 (none), SUP or ADM. The FSD server reads it for supervisor rights.</summary>
+    public void SetStaffRank(long actor, long cid, int rank)
+    {
+        if (!Ratings.IsStaffRank(rank)) throw new ArgumentOutOfRangeException(nameof(rank));
+        using var c = db.Open();
+        int old = c.ExecuteScalar<int>("SELECT staff_rank FROM members WHERE cid = @cid", new { cid });
+        c.Execute("UPDATE members SET staff_rank = @rank WHERE cid = @cid", new { cid, rank });
+        static string Name(int r) => r == 0 ? "—" : Ratings.Short(r);
+        audit.Log(actor, "staff-rank", cid.ToString(), $"{Name(old)} → {Name(rank)}");
+    }
+
+    /// <summary>First and last name, as on registration; returns an English error or null.</summary>
+    public static string? ValidateName(string name)
+    {
+        if (name.Length < 3 || name.Length > 60 || !name.Contains(' ')) return "Enter your first and last name";
+        if (name.Any(char.IsControl) || name.Contains(':')) return "The name contains characters that are not allowed";
+        return null;
+    }
+
+    /// <summary>Renames a member (the network shows the new name from their next connection).</summary>
+    public void SetName(long actor, long cid, string name)
+    {
+        using var c = db.Open();
+        var old = c.ExecuteScalar<string>("SELECT name FROM members WHERE cid = @cid", new { cid }) ?? "";
+        c.Execute("UPDATE members SET name = @name WHERE cid = @cid", new { cid, name });
+        audit.Log(actor, "name", cid.ToString(), $"{old} → {name}");
     }
 
     public void SetRoles(long actor, long cid, IEnumerable<string> roles)

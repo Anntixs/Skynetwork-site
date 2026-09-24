@@ -38,6 +38,6 @@ public sealed class CurrentUser(MemberService members)
         }
         Member = m;
         Roles = members.RolesOf(cid);
-        Permissions = Security.Permissions.For(m.Rating, Roles);
+        Permissions = Security.Permissions.For(m.Rating, m.StaffRank, Roles);
     }
 }

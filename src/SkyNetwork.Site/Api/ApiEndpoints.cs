@@ -15,6 +15,15 @@ public static class ApiEndpoints
         app.MapGet("/api/flightplans/latest", (long cid, FlightPlanService plans) =>
             plans.Latest(cid) is { } p ? Results.Ok(PlanDto(p)) : Results.NotFound()).RequireCors("api");
 
+        // Uploaded banners: random names, never overwritten, so cached for a year.
+        app.MapGet("/uploads/{name}", (string name, UploadStore uploads, HttpContext ctx) =>
+        {
+            if (uploads.PathOf(name) is not { } path) return Results.NotFound();
+            ctx.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            ctx.Response.Headers.XContentTypeOptions = "nosniff";
+            return Results.File(path, UploadStore.ContentType(name));
+        });
+
         app.MapGet("/tiles/{layer}/{z:int}/{x:int}/{y:int}.png", async (string layer, int z, int x, int y, TileProxy tiles, HttpContext ctx) =>
         {
             ctx.Response.Headers.CacheControl = "public, max-age=604800";
@@ -124,6 +133,7 @@ public static class ApiEndpoints
             return Results.Ok(new
             {
                 m.Cid, m.Name, rating = m.RatingShort, ratingName = m.RatingLong,
+                staffRank = m.IsStaff ? Ratings.Short(m.StaffRank) : null, staffRankName = m.IsStaff ? Ratings.Long(m.StaffRank) : null,
                 pilotRating = PilotRatings.Pilot.Short(m.PilotRating), pilotRatingName = PilotRatings.Pilot.Long(m.PilotRating),
                 militaryRating = PilotRatings.Military.Short(m.MilitaryRating), militaryRatingName = PilotRatings.Military.Long(m.MilitaryRating),
                 registered = m.Registered,
@@ -149,7 +159,7 @@ public static class ApiEndpoints
 
         v1.MapGet("/news", (ContentService content) => content.News(20).Select(n => new
         {
-            n.Id, n.Title, n.Body, author = n.AuthorName, created = n.Created,
+            n.Id, n.Title, n.Body, author = n.AuthorName, created = n.Created, banner = n.BannerUrl,
         }));
     }
 
@@ -174,5 +184,6 @@ public static class ApiEndpoints
     private static object EventDto(NetworkEvent e) => new
     {
         e.Id, e.Title, e.Summary, e.Body, airports = e.Airports.Split(' ', StringSplitOptions.RemoveEmptyEntries), start = e.Start, end = e.End,
+        banner = e.BannerUrl,
     };
 }

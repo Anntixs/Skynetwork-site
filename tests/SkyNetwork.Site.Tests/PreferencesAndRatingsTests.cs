@@ -63,8 +63,7 @@ public class SuspensionTests
         long bad = site.Member("Rule Breaker");
         var s = site.Browser();
         await s.LoginAsync(sup);
-        await s.SubmitAsync($"/staff/members/{bad}", new Dictionary<string, string> { ["suspend"] = "true", ["reason"] = "Spam", ["days"] = "3" },
-            $"/staff/members/{bad}?handler=Suspend");
+        await s.SubmitPageFormAsync($"/staff/members/{bad}", "Suspend", new Dictionary<string, string> { ["reason"] = "Spam", ["days"] = "3" });
         var m = site.Get<MemberService>().Find(bad)!;
         Assert.True(m.Suspended);
         Assert.InRange(m.SuspensionEnds!.Value, DateTime.UtcNow.AddDays(3).AddMinutes(-5), DateTime.UtcNow.AddDays(3).AddMinutes(5));
@@ -73,6 +72,13 @@ public class SuspensionTests
         Assert.Contains("suspended until", await login.Content.ReadAsStringAsync());
         Assert.Contains("Suspended until", await s.HtmlAsync($"/staff/members/{bad}"));
         Assert.Contains(bad.ToString(), await s.HtmlAsync("/staff/members?suspended=1"));
+
+        // Lifting it with the same form's button, then suspending again.
+        var lifted = await s.SubmitPageFormAsync($"/staff/members/{bad}", "Suspend", new Dictionary<string, string>());
+        Assert.Contains("Suspension lifted", await lifted.Content.ReadAsStringAsync());
+        Assert.False(site.Get<MemberService>().IsSuspended(bad));
+        await s.SubmitPageFormAsync($"/staff/members/{bad}", "Suspend", new Dictionary<string, string> { ["reason"] = "Spam", ["days"] = "3" });
+        Assert.True(site.Get<MemberService>().IsSuspended(bad));
 
         // Time is up: the next check lifts it.
         using (var c = site.Get<Database>().Open())
@@ -93,6 +99,7 @@ public class SuspensionTests
         var s = site.Browser();
         await s.LoginAsync(sup);
         Assert.DoesNotContain("handler=Suspend", await s.HtmlAsync($"/staff/members/{other}"));
+        // No form for them, and a hand-made request is refused too.
         var r = await s.SubmitAsync($"/staff/members/{other}", new Dictionary<string, string> { ["suspend"] = "true", ["reason"] = "x", ["days"] = "1" },
             $"/staff/members/{other}?handler=Suspend");
         Assert.Contains("Only an administrator", await r.Content.ReadAsStringAsync());
@@ -100,8 +107,7 @@ public class SuspensionTests
 
         var a = site.Browser();
         await a.LoginAsync(admin);
-        await a.SubmitAsync($"/staff/members/{other}", new Dictionary<string, string> { ["suspend"] = "true", ["reason"] = "x", ["days"] = "1" },
-            $"/staff/members/{other}?handler=Suspend");
+        await a.SubmitPageFormAsync($"/staff/members/{other}", "Suspend", new Dictionary<string, string> { ["reason"] = "x", ["days"] = "1" });
         Assert.True(site.Get<MemberService>().IsSuspended(other));
     }
 }

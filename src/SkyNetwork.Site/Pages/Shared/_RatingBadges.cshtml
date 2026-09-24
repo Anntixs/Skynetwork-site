@@ -1,9 +1,21 @@
 @model Member
-@* The three rating ladders of a member, shown on profiles and in the account. *@
+@* The member's ratings, shown on profiles and in the account. A staff rank (SUP, ADM) and the
+   controller rating are stored apart but shown together, as one rating. *@
 <div class="rating-cards">
   <div class="rating-card">
-    <span class="label">@L["Controller rating"]</span>
-    <b><span class="badge accent">@Model.RatingShort</span> @L[Model.RatingLong]</b>
+    <span class="label">@L["Rating"]</span>
+    <b>
+      @if (Model.IsStaff)
+      {
+        <span class="badge accent">@Ratings.Short(Model.StaffRank)</span> @L[Ratings.Long(Model.StaffRank)]
+        <span class="muted"> · </span>
+        <span class="badge">@Model.RatingShort</span> @L[Model.RatingLong]
+      }
+      else
+      {
+        <span class="badge accent">@Model.RatingShort</span> @L[Model.RatingLong]
+      }
+    </b>
   </div>
   <div class="rating-card">
     <span class="label">@L["Pilot rating"]</span>
