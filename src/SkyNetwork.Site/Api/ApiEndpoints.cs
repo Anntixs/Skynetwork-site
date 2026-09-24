@@ -32,6 +32,17 @@ public static class ApiEndpoints
 
         var v1 = app.MapGroup("/api/v1").RequireCors("api");
 
+        // SkyPilot checks the account here, so the client asks only for CID and password and learns the name.
+        // Same attempt limit as the login page. 401 wrong CID/password, 403 suspended.
+        v1.MapPost("/auth/pilot", (PilotLogin login, MemberService members) =>
+        {
+            string password = login.Password ?? "";
+            if (login.Cid <= 0 || password.Length == 0) return Results.Unauthorized();
+            if (members.Authenticate(login.Cid, password) is { } m)
+                return Results.Ok(new { cid = m.Cid, name = m.Name, rating = m.Rating, ratingName = Ratings.Short(m.Rating) });
+            return members.PasswordMatches(login.Cid, password) ? Results.StatusCode(StatusCodes.Status403Forbidden) : Results.Unauthorized();
+        }).RequireRateLimiting("auth");
+
         // For the map: the route as points (SimBrief when the pilot uses it, otherwise worked out from the route text)
         // and the track flown so far.
         v1.MapGet("/pilots/{callsign}/route", async (string callsign, NetworkFeed feed, FlightPlanService plans, Simbrief simbrief, NavData nav, CancellationToken ct) =>
@@ -162,6 +173,9 @@ public static class ApiEndpoints
             n.Id, n.Title, n.Body, author = n.AuthorName, created = n.Created, banner = n.BannerUrl,
         }));
     }
+
+    /// <summary>Body of POST /api/v1/auth/pilot.</summary>
+    public sealed record PilotLogin(long Cid, string? Password);
 
     public static object PlanDto(FlightPlan p) => new
     {

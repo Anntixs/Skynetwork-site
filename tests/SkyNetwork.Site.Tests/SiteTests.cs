@@ -222,26 +222,15 @@ public class StaffAreaTests
     }
 
     [Fact]
-    public async Task InstructorPromotesAfterTraining()
+    public async Task TrainingSectionIsGone()
     {
         using var site = new SiteFactory();
         long instructor = site.Member("Ilya Instructor", Ratings.I1);
-        long student = site.Member("Student Controller");
-        var st = site.Browser();
-        await st.LoginAsync(student);
-        await st.SubmitAsync("/training", new Dictionary<string, string> { ["target"] = Ratings.S1.ToString(), ["text"] = "Evenings" });
-        var request = Assert.Single(site.Get<SupportService>().Training(student));
-
         var i = site.Browser();
         await i.LoginAsync(instructor);
-        Assert.Contains("Student Controller", await i.HtmlAsync("/staff/training"));
-        await i.SubmitAsync("/staff/training", new Dictionary<string, string>
-        {
-            ["id"] = request.Id.ToString(), ["status"] = "accepted", ["comment"] = "Exam passed", ["promote"] = "true",
-        });
-        Assert.Equal(Ratings.S1, site.Get<MemberService>().Find(student)!.Rating);
-        Assert.Equal("completed", site.Get<SupportService>().TrainingRequest(request.Id)!.Status);
-        Assert.Contains(site.Get<AuditService>().Recent(), a => a.Action == "rating" && a.Target == student.ToString());
+        Assert.Equal(HttpStatusCode.NotFound, (await i.GetAsync("/training")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await i.GetAsync("/staff/training")).StatusCode);
+        Assert.DoesNotContain("/training\"", await i.HtmlAsync("/account"));
     }
 }
 

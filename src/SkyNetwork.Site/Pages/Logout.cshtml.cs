@@ -8,9 +8,10 @@ public sealed class LogoutModel : PageModel
 {
     public IActionResult OnGet() => Redirect("/");
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(string? returnUrl)
     {
         await HttpContext.SignOutAsync();
-        return Redirect("/");
+        // "Not you?" on the SkyNetwork Connect page comes back to it to sign in as someone else.
+        return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl! : "/");
     }
 }

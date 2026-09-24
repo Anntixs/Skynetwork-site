@@ -4,6 +4,7 @@
 <div class="wrap page">
   <div class="auth-box">
     <h1 style="font-size:34px">@L["Sign in"]</h1>
+    @if (Model.ConnectSite is { } site) { <div class="alert">@L.F("Sign in with your SkyNetwork account to continue to {0}.", site)</div> }
     <p class="muted">@L["Your CID and password are the same as for connecting to the network."]</p>
     @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
     <form method="post" class="form">

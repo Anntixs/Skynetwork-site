@@ -32,5 +32,16 @@
       <label>@L["Repeat new password"]<input name="Confirm" type="password" required minlength="8" autocomplete="new-password"></label>
       <div><button class="btn btn-primary" type="submit">@L["Change password"]</button></div>
     </form>
+    <h2 style="font-size:20px;margin-top:40px">@L["Connected sites"]</h2>
+    <p class="muted small">@L["Sites you signed in to with your SkyNetwork account (SkyNetwork Connect). Withdrawn access means the site asks again next time."]</p>
+    @if (Model.ConnectedSites.Count == 0) { <p class="muted">@L["None yet."]</p> }
+    @foreach (var s in Model.ConnectedSites)
+    {
+      <form method="post" asp-page-handler="Revoke" class="inline-form" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0">
+        <span><b>@s.Name</b> <span class="muted small">@L["since"] @Format.Date(s.Created)</span></span>
+        <input type="hidden" name="clientId" value="@s.ClientId">
+        <button class="btn btn-small" type="submit">@L["Withdraw access"]</button>
+      </form>
+    }
   </div>
 </div>

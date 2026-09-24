@@ -143,26 +143,6 @@ public sealed class TicketMessage
     public DateTime Created => Time.Utc(CreatedAt);
 }
 
-public sealed class TrainingRequest
-{
-    public long Id { get; set; }
-    public long Cid { get; set; }
-    public string Name { get; set; } = "";
-    /// <summary>atc, pilot or military (see <see cref="TrainingTracks"/>).</summary>
-    public string Track { get; set; } = "atc";
-    /// <summary>The member's current level on this track.</summary>
-    public int Rating { get; set; }
-    public int TargetRating { get; set; }
-    public string CurrentShort => TrainingTracks.Short(Track, Rating);
-    public string TargetShort => TrainingTracks.Short(Track, TargetRating);
-    public string Message { get; set; } = "";
-    public string Status { get; set; } = "open";
-    public long? InstructorCid { get; set; }
-    public string StaffComment { get; set; } = "";
-    public long CreatedAt { get; set; }
-    public DateTime Created => Time.Utc(CreatedAt);
-}
-
 public sealed class StaffNote
 {
     public long Id { get; set; }

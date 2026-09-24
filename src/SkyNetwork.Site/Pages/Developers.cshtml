@@ -22,6 +22,7 @@
           <tr><td class="mono">GET /api/v1/routes/decode?departure=UUEE&amp;destination=EDDF&amp;route=…</td><td>@L["A route text as points: waypoints, airways expanded, coordinates; the tokens not found"]</td></tr>
           <tr><td class="mono">GET /api/v1/airports/{icao}/layout</td><td>@L["Airport diagram: runways, taxiways, aprons, stands (OpenStreetMap)"]</td></tr>
           <tr><td class="mono">GET /api/v1/metar/{icao}</td><td>@L["Current METAR"]</td></tr>
+          <tr><td class="mono">POST /api/v1/auth/pilot</td><td>@L["Checks a member's CID and password for SkyPilot and returns the name and rating; 401 if wrong, 403 if suspended"]</td></tr>
           <tr><td class="mono">GET /api/flightplans/latest?cid={cid}</td><td>@L["The member's latest flight plan (SkyPilot format); 404 if there is none"]</td></tr>
         </tbody>
       </table>
@@ -29,6 +30,15 @@
     <h2 style="font-size:20px;margin-top:32px">@L["Example"]</h2>
     <pre class="card mono small" style="overflow-x:auto">curl @host/api/v1/online</pre>
     <p class="muted small">@L["All times are UTC in ISO 8601. The raw FSD server feed is available directly too:"] <span class="mono">/data.json</span> @L["on the server's HTTP port."]</p>
+
+    <h2 id="connect" style="font-size:24px;margin-top:40px">SkyNetwork Connect</h2>
+    <p class="muted" style="max-width:720px">@L["Sign-in with SkyNetwork for division sites and other sites of the network (OAuth 2.0, authorization code flow, PKCE supported). The member signs in on the network site and agrees once; the site never sees the password. A network administrator registers the site and gives it a client ID and secret."]</p>
+    <ol class="muted" style="max-width:720px">
+      <li>@L["Send the member to"] <span class="mono">GET @host/oauth/authorize?response_type=code&amp;client_id=…&amp;redirect_uri=…&amp;scope=profile&amp;state=…</span> @L["(optionally code_challenge and code_challenge_method=S256)."]</li>
+      <li>@L["The member comes back to redirect_uri with code and state (or error=access_denied)."]</li>
+      <li>@L["Exchange the code within 5 minutes:"] <span class="mono">POST @host/oauth/token</span> @L["(form: grant_type=authorization_code, code, redirect_uri, client_id, client_secret, code_verifier) → access_token for 1 hour."]</li>
+      <li><span class="mono">GET @host/oauth/userinfo</span> @L["with Authorization: Bearer access_token → cid, name, rating, staffRank, pilotRating, militaryRating, country; email with the email scope."]</li>
+    </ol>
 
     <h2 id="division-api" style="font-size:24px;margin-top:40px">@L["Division API"]</h2>
     <p class="muted" style="max-width:720px">@L["For division websites. Every request carries the division's key, issued by a network administrator: the Authorization: Bearer header (or X-Api-Key). Answers are JSON; errors come as { \"error\": code, \"message\": text }."]</p>

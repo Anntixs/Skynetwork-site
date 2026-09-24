@@ -60,11 +60,6 @@ public class DivisionTests
         long examiner = site.Member("Ivan Examiner", Ratings.I1);
         long sup = site.Member("Sergey Supervisor", Ratings.SUP);
 
-        // The member applied for training on the site; the division trained and examined them.
-        var s = site.Browser();
-        await s.LoginAsync(student);
-        await s.SubmitAsync("/training", new Dictionary<string, string> { ["Track"] = "atc", ["Target"] = Ratings.S2.ToString(), ["Text"] = "Evenings" });
-        long appId = site.Get<SupportService>().Training(student).Single().Id;
         var api = Api(site, key);
 
         // Exam passed: the division asks for S2.
@@ -97,7 +92,6 @@ public class DivisionTests
         var done = await Json(await api.GetAsync($"/api/division/v1/rating-requests/{id}"));
         Assert.Equal(("approved", sup, "Well done"),
             (done.GetProperty("status").GetString(), done.GetProperty("reviewer").GetInt64(), done.GetProperty("reviewComment").GetString()));
-        Assert.Equal("completed", site.Get<SupportService>().TrainingRequest(appId)!.Status);
         Assert.Contains(site.Get<AuditService>().Recent(), e => e.Action == "rating" && e.ActorCid == sup && e.Details == "S1 → S2");
         Assert.Contains(site.Get<AuditService>().Recent(), e => e.Action == "rating-request" && e.Details == "SKYRUS: S2 approved");
     }

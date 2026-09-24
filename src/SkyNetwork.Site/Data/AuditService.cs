@@ -41,8 +41,8 @@ public sealed class AuditService(Database db)
         "news-delete" => "News deleted",
         "booking-delete" => "Booking deleted",
         "ticket" => "Support ticket",
-        "training" => "Training",
         "division-key" => "Division API key",
+        "connect-client" => "Sign-in site",
         "rating-request" => "Rating request",
         _ => action,
     };

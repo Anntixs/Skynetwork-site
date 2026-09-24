@@ -1,0 +1,42 @@
+@page "/oauth/authorize"
+@model SkyNetwork.Site.Pages.Oauth.AuthorizeModel
+@{ ViewData["Title"] = L["Sign in with SkyNetwork"]; ViewData["HideFooter"] = true; }
+<div class="wrap page" style="max-width:520px">
+  @if (Model.Error != null)
+  {
+    <h1 style="font-size:28px">@L["Sign in with SkyNetwork"]</h1>
+    <div class="alert error">@L[Model.Error]</div>
+    <p class="muted">@L["Go back to the site you came from and try again. If this keeps happening, tell the site's administrators."]</p>
+  }
+  else
+  {
+    var c = Model.Client!;
+    var m = Me.Member!;
+    <div class="card">
+      <div class="muted small">SkyNetwork Connect</div>
+      <h1 style="font-size:26px;margin:6px 0 4px">@L.F("{0} wants to sign you in", c.Name)</h1>
+      <p class="muted" style="margin:0 0 18px"><span class="mono">@Model.SiteHost</span> @L["will receive:"]</p>
+      <ul style="margin:0 0 18px;padding-left:20px">
+        @foreach (var s in Model.Scopes) { <li>@L[ConnectService.Scopes[s]]</li> }
+      </ul>
+      <p class="small muted">@L["Your password stays with SkyNetwork: the site never sees it. You can withdraw access in your account settings."]</p>
+      <div class="profile-head" style="margin:14px 0 18px">
+        <div class="avatar" style="width:40px;height:40px;font-size:14px">@Format.Initials(m.Name)</div>
+        <div><b>@m.Name</b><div class="muted small">CID <span class="mono">@m.Cid</span> · @m.DisplayShort</div></div>
+      </div>
+      <form method="post" class="inline-form">
+        @foreach (var (k, v) in new[] { ("response_type", Model.ResponseType), ("client_id", Model.ClientId), ("redirect_uri", Model.RedirectUri),
+                                        ("scope", Model.Scope), ("state", Model.State), ("code_challenge", Model.CodeChallenge), ("code_challenge_method", Model.CodeChallengeMethod) })
+        {
+          <input type="hidden" name="@k" value="@v">
+        }
+        <button class="btn btn-primary" type="submit" name="decision" value="allow">@L["Allow and continue"]</button>
+        <button class="btn" type="submit" name="decision" value="deny">@L["Cancel"]</button>
+      </form>
+      <form method="post" action="/logout" class="small muted" style="margin:16px 0 0">
+        <input type="hidden" name="returnUrl" value="@(HttpContext.Request.Path + HttpContext.Request.QueryString)">
+        @L["Not you?"] <button type="submit" class="link-button">@L["Sign out"]</button>
+      </form>
+    </div>
+  }
+</div>

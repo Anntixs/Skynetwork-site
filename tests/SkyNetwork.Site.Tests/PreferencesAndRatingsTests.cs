@@ -136,33 +136,4 @@ public class PilotRatingTests
         Assert.Contains(site.Get<AuditService>().Recent(), a => a.Action == "pilot-rating" && a.Details == "P0 → IR");
     }
 
-    [Fact]
-    public async Task PilotTrainingTrack()
-    {
-        using var site = new SiteFactory();
-        long instructor = site.Member("Ilya Instructor", Ratings.I1);
-        long student = site.Member("Student Pilot");
-        var st = site.Browser();
-        await st.LoginAsync(student);
-        // Only the next level can be requested.
-        await st.SubmitAsync("/training", new Dictionary<string, string> { ["track"] = "pilot", ["target"] = "3", ["text"] = "" });
-        Assert.Empty(site.Get<SupportService>().Training(student));
-        await st.SubmitAsync("/training", new Dictionary<string, string> { ["track"] = "pilot", ["target"] = "1", ["text"] = "Weekends" });
-        // An ATC request can run alongside it.
-        await st.SubmitAsync("/training", new Dictionary<string, string> { ["track"] = "atc", ["target"] = Ratings.S1.ToString(), ["text"] = "" });
-        var requests = site.Get<SupportService>().Training(student);
-        Assert.Equal(2, requests.Count);
-        var request = requests.Single(r => r.Track == "pilot");
-        Assert.Equal("PPL", request.TargetShort);
-
-        var i = site.Browser();
-        await i.LoginAsync(instructor);
-        await i.SubmitAsync("/staff/training", new Dictionary<string, string>
-        {
-            ["id"] = request.Id.ToString(), ["status"] = "accepted", ["comment"] = "", ["promote"] = "true",
-        });
-        var m = site.Get<MemberService>().Find(student)!;
-        Assert.Equal(1, m.PilotRating);
-        Assert.Equal(Ratings.OBS, m.Rating);
-    }
 }

@@ -274,11 +274,6 @@ public sealed partial class DivisionService(Database db, MemberService members, 
         c.Execute("""
             UPDATE rating_requests SET status = 'approved', reviewer_cid = @actor, review_comment = @comment, updated_at = @now WHERE id = @id
             """, new { id, actor = actor.Cid, comment = Clip(comment, 1000), now });
-        // The academy application this exam was for is finished too.
-        c.Execute("""
-            UPDATE training_requests SET status = 'completed', updated_at = @now
-            WHERE cid = @cid AND track = @track AND target_rating <= @target AND status IN ('open', 'accepted')
-            """, new { cid = r.Cid, track = r.Track, target = r.TargetRating, now });
         audit.Log(actor.Cid, "rating-request", r.Cid.ToString(), $"{r.DivisionCode}: {r.TargetShort} approved");
         return null;
     }
