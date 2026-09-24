@@ -40,7 +40,7 @@ builder.Services.AddHttpClient("metar", c => c.Timeout = TimeSpan.FromSeconds(10
 builder.Services.AddSingleton<MetarService>();
 builder.Services.AddHttpClient("overpass", c =>
 {
-    c.Timeout = TimeSpan.FromSeconds(90);
+    c.Timeout = TimeSpan.FromSeconds(45);
     c.DefaultRequestHeaders.UserAgent.ParseAdd("SkyNetworkSite/1.0 (+https://github.com/Anntixs/Skynetwork-site)");
 });
 builder.Services.AddSingleton<AirportLayout>();

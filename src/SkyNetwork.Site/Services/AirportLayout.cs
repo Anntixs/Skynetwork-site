@@ -14,6 +14,13 @@ namespace SkyNetwork.Site.Services;
 public sealed partial class AirportLayout(IHttpClientFactory http, IOptions<SiteOptions> options, IWebHostEnvironment env, ILogger<AirportLayout> log)
 {
     private static readonly TimeSpan MaxAge = TimeSpan.FromDays(30);
+    // Public Overpass servers, tried in order: the main one is often busy.
+    private static readonly string[] Servers =
+    [
+        "https://overpass-api.de/api/interpreter",
+        "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter",
+    ];
     // Overpass asks for few parallel requests; the same airport is fetched once however many visitors look at it.
     private readonly SemaphoreSlim _overpass = new(2);
     private readonly ConcurrentDictionary<string, Task<string?>> _inFlight = new();
@@ -49,10 +56,23 @@ public sealed partial class AirportLayout(IHttpClientFactory http, IOptions<Site
         await _overpass.WaitAsync();
         try
         {
-            using var content = new FormUrlEncodedContent([new("data", query)]);
-            using var r = await http.CreateClient("overpass").PostAsync("https://overpass-api.de/api/interpreter", content);
-            if (!r.IsSuccessStatusCode) { log.LogWarning("Airport {Icao}: Overpass {Status}", icao, (int)r.StatusCode); return null; }
-            string json = Reduce(icao, await r.Content.ReadAsStringAsync());
+            string? answer = null;
+            foreach (var server in Servers)
+            {
+                try
+                {
+                    using var content = new FormUrlEncodedContent([new("data", query)]);
+                    using var r = await http.CreateClient("overpass").PostAsync(server, content);
+                    if (r.IsSuccessStatusCode) { answer = await r.Content.ReadAsStringAsync(); break; }
+                    log.LogWarning("Airport {Icao}: {Server} {Status}", icao, new Uri(server).Host, (int)r.StatusCode);
+                }
+                catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+                {
+                    log.LogWarning("Airport {Icao}: {Server} {Error}", icao, new Uri(server).Host, e.Message);
+                }
+            }
+            if (answer == null) return null;
+            string json = Reduce(icao, answer);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             string tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             await File.WriteAllTextAsync(tmp, json);
