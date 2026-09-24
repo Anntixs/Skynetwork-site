@@ -20,7 +20,8 @@
   const base = L.tileLayer(`/tiles/${theme()}/{z}/{x}/{y}.png`, {
     ...tileOptions, attribution: '&copy; Esri, HERE, Garmin, &copy; OpenStreetMap'
   }).addTo(map);
-  const labels = L.tileLayer(`/tiles/${theme()}-labels/{z}/{x}/{y}.png`, { ...tileOptions, pane: 'labels' }).addTo(map);
+  // Place names stop at 15: closer in they would only be blown up and blurred over the airport diagram.
+  const labels = L.tileLayer(`/tiles/${theme()}-labels/{z}/{x}/{y}.png`, { ...tileOptions, maxZoom: 15, pane: 'labels' }).addTo(map);
 
   const firOutline = L.layerGroup();              // every sector border (switchable)
   const sectors = L.layerGroup().addTo(map);      // staffed sectors and approach areas
@@ -48,6 +49,11 @@
     const dLat = (b[0] - a[0]) * RAD, dLon = (b[1] - a[1]) * RAD;
     const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * RAD) * Math.cos(b[0] * RAD) * Math.sin(dLon / 2) ** 2;
     return 2 * 3440.065 * Math.asin(Math.sqrt(h));
+  }
+
+  function bearing(a, b) {
+    const p1 = a[0] * RAD, p2 = b[0] * RAD, dl = (b[1] - a[1]) * RAD;
+    return (Math.atan2(Math.sin(dl) * Math.cos(p2), Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl)) / RAD + 360) % 360;
   }
 
   // Great-circle arc, the way a long flight actually goes; longitudes unwrapped so the line never jumps across the map.
@@ -265,20 +271,26 @@
       for (const r of d.runways)
         L.polyline(r.line, { ...shape, color: col.runway, weight: px(r.width), lineCap: 'butt' }).addTo(layoutLayer);
 
+      // A runway number sits at the end aircraft roll from on that heading (06 at the south-west end of 06/24);
+      // OpenStreetMap draws runways in either direction, so the order of the ends is checked against the heading.
       for (const r of d.runways) {
-        const [a, b] = String(r.ref).split('/');
-        if (a) tag(r.line[0], a, 'rwy');
-        if (b) tag(r.line[r.line.length - 1], b, 'rwy');
+        let [one, two] = String(r.ref).split('/').map(x => x.trim());
+        const start = r.line[0], end = r.line[r.line.length - 1];
+        const heading = parseInt(one, 10) * 10, course = bearing(start, end);
+        if (!isNaN(heading) && Math.abs(((course - heading + 540) % 360) - 180) > 90) [one, two] = [two, one];
+        if (one) tag(start, one, 'rwy');
+        if (two) tag(end, two, 'rwy');
       }
       if (z >= 14) {
         // One name per taxiway piece, not repeated within 300 m.
         const placed = new Map();
         for (const t of d.taxiways) {
-          if (!t.ref || t.lane) continue;
+          const name = String(t.ref).replace(/^TWYs*/i, '');
+          if (!name || t.lane) continue;
           const mid = t.line[Math.floor(t.line.length / 2)];
-          if (!view.contains(mid) || (placed.get(t.ref) ?? []).some(p => map.distance(p, mid) < 300)) continue;
-          placed.set(t.ref, [...(placed.get(t.ref) ?? []), mid]);
-          tag(mid, t.ref, 'twy');
+          if (!view.contains(mid) || (placed.get(name) ?? []).some(p => map.distance(p, mid) < 300)) continue;
+          placed.set(name, [...(placed.get(name) ?? []), mid]);
+          tag(mid, name, 'twy');
         }
       }
       if (z >= 15)
@@ -405,7 +417,8 @@
       await loadAirports();
       const c = data?.controllers.find(x => prefix(x.callsign) === key && x.latitude != null);
       const at = airport(key) ?? (c ? [c.latitude, c.longitude] : null);
-      if (at) map.flyTo(at, Math.max(map.getZoom(), 8), { duration: .8 });
+      // Close enough for the airport diagram.
+      if (at) map.flyTo(at, Math.max(map.getZoom(), 13), { duration: .8 });
     }
   }
 

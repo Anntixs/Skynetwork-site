@@ -34,8 +34,8 @@
   /* Airport diagrams (zoomed in). */
   --apt-apron: #dfe4eb;
   --apt-building: #c9d1dc;
-  --apt-runway: #8d99a8;
-  --apt-taxiway: #c0c9d4;
+  --apt-runway: #7d8899;
+  --apt-taxiway: #aab4c1;
   --apt-label: #5b6878;
   --apt-rwy: #c2410c;
 
@@ -69,8 +69,8 @@
   --map-route: #79abf6;
   --apt-apron: #1b222c;
   --apt-building: #29323f;
-  --apt-runway: #465163;
-  --apt-taxiway: #313b49;
+  --apt-runway: #66728a;
+  --apt-taxiway: #465266;
   --apt-label: #9aa6b5;
   --apt-rwy: #f07a4a;
   color-scheme: dark;
