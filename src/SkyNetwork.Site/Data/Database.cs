@@ -110,6 +110,19 @@ public sealed class Database
                 instructor_cid INTEGER, staff_comment TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
             """);
+        // Staff ranks (SUP, ADM) used to live in members.rating; they get their own column. The FSD
+        // server does the same migration: whichever starts first moves them, in one transaction.
+        using (var tx = c.BeginTransaction(System.Data.IsolationLevel.Serializable))
+        {
+            var columns = c.Query<string>("SELECT name FROM pragma_table_info('members')", transaction: tx);
+            if (!columns.Contains("staff_rank", StringComparer.OrdinalIgnoreCase))
+            {
+                c.Execute("ALTER TABLE members ADD COLUMN staff_rank INTEGER NOT NULL DEFAULT 0", transaction: tx);
+                c.Execute("UPDATE members SET staff_rank = rating, rating = 1 WHERE rating >= 11", transaction: tx);
+            }
+            tx.Commit();
+        }
+
         // Columns added after the first release.
         AddColumn(c, "member_profiles", "suspended_until", "INTEGER");
         AddColumn(c, "member_profiles", "pilot_rating", "INTEGER NOT NULL DEFAULT 0");

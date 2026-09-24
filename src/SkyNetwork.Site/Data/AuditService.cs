@@ -26,6 +26,7 @@ public sealed class AuditService(Database db)
     public static string Title(string action) => action switch
     {
         "rating" => "Rating",
+        "staff-rank" => "Staff rank",
         "pilot-rating" => "Pilot rating",
         "military-rating" => "Military rating",
         "suspend" => "Suspension",

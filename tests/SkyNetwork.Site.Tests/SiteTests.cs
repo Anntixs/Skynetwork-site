@@ -235,19 +235,23 @@ public class PermissionTests
     [Fact]
     public void RatingsAndRolesGivePermissions()
     {
-        Assert.Equal(Perm.All, Permissions.For(Ratings.ADM, []));
-        Assert.True(Permissions.For(Ratings.SUP, []).HasFlag(Perm.Suspend));
-        Assert.False(Permissions.For(Ratings.SUP, []).HasFlag(Perm.ManageRoles));
-        Assert.True(Permissions.For(Ratings.I2, []).HasFlag(Perm.EditRatings));
-        Assert.Equal(Perm.None, Permissions.For(Ratings.C3, []));
-        Assert.Equal(Perm.StaffArea | Perm.Events, Permissions.For(Ratings.OBS, ["events"]));
+        Assert.Equal(Perm.All, Permissions.For(Ratings.OBS, Ratings.ADM, []));
+        Assert.True(Permissions.For(Ratings.C1, Ratings.SUP, []).HasFlag(Perm.Suspend));
+        Assert.False(Permissions.For(Ratings.C1, Ratings.SUP, []).HasFlag(Perm.ManageRoles));
+        Assert.False(Permissions.For(Ratings.C1, Ratings.SUP, []).HasFlag(Perm.EditRatings));
+        // A supervisor who is also an instructor gets both sets.
+        var supInstructor = Permissions.For(Ratings.I1, Ratings.SUP, []);
+        Assert.True(supInstructor.HasFlag(Perm.Suspend) && supInstructor.HasFlag(Perm.EditRatings));
+        Assert.True(Permissions.For(Ratings.I2, 0, []).HasFlag(Perm.EditRatings));
+        Assert.Equal(Perm.None, Permissions.For(Ratings.C3, 0, []));
+        Assert.Equal(Perm.StaffArea | Perm.Events, Permissions.For(Ratings.OBS, 0, ["events"]));
 
-        var instructor = Permissions.For(Ratings.I1, []);
-        Assert.True(Permissions.CanSetRating(Ratings.I1, instructor, Ratings.S1, Ratings.S2));
-        Assert.False(Permissions.CanSetRating(Ratings.I1, instructor, Ratings.S1, Ratings.I1));   // no staff ratings
-        Assert.False(Permissions.CanSetRating(Ratings.I1, instructor, Ratings.SUP, Ratings.OBS)); // cannot demote staff
-        Assert.True(Permissions.CanSetRating(Ratings.ADM, Perm.All, Ratings.SUP, Ratings.OBS));
-        Assert.False(Permissions.CanSetRating(Ratings.SUP, Permissions.For(Ratings.SUP, []), Ratings.S1, Ratings.S2));
+        var instructor = Permissions.For(Ratings.I1, 0, []);
+        Assert.True(Permissions.CanSetRating(0, instructor, Ratings.S1, Ratings.S2));
+        Assert.False(Permissions.CanSetRating(0, instructor, Ratings.S1, Ratings.I1));   // up to C3 only
+        Assert.False(Permissions.CanSetRating(0, instructor, Ratings.I2, Ratings.OBS));  // cannot demote instructors
+        Assert.False(Permissions.CanSetRating(Ratings.ADM, Perm.All, Ratings.C1, Ratings.SUP)); // ranks are not ratings
+        Assert.True(Permissions.CanSetRating(Ratings.ADM, Perm.All, Ratings.I3, Ratings.OBS));
     }
 }
 

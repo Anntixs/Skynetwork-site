@@ -73,6 +73,7 @@ public static class ApiEndpoints
             return Results.Ok(new
             {
                 m.Cid, m.Name, rating = m.RatingShort, ratingName = m.RatingLong,
+                staffRank = m.IsStaff ? Ratings.Short(m.StaffRank) : null, staffRankName = m.IsStaff ? Ratings.Long(m.StaffRank) : null,
                 pilotRating = PilotRatings.Pilot.Short(m.PilotRating), pilotRatingName = PilotRatings.Pilot.Long(m.PilotRating),
                 militaryRating = PilotRatings.Military.Short(m.MilitaryRating), militaryRatingName = PilotRatings.Military.Long(m.MilitaryRating),
                 registered = m.Registered,

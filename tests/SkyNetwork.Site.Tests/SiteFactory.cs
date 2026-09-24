@@ -29,7 +29,9 @@ public sealed class SiteFactory : WebApplicationFactory<Program>
     {
         var members = Get<MemberService>();
         long cid = members.Register(name, $"{Guid.NewGuid():N}@example.com", "", password);
-        if (rating != Ratings.OBS) members.SetRating(0, cid, rating);
+        // SUP and ADM are staff ranks (the controller rating stays OBS).
+        if (rating is Ratings.SUP or Ratings.ADM) members.SetStaffRank(0, cid, rating);
+        else if (rating != Ratings.OBS) members.SetRating(0, cid, rating);
         return cid;
     }
 

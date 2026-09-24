@@ -1,6 +1,10 @@
 namespace SkyNetwork.Site.Data;
 
-/// <summary>Controller ratings, numbered as in the FSD server (OBS = 1 … ADM = 12).</summary>
+/// <summary>
+/// Ratings, numbered as in the FSD server (OBS = 1 … ADM = 12). OBS…I3 are controller ratings
+/// (members.rating); SUP and ADM are staff ranks, kept apart (members.staff_rank) because a
+/// supervisor or administrator has a controller rating too. Profiles show both as one rating.
+/// </summary>
 public static class Ratings
 {
     public const int OBS = 1, S1 = 2, S2 = 3, S3 = 4, C1 = 5, C2 = 6, C3 = 7, I1 = 8, I2 = 9, I3 = 10, SUP = 11, ADM = 12;
@@ -26,7 +30,14 @@ public static class Ratings
     /// <summary>The next rating on the training ladder, or null at the top.</summary>
     public static int? Next(int rating) => Trainable.Where(r => r > rating).Cast<int?>().FirstOrDefault();
 
-    public static IEnumerable<int> All => Enumerable.Range(OBS, ADM);
+    /// <summary>Controller ratings, OBS…I3.</summary>
+    public static IEnumerable<int> Controller => Enumerable.Range(OBS, I3);
+
+    /// <summary>Staff ranks: 0 (none), SUP, ADM.</summary>
+    public static IEnumerable<int> StaffRanks => [0, SUP, ADM];
+
+    public static bool IsController(int rating) => rating is >= OBS and <= I3;
+    public static bool IsStaffRank(int rank) => rank is 0 or SUP or ADM;
 }
 
 /// <summary>A rating ladder shown on profiles: pilot or military ratings (site only, the FSD server does not use them).</summary>

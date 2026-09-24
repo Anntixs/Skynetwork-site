@@ -515,5 +515,13 @@ public static class Ru
         ["You cannot grant this rating"] = "Присвоить этот рейтинг вы не можете",
         ["{0}: {1} granted"] = "{0}: присвоен {1}",
         ["Request updated"] = "Заявка обновлена",
+        ["Staff rank"] = "Звание",
+        ["Rank"] = "Звание",
+        ["None"] = "Нет",
+        ["Supervisor and administrator are staff ranks, held alongside the controller rating. The profile shows them together as one rating; on the network the member may connect up to the higher of the two."] = "Супервайзер и администратор — звания команды, они идут вместе с диспетчерским рейтингом. В профиле оба показываются как один рейтинг; в сеть участник может подключиться с уровнем не выше старшего из двух.",
+        ["Save rank"] = "Сохранить звание",
+        ["Choose a rank from the list"] = "Выберите звание из списка",
+        ["Staff rank saved"] = "Звание сохранено",
+        ["SUP and ADM are team ranks: a supervisor or administrator also holds a controller rating, shown next to the rank, for example “SUP · C1”."] = "SUP и ADM — звания команды: у супервайзера или администратора есть и диспетчерский рейтинг, он показывается рядом со званием, например «SUP · C1».",
     };
 }

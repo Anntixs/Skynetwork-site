@@ -18,6 +18,7 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
     public IReadOnlyList<string> Roles { get; private set; } = [];
     public IReadOnlyList<int> RatingOptions { get; private set; } = [];
     public bool CanSuspend { get; private set; }
+    public bool CanSetStaffRank { get; private set; }
     public string? Message { get; private set; }
     public string? Error { get; private set; }
 
@@ -31,9 +32,10 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
         if (Me.Has(Perm.Notes)) Notes = members.Notes(cid);
         if (Me.Has(Perm.Audit)) History = audit.Recent(50, cid.ToString());
         RatingOptions = m.Cid == Me.Cid ? [] // nobody changes their own rating
-            : Ratings.All.Where(r => r == m.Rating || Permissions.CanSetRating(Me.Member!.Rating, Me.Permissions, m.Rating, r)).ToList();
+            : Ratings.Controller.Where(r => r == m.Rating || Permissions.CanSetRating(Me.Member!.StaffRank, Me.Permissions, m.Rating, r)).ToList();
         if (RatingOptions.Count == 1) RatingOptions = [];
         CanSuspend = Permissions.CanSuspend(Me.Member!, Me.Permissions, m);
+        CanSetStaffRank = Permissions.CanSetStaffRank(Me.Member!, m);
         return true;
     }
 
@@ -42,7 +44,7 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
     public IActionResult OnPostRating(long cid, int rating)
     {
         if (!Load(cid)) return NotFound();
-        if (cid == Me.Cid || !Permissions.CanSetRating(Me.Member!.Rating, Me.Permissions, Member.Rating, rating)) Error = "You cannot set this rating";
+        if (cid == Me.Cid || !Permissions.CanSetRating(Me.Member!.StaffRank, Me.Permissions, Member.Rating, rating)) Error = "You cannot set this rating";
         else if (rating != Member.Rating)
         {
             members.SetRating(Me.Cid, cid, rating);
@@ -64,6 +66,19 @@ public sealed class MemberModel(CurrentUser me, MemberService members, SessionSe
         {
             members.SetSuspended(Me.Cid, cid, suspend, (reason ?? "").Trim(), days is > 0 and <= 3650 ? days : null);
             Message = suspend ? "Member suspended. They will be disconnected from the network within 10 seconds" : "Suspension lifted";
+        }
+        Load(cid);
+        return Page();
+    }
+
+    public IActionResult OnPostStaffRank(long cid, int rank)
+    {
+        if (!Load(cid) || !CanSetStaffRank) return NotFound();
+        if (!Ratings.IsStaffRank(rank)) Error = "Choose a rank from the list";
+        else if (rank != Member.StaffRank)
+        {
+            members.SetStaffRank(Me.Cid, cid, rank);
+            Message = "Staff rank saved";
         }
         Load(cid);
         return Page();
