@@ -410,6 +410,7 @@ public static class Ru
         ["Member profile: name, controller, pilot and military ratings, pilot and controller hours"] = "Профиль участника: имя, диспетчерский, пилотский и военный рейтинги, часы пилотом и диспетчером",
         ["Last 50 connections"] = "Последние 50 подключений",
         ["An event"] = "Мероприятие",
+        ["Checks a member's CID and password for SkyPilot and returns the name and rating; 401 if wrong, 403 if suspended"] = "Проверяет CID и пароль участника для SkyPilot и возвращает имя и рейтинг; 401 при ошибке, 403 для заблокированных",
         ["The member's latest flight plan (SkyPilot format); 404 if there is none"] = "Последний поданный план участника (формат SkyPilot); 404, если плана нет",
         ["Example"] = "Пример",
         ["All times are UTC in ISO 8601. The raw FSD server feed is available directly too:"] = "Время везде — UTC в формате ISO 8601. Сырой поток FSD-сервера доступен и напрямую:",

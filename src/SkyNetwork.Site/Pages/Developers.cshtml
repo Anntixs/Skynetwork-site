@@ -23,6 +23,7 @@
           <tr><td class="mono">GET /api/v1/airports/{icao}/layout</td><td>@L["Airport diagram: runways, taxiways, aprons, stands (OpenStreetMap)"]</td></tr>
           <tr><td class="mono">GET /api/v1/metar/{icao}</td><td>@L["Current METAR"]</td></tr>
           <tr><td class="mono">GET /api/v1/divisions</td><td>@L["Divisions: code, name, region, website, number of members"]</td></tr>
+          <tr><td class="mono">POST /api/v1/auth/pilot</td><td>@L["Checks a member's CID and password for SkyPilot and returns the name and rating; 401 if wrong, 403 if suspended"]</td></tr>
           <tr><td class="mono">GET /api/flightplans/latest?cid={cid}</td><td>@L["The member's latest flight plan (SkyPilot format); 404 if there is none"]</td></tr>
         </tbody>
       </table>
