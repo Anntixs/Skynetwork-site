@@ -44,7 +44,6 @@ public sealed class AuditService(Database db)
         "training" => "Training",
         "division" => "Division",
         "division-key" => "Division API key",
-        "member-division" => "Member's division",
         "rating-request" => "Rating request",
         _ => action,
     };

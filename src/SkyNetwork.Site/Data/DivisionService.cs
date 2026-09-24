@@ -19,7 +19,6 @@ public sealed class Division
     public bool Active { get; set; }
     public string ApiKeyHint { get; set; } = "";
     public long? ApiKeyCreatedAt { get; set; }
-    public long MemberCount { get; set; }
     public long CreatedAt { get; set; }
 
     public bool HasApiKey => ApiKeyCreatedAt != null;
@@ -69,7 +68,7 @@ public sealed record RatingRequestInput(
 /// <summary>Why a request was refused: an HTTP status, a machine-readable code and an English message.</summary>
 public sealed record RequestError(int Status, string Code, string Message);
 
-/// <summary>Divisions, their API keys and the rating requests they send.</summary>
+/// <summary>Divisions, their API keys and the rating requests they send after exams.</summary>
 public sealed partial class DivisionService(Database db, MemberService members, AuditService audit)
 {
     public static readonly IReadOnlyDictionary<string, string> RequestStatuses = new Dictionary<string, string>
@@ -78,8 +77,7 @@ public sealed partial class DivisionService(Database db, MemberService members, 
     };
 
     private const string DivisionSelect = """
-        SELECT d.*, COALESCE(m.name, '') AS director_name,
-               (SELECT COUNT(*) FROM member_profiles p WHERE p.division_id = d.id) AS member_count
+        SELECT d.*, COALESCE(m.name, '') AS director_name
         FROM divisions d LEFT JOIN members m ON m.cid = d.director_cid
         """;
 
@@ -99,20 +97,6 @@ public sealed partial class DivisionService(Database db, MemberService members, 
     {
         using var c = db.Open();
         return c.QuerySingleOrDefault<Division>(DivisionSelect + " WHERE d.code = @code", new { code });
-    }
-
-    /// <summary>The member's home division, or null.</summary>
-    public Division? Of(long cid)
-    {
-        using var c = db.Open();
-        return c.QuerySingleOrDefault<Division>(DivisionSelect + " WHERE d.id = (SELECT division_id FROM member_profiles WHERE cid = @cid)", new { cid });
-    }
-
-    public IReadOnlyList<Member> Members(long divisionId, int limit = 500)
-    {
-        using var c = db.Open();
-        var cids = c.Query<long>("SELECT cid FROM member_profiles WHERE division_id = @divisionId ORDER BY cid LIMIT @limit", new { divisionId, limit });
-        return cids.Select(members.Find).OfType<Member>().ToList();
     }
 
     // ---- management (administrators) ------------------------------------------------------------
@@ -200,24 +184,6 @@ public sealed partial class DivisionService(Database db, MemberService members, 
 
     private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-    // ---- membership --------------------------------------------------------------------------
-
-    /// <summary>A member joins (or leaves, with null) a division; returns an English error or null.</summary>
-    public string? SetMemberDivision(long actor, long cid, long? divisionId)
-    {
-        Division? d = null;
-        if (divisionId is { } id && ((d = Find(id)) == null || !d.Active)) return "Choose a division";
-        var old = Of(cid);
-        if (old?.Id == d?.Id) return null;
-        using var c = db.Open();
-        c.Execute("""
-            INSERT INTO member_profiles (cid, registered_at, division_id) VALUES (@cid, @now, @divisionId)
-            ON CONFLICT(cid) DO UPDATE SET division_id = @divisionId
-            """, new { cid, divisionId, now = Database.Now() });
-        audit.Log(actor, "member-division", cid.ToString(), $"{old?.Code ?? "—"} → {d?.Code ?? "—"}");
-        return null;
-    }
-
     // ---- rating requests ---------------------------------------------------------------------
 
     private const string RequestSelect = """
@@ -287,7 +253,6 @@ public sealed partial class DivisionService(Database db, MemberService members, 
 
         var member = members.Find(input.Cid);
         if (member == null) return Fail(404, "member_not_found", "No member with this CID");
-        if (Of(member.Cid)?.Id != division.Id) return Fail(422, "not_division_member", "The member does not belong to this division");
         if (member.Suspended) return Fail(422, "member_suspended", "The member is suspended");
         if (ParseLevel(track, input.Rating) is not { } target) return Fail(400, "invalid_rating", "rating is not a rating of this track");
         int current = TrainingTracks.Current(track, member);

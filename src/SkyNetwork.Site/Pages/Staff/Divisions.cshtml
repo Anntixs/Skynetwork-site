@@ -2,16 +2,16 @@
 @model SkyNetwork.Site.Pages.Staff.DivisionsModel
 @{ ViewData["Title"] = L["Divisions"]; }
 <h1 style="font-size:30px">@L["Divisions"]</h1>
-<p class="muted" style="max-width:720px">@L["Each division runs its own academy on its own website and sends rating requests through the division API with its key."]</p>
+<p class="muted" style="max-width:720px">@L["Each division trains on its own website and sends rating requests through the division API with its key."]</p>
 @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
 <div class="table-wrap" style="margin-bottom:28px">
   <table>
-    <thead><tr><th>@L["Code"]</th><th>@L["Division name"]</th><th>@L["Region"]</th><th>@L["Members"]</th><th>@L["API key"]</th><th>@L["Status"]</th></tr></thead>
+    <thead><tr><th>@L["Code"]</th><th>@L["Division name"]</th><th>@L["Region"]</th><th>@L["API key"]</th><th>@L["Status"]</th></tr></thead>
     <tbody>
     @foreach (var d in Model.List)
     {
       <tr>
-        <td class="mono"><a href="/staff/divisions/@d.Id">@d.Code</a></td><td>@d.Name</td><td>@d.Region</td><td class="num">@d.MemberCount</td>
+        <td class="mono"><a href="/staff/divisions/@d.Id">@d.Code</a></td><td>@d.Name</td><td>@d.Region</td>
         <td>@if (d.HasApiKey) { <span class="mono small">@d.ApiKeyHint</span> } else { <span class="muted">@L["none"]</span> }</td>
         <td><span class="badge @(d.Active ? "ok" : "")">@(d.Active ? L["active"] : L["inactive"])</span></td>
       </tr>

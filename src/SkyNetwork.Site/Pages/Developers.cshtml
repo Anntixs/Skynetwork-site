@@ -22,7 +22,6 @@
           <tr><td class="mono">GET /api/v1/routes/decode?departure=UUEE&amp;destination=EDDF&amp;route=…</td><td>@L["A route text as points: waypoints, airways expanded, coordinates; the tokens not found"]</td></tr>
           <tr><td class="mono">GET /api/v1/airports/{icao}/layout</td><td>@L["Airport diagram: runways, taxiways, aprons, stands (OpenStreetMap)"]</td></tr>
           <tr><td class="mono">GET /api/v1/metar/{icao}</td><td>@L["Current METAR"]</td></tr>
-          <tr><td class="mono">GET /api/v1/divisions</td><td>@L["Divisions: code, name, region, website, number of members"]</td></tr>
           <tr><td class="mono">GET /api/flightplans/latest?cid={cid}</td><td>@L["The member's latest flight plan (SkyPilot format); 404 if there is none"]</td></tr>
         </tbody>
       </table>
@@ -32,16 +31,13 @@
     <p class="muted small">@L["All times are UTC in ISO 8601. The raw FSD server feed is available directly too:"] <span class="mono">/data.json</span> @L["on the server's HTTP port."]</p>
 
     <h2 id="division-api" style="font-size:24px;margin-top:40px">@L["Division API"]</h2>
-    <p class="muted" style="max-width:720px">@L["For division websites and their academies. Every request carries the division's key, issued by a network administrator: the Authorization: Bearer header (or X-Api-Key). Answers are JSON; errors come as { \"error\": code, \"message\": text }."]</p>
+    <p class="muted" style="max-width:720px">@L["For division websites. Every request carries the division's key, issued by a network administrator: the Authorization: Bearer header (or X-Api-Key). Answers are JSON; errors come as { \"error\": code, \"message\": text }."]</p>
     <div class="table-wrap" style="margin-top:12px">
       <table>
         <thead><tr><th>@L["Request"]</th><th>@L["Returns"]</th></tr></thead>
         <tbody>
           <tr><td class="mono">GET /api/division/v1/division</td><td>@L["Your division"]</td></tr>
-          <tr><td class="mono">GET /api/division/v1/members</td><td>@L["Members of your division with their ratings"]</td></tr>
-          <tr><td class="mono">GET /api/division/v1/members/{cid}</td><td>@L["Any member: ratings and division"]</td></tr>
-          <tr><td class="mono">GET /api/division/v1/training-requests[?status=all]</td><td>@L["Applications members filed for your academy on this site (active ones by default)"]</td></tr>
-          <tr><td class="mono">POST /api/division/v1/training-requests/{id}</td><td>@L["Update an application: status (open, accepted, completed, declined), comment, instructorCid"]</td></tr>
+          <tr><td class="mono">GET /api/division/v1/members/{cid}</td><td>@L["A member and their ratings: check a CID before the exam"]</td></tr>
           <tr><td class="mono">POST /api/division/v1/rating-requests</td><td>@L["The student passed the exam: ask for the rating. A supervisor approves it"]</td></tr>
           <tr><td class="mono">GET /api/division/v1/rating-requests[?status=&amp;cid=]</td><td>@L["Your rating requests and their status: pending, approved, declined, withdrawn"]</td></tr>
           <tr><td class="mono">GET /api/division/v1/rating-requests/{id}</td><td>@L["A rating request"]</td></tr>
@@ -66,7 +62,7 @@
   }'</pre>
     <ul class="muted small" style="max-width:720px">
       <li>@L["track: atc, pilot or military; rating: its short name (S1…I3, PPL…FE, M1…M4)."]</li>
-      <li>@L["The member must be in your division and must not hold this rating already. One pending request per member and track."]</li>
+      <li>@L["The member must not hold this rating already. One pending request per member and track."]</li>
       <li>@L["externalId makes retries safe: the same value returns the request already created instead of a new one."]</li>
       <li>@L["Answers: 201 created, 200 already sent, 401 wrong key, 404 no such member, 409 a request is already pending, 422 not allowed, 429 too many requests."]</li>
       <li>@L["Supervisors approve controller ratings up to C3 and all pilot and military ratings; instructor ratings (I1–I3) are approved by administrators."]</li>

@@ -110,8 +110,8 @@ public sealed class Database
                 instructor_cid INTEGER, staff_comment TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
 
-            -- Divisions (regional branches, e.g. SKYRUS, SKYEUD) run their own academies and send
-            -- rating requests through the division API; a supervisor approves them.
+            -- Divisions (e.g. SKYRUS, SKYEUD) train on their own websites and send rating requests
+            -- through the division API; a supervisor approves them.
             CREATE TABLE IF NOT EXISTS divisions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE COLLATE NOCASE, name TEXT NOT NULL,
                 region TEXT NOT NULL DEFAULT '', website TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '',
@@ -163,8 +163,6 @@ public sealed class Database
         AddColumn(c, "member_profiles", "simbrief", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "events", "banner", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "news", "banner", "TEXT NOT NULL DEFAULT ''");
-        AddColumn(c, "member_profiles", "division_id", "INTEGER");
-        AddColumn(c, "training_requests", "division_id", "INTEGER");
 
         // The first divisions; administrators add more and issue their API keys in the staff area.
         if (c.ExecuteScalar<long>("SELECT COUNT(*) FROM divisions") == 0)

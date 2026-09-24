@@ -227,8 +227,6 @@ public class StaffAreaTests
         using var site = new SiteFactory();
         long instructor = site.Member("Ilya Instructor", Ratings.I1);
         long student = site.Member("Student Controller");
-        // Training is run by divisions: the member joins one first.
-        site.Get<DivisionService>().SetMemberDivision(student, student, site.Get<DivisionService>().FindByCode("SKYRUS")!.Id);
         var st = site.Browser();
         await st.LoginAsync(student);
         await st.SubmitAsync("/training", new Dictionary<string, string> { ["target"] = Ratings.S1.ToString(), ["text"] = "Evenings" });

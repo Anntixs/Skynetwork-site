@@ -36,16 +36,13 @@ public class DivisionTests
     }
 
     [Fact]
-    public async Task FirstDivisionsExist_AndArePublic()
+    public async Task FirstDivisionsExist_OnlyInManagement()
     {
         using var site = new SiteFactory();
-        var list = await site.Browser().HtmlAsync("/divisions");
-        Assert.Contains("SKYRUS", list);
-        Assert.Contains("SKYEUD", list);
-        await site.Browser().HtmlAsync("/divisions/SKYRUS");
-        Assert.Equal(HttpStatusCode.NotFound, (await site.Browser().GetAsync("/divisions/NOPE")).StatusCode);
-        var json = await Json(await site.Browser().GetAsync("/api/v1/divisions"));
-        Assert.Equal(2, json.GetArrayLength());
+        Assert.NotNull(site.Get<DivisionService>().FindByCode("SKYRUS"));
+        Assert.NotNull(site.Get<DivisionService>().FindByCode("SKYEUD"));
+        // No public division pages.
+        Assert.Equal(HttpStatusCode.NotFound, (await site.Browser().GetAsync("/divisions")).StatusCode);
     }
 
     [Fact]
@@ -81,25 +78,12 @@ public class DivisionTests
         long examiner = site.Member("Ivan Examiner", Ratings.I1);
         long sup = site.Member("Sergey Supervisor", Ratings.SUP);
 
-        // The member joins the division and applies to its academy on the network site.
+        // The member applied for training on the site; the division trained and examined them.
         var s = site.Browser();
         await s.LoginAsync(student);
-        var joined = await s.SubmitPageFormAsync("/training", "Division", new Dictionary<string, string> { ["divisionId"] = d.Id.ToString() });
-        Assert.Equal("SKYRUS", site.Get<DivisionService>().Of(student)?.Code);
-        // The page is now at ?handler=Division: the application form must not post there (that would leave the division).
-        var apply = FormWith(await joined.Content.ReadAsStringAsync(), "name=\"Track\"");
-        Assert.Contains("action=\"/training\"", apply);
-        Assert.Contains("__RequestVerificationToken", apply);
         await s.SubmitAsync("/training", new Dictionary<string, string> { ["Track"] = "atc", ["Target"] = Ratings.S2.ToString(), ["Text"] = "Evenings" });
-
-        // The academy sees the application through the API and takes it.
+        long appId = site.Get<SupportService>().Training(student).Single().Id;
         var api = Api(site, key);
-        var apps = await Json(await api.GetAsync("/api/division/v1/training-requests"));
-        Assert.Equal(1, apps.GetArrayLength());
-        long appId = apps[0].GetProperty("id").GetInt64();
-        Assert.Equal("S2", apps[0].GetProperty("target").GetString());
-        var taken = await api.PostAsJsonAsync($"/api/division/v1/training-requests/{appId}", new { status = "accepted", instructorCid = examiner });
-        Assert.Equal(HttpStatusCode.OK, taken.StatusCode);
 
         // Exam passed: the division asks for S2.
         var body = new { cid = student, track = "atc", rating = "S2", examinerCid = examiner, examDate = "2026-09-20", score = "92%", externalId = "exam-1" };
@@ -117,9 +101,8 @@ public class DivisionTests
         Assert.Equal(HttpStatusCode.Conflict, dup.StatusCode);
         Assert.Equal("request_pending", (await Json(dup)).GetProperty("error").GetString());
 
-        // Nothing changes before a supervisor approves; the member sees the request.
+        // Nothing changes before a supervisor approves.
         Assert.Equal(Ratings.S1, site.Get<MemberService>().Find(student)!.Rating);
-        Assert.Contains("SKYRUS", await s.HtmlAsync("/training"));
 
         var v = site.Browser();
         await v.LoginAsync(sup);
@@ -144,9 +127,8 @@ public class DivisionTests
         var (d, key) = Skyrus(site);
         var divisions = site.Get<DivisionService>();
         long member = site.Member("Anna Member", Ratings.S2);
-        long outsider = site.Member("Olga Outsider");
-        divisions.SetMemberDivision(member, member, d.Id);
-        divisions.SetMemberDivision(outsider, outsider, divisions.FindByCode("SKYEUD")!.Id);
+        long suspended = site.Member("Olga Suspended");
+        site.Get<MemberService>().SetSuspended(0, suspended, true, "test");
         var api = Api(site, key);
 
         async Task<(HttpStatusCode, string?)> Post(object body)
@@ -156,7 +138,7 @@ public class DivisionTests
         }
 
         Assert.Equal((HttpStatusCode.NotFound, "member_not_found"), await Post(new { cid = 9999, track = "atc", rating = "S3" }));
-        Assert.Equal((HttpStatusCode.UnprocessableEntity, "not_division_member"), await Post(new { cid = outsider, track = "atc", rating = "S1" }));
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "member_suspended"), await Post(new { cid = suspended, track = "atc", rating = "S1" }));
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "rating_not_higher"), await Post(new { cid = member, track = "atc", rating = "S1" }));
         Assert.Equal((HttpStatusCode.BadRequest, "invalid_rating"), await Post(new { cid = member, track = "atc", rating = "XX" }));
         Assert.Equal((HttpStatusCode.BadRequest, "invalid_track"), await Post(new { cid = member, track = "space", rating = "S3" }));
@@ -184,7 +166,6 @@ public class DivisionTests
         long c3 = site.Member("Maria Controller", Ratings.C3);
         long sup = site.Member("Sergey Supervisor", Ratings.SUP);
         long admin = site.Member("Anna Admin", Ratings.ADM);
-        divisions.SetMemberDivision(c3, c3, d.Id);
         var r = await Api(site, key).PostAsJsonAsync("/api/division/v1/rating-requests", new { cid = c3, track = "atc", rating = "I1" });
         long id = (await Json(r)).GetProperty("id").GetInt64();
 
@@ -238,17 +219,5 @@ public class DivisionTests
         await s.LoginAsync(sup);
         Assert.Equal(HttpStatusCode.NotFound, (await s.GetAsync("/staff/divisions")).StatusCode);
         await s.HtmlAsync("/staff/ratings");
-    }
-
-    [Fact]
-    public async Task TrainingNeedsADivision()
-    {
-        using var site = new SiteFactory();
-        long m = site.Member("New Member");
-        var c = site.Browser();
-        await c.LoginAsync(m);
-        var r = await c.SubmitAsync("/training", new Dictionary<string, string> { ["Track"] = "atc", ["Target"] = Ratings.S1.ToString() });
-        Assert.Contains("Choose your division first", await r.Content.ReadAsStringAsync());
-        Assert.Empty(site.Get<SupportService>().Training(m));
     }
 }

@@ -10,8 +10,7 @@
     <div>
       <h1 style="font-size:30px;margin:0">@m.Name</h1>
       <div class="muted">CID <span class="mono">@m.Cid</span>
-        @if (m.Registered is { } r) { <span> · @L["member since"] @Format.Date(r)</span> }
-        @if (Model.Division is { } d) { <span> · <a href="/divisions/@d.Code">@d.Name</a></span> }</div>
+        @if (m.Registered is { } r) { <span> · @L["member since"] @Format.Date(r)</span> }</div>
     </div>
     @if (Me.Has(Perm.ViewMembers)) { <a class="btn btn-small" style="margin-left:auto" href="/staff/members/@m.Cid">@L["Open in management"]</a> }
   </div>
