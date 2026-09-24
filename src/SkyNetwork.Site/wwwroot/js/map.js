@@ -294,7 +294,7 @@
   let staffedAirports = new Set();   // these already have a controller badge
   function drawCodes() {
     codesLayer.clearLayers();
-    if (compact || !airports) return;
+    if (compact || !airports || !layerOn.codes) return;
     const z = map.getZoom();
     const maxRank = z >= 9 ? 2 : z >= 7 ? 1 : z >= 5 ? 0 : -1;
     if (maxRank < 0) return;
@@ -316,7 +316,7 @@
   }
   map.on('moveend', drawCodes);
   if (!compact) loadAirports().then(drawCodes);
-  layerToggle('layer-codes', 'codes', on => on ? codesLayer.addTo(map) : codesLayer.remove());
+  layerToggle('layer-codes', 'codes', on => { if (on) { codesLayer.addTo(map); drawCodes(); } else codesLayer.remove(); });
 
   // Everyone on the map at once.
   let lastPoints = [];
