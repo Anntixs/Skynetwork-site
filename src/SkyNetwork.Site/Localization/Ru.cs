@@ -591,5 +591,9 @@ public static class Ru
         ["Link copied"] = "Ссылка скопирована",
         ["Time online"] = "В сети",
         ["Aircraft registration"] = "Бортовой номер",
+        ["An online pilot's route as points (from SimBrief or worked out from the flight plan), the flown track and, for SimBrief plans, registration and step climbs"] = "Маршрут пилота в сети точками (из SimBrief или восстановленный по плану полёта), пройденный путь, а для планов из SimBrief — бортовой номер и ступенчатый набор",
+        ["A route text as points: waypoints, airways expanded, coordinates; the tokens not found"] = "Текст маршрута точками: пункты, раскрытые трассы, координаты; ненайденные элементы",
+        ["Airport diagram: runways, taxiways, aprons, stands (OpenStreetMap)"] = "Схема аэропорта: ВПП, рулёжки, перроны, стоянки (OpenStreetMap)",
+        ["Current METAR"] = "Текущий METAR",
     };
 }

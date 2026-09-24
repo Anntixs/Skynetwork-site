@@ -18,6 +18,10 @@
           <tr><td class="mono">GET /api/v1/events/{id}</td><td>@L["An event"]</td></tr>
           <tr><td class="mono">GET /api/v1/bookings</td><td>@L["Position bookings"]</td></tr>
           <tr><td class="mono">GET /api/v1/news</td><td>@L["News"]</td></tr>
+          <tr><td class="mono">GET /api/v1/pilots/{callsign}/route</td><td>@L["An online pilot's route as points (from SimBrief or worked out from the flight plan), the flown track and, for SimBrief plans, registration and step climbs"]</td></tr>
+          <tr><td class="mono">GET /api/v1/routes/decode?departure=UUEE&amp;destination=EDDF&amp;route=…</td><td>@L["A route text as points: waypoints, airways expanded, coordinates; the tokens not found"]</td></tr>
+          <tr><td class="mono">GET /api/v1/airports/{icao}/layout</td><td>@L["Airport diagram: runways, taxiways, aprons, stands (OpenStreetMap)"]</td></tr>
+          <tr><td class="mono">GET /api/v1/metar/{icao}</td><td>@L["Current METAR"]</td></tr>
           <tr><td class="mono">GET /api/flightplans/latest?cid={cid}</td><td>@L["The member's latest flight plan (SkyPilot format); 404 if there is none"]</td></tr>
         </tbody>
       </table>

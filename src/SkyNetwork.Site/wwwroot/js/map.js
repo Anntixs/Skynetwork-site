@@ -166,6 +166,8 @@
   const loadAirports = () => airportsLoad ??= fetch('/data/airports.json').then(r => r.json()).then(a => airports = a).catch(() => airports = {});
   const loadAirlines = () => airlinesLoad ??= fetch('/data/airlines.json').then(r => r.json()).then(a => airlines = a).catch(() => airlines = {});
   const airport = code => airports?.[String(code || '').toUpperCase()] ?? null;
+  // Just the position: Leaflet takes a [lat, lon] pair, not the whole airport row.
+  const aptLL = code => { const a = airport(code); return a ? [a[0], a[1]] : null; };
   const airlineOf = cs => { const m = /^([A-Z]{3})\d/.exec(String(cs).toUpperCase()); return m ? airlines?.[m[1]] ?? null : null; };
 
   // The selected aircraft's route points and flown track, refreshed with the live data.
@@ -351,7 +353,7 @@
     if (staffedBefore !== [...staffedAirports].join()) drawCodes();
     for (const [code, list] of towers) {
       const c = list.find(x => x.latitude != null);
-      const at = c ? [c.latitude, c.longitude] : airport(code);
+      const at = c ? [c.latitude, c.longitude] : aptLL(code);
       if (!at) continue;
       const chips = order.filter(f => list.some(x => x.facility === f)).map(f => `<i class="${f}">${f[0]}</i>`).join('');
       label(`<span class="apt-badge" style="transform:translate(-50%,-50%)">${esc(code)}${chips}</span>`, open('airport', code))
@@ -432,7 +434,7 @@
     } else {
       await loadAirports();
       const c = data?.controllers.find(x => prefix(x.callsign) === key && x.latitude != null);
-      const at = airport(key) ?? (c ? [c.latitude, c.longitude] : null);
+      const at = aptLL(key) ?? (c ? [c.latitude, c.longitude] : null);
       // Close enough for the airport diagram.
       if (at) map.flyTo(at, Math.max(map.getZoom(), 13), { duration: .8 });
     }
@@ -535,7 +537,7 @@
     if (!airports) loadAirports().then(updateCard);
     if (!airlines) loadAirlines().then(updateCard);
     const at = p.latitude != null ? [p.latitude, p.longitude] : null;
-    const dep = airport(fp?.departure), arr = airport(fp?.destination);
+    const dep = aptLL(fp?.departure), arr = aptLL(fp?.destination);
     const mine = route?.callsign === p.callsign ? route : null;
     const points = mine?.waypoints?.length > 1 ? mine.waypoints : null;
     const track = mine?.track ?? [];
@@ -587,7 +589,7 @@
 
     const flight = fp ? `
       <div class="mc-flight">
-        <div class="mc-route"><div class="apt">${aptLink(fp.departure, dep)}</div><div class="arrow">→</div><div class="apt">${aptLink(fp.destination, arr)}</div></div>
+        <div class="mc-route"><div class="apt">${aptLink(fp.departure, airport(fp.departure))}</div><div class="arrow">→</div><div class="apt">${aptLink(fp.destination, airport(fp.destination))}</div></div>
         <div class="mc-progress"><i style="width:${pct}%"></i><b style="left:${pct}%"></b></div>
         <div class="mc-times">
           <span><small>${off ? t('Departed') : t('Planned')}</small>${depTime}</span>

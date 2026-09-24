@@ -17,8 +17,15 @@ public readonly record struct RoutePoint(string Ident, double Lat, double Lon, s
 /// </summary>
 public sealed partial class NavData(Database db, IWebHostEnvironment env, ILogger<NavData> log)
 {
-    /// <summary>A fix further than this from the previous point is another fix with the same name somewhere else.</summary>
-    private const double MaxLegNm = 1500;
+    /// <summary>
+    /// Leaving a token out of the drawn route costs this much: a fix is kept only when it adds less of a detour.
+    /// The same name exists in several places in the world; the wrong one would add hundreds of miles.
+    /// </summary>
+    private const double SkipCostNm = 180;
+    /// <summary>Airways are the truth when they join the fixes: their path counts a little shorter than the straight line.</summary>
+    private const double AirwayFactor = 0.9;
+    /// <summary>Candidates further than this from the previous point are not even considered.</summary>
+    private const double MaxLegNm = 2500;
     /// <summary>Airway segment ends this close together are the same fix.</summary>
     private const double SameFixNm = 2;
 
@@ -57,66 +64,112 @@ public sealed partial class NavData(Database db, IWebHostEnvironment env, ILogge
         }
     }
 
+    // One token of the route worth drawing: a fix (maybe reached along an airway) or a coordinate.
+    private sealed record Step(string Token, string? ViaAirway, (double Lat, double Lon)? Coordinate);
+
+    // A way of placing the route up to some token: where it ends, what it cost, what it drew.
+    private sealed class State
+    {
+        public (double Lat, double Lon)? Pos;
+        public string Ident = "";
+        public double Cost;
+        public State? Prev;
+        public List<RoutePoint> Added = [];
+        public string? Skipped;
+    }
+
     /// <summary>
-    /// The route as points: airports, fixes, navaids and coordinates in order, airways expanded fix by fix. Tokens that
-    /// could not be placed are returned in <c>Unresolved</c>; the line simply goes straight across them.
+    /// The route as points: airports, fixes, navaids and coordinates in order, airways expanded fix by fix. Names that
+    /// exist in several places get the one that fits the rest of the route; a fix that would only add a detour, and any
+    /// token nothing is known about, is left out and returned in <c>Unresolved</c>.
     /// </summary>
     public (List<RoutePoint> Points, List<string> Unresolved) Decode(string departure, string destination, string route)
     {
         var b = Bundled;
-        var points = new List<RoutePoint>();
-        var unresolved = new List<string>();
         departure = departure.ToUpperInvariant();
         destination = destination.ToUpperInvariant();
-        (double Lat, double Lon)? prev = null, dest = null;
-        if (b.Airports.TryGetValue(departure, out var dep)) { prev = dep; points.Add(new RoutePoint(departure, dep.Lat, dep.Lon, "", 0)); }
-        if (b.Airports.TryGetValue(destination, out var arr)) dest = arr;
+        (double Lat, double Lon)? depPos = b.Airports.TryGetValue(departure, out var dp) ? dp : null;
+        (double Lat, double Lon)? destPos = b.Airports.TryGetValue(destination, out var ap) ? ap : null;
+        var unresolved = new List<string>();
+        var points = new List<RoutePoint>();
 
         var tokens = route.ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Select(t => t.Split('/')[0]).Where(t => t.Length > 0).ToList();
         lock (_lock)
         {
             EnsureLearned();
-            for (int i = 0; i < tokens.Count; i++)
+
+            // 1. Tokens worth drawing, with the airway that leads to each fix; speeds, procedures and noise dropped.
+            var steps = new List<Step>();
+            string? via = null;
+            foreach (var tok in tokens)
             {
-                string tok = tokens[i];
-                if (tok == departure || tok == destination || tok is "DCT" or "DIRECT" or "SID" or "STAR" or "IFR" or "VFR") continue;
+                if (tok == departure || tok == destination || tok is "DCT" or "DIRECT" or "SID" or "STAR" or "IFR" or "VFR") { via = null; continue; }
                 if (SpeedLevel().IsMatch(tok)) continue;
-                if (TryCoordinate(tok, out var pos))
+                if (TryCoordinate(tok, out var pos)) { steps.Add(new Step(tok, null, pos)); via = null; continue; }
+                if (HasAirway(tok) && steps.Count > 0 && steps[^1].Coordinate == null) { via = tok; continue; }
+                if (IsAirway(tok) && !HasFix(tok)) { via = null; continue; }
+                if (SidStar().IsMatch(tok) && !HasFix(tok)) continue;
+                if (!HasFix(tok) && !(tok.Length == 4 && b.Airports.ContainsKey(tok))) { unresolved.Add(tok); via = null; continue; }
+                steps.Add(new Step(tok, via, null));
+                via = null;
+            }
+
+            // 2. The cheapest placement of all steps together (shortest total path, a penalty for every step left out).
+            var states = new List<State>
+            {
+                new() { Pos = depPos, Ident = departure, Added = depPos is { } d0 ? [new RoutePoint(departure, d0.Lat, d0.Lon, "", 0)] : [] },
+            };
+            foreach (var step in steps)
+            {
+                var next = new List<State>();
+                foreach (var s in states)
                 {
-                    points.Add(new RoutePoint(tok, pos.Lat, pos.Lon, "", 0));
-                    prev = pos;
-                    continue;
-                }
-                // An airway between the previous fix and the next token.
-                if (points.Count > 0 && i + 1 < tokens.Count && HasAirway(tok))
-                {
-                    var along = Expand(tok, points[^1], tokens[i + 1]);
-                    if (along != null)
+                    if (step.Coordinate is { } c)
                     {
-                        points.AddRange(along);
-                        prev = (points[^1].Lat, points[^1].Lon);
-                        i++;
+                        next.Add(new State { Pos = c, Ident = step.Token, Cost = s.Cost + Leg(s.Pos, c), Prev = s, Added = [new RoutePoint(step.Token, c.Lat, c.Lon, "", 0)] });
                         continue;
                     }
+                    if (step.ViaAirway != null && s.Pos is { } from && s.Ident != departure)
+                    {
+                        var along = Expand(step.ViaAirway, new RoutePoint(s.Ident, from.Lat, from.Lon, "", 0), step.Token);
+                        if (along != null)
+                        {
+                            double length = Leg(from, (along[0].Lat, along[0].Lon));
+                            for (int k = 1; k < along.Count; k++) length += Distance(along[k - 1].Lat, along[k - 1].Lon, along[k].Lat, along[k].Lon);
+                            next.Add(new State { Pos = (along[^1].Lat, along[^1].Lon), Ident = step.Token, Cost = s.Cost + length * AirwayFactor, Prev = s, Added = along });
+                        }
+                    }
+                    foreach (var cand in Candidates(step.Token))
+                    {
+                        if (s.Pos is { } p && Distance(p.Lat, p.Lon, cand.Lat, cand.Lon) > MaxLegNm) continue;
+                        next.Add(new State { Pos = cand, Ident = step.Token, Cost = s.Cost + Leg(s.Pos, cand), Prev = s, Added = [new RoutePoint(step.Token, cand.Lat, cand.Lon, "", 0)] });
+                    }
+                    next.Add(new State { Pos = s.Pos, Ident = s.Ident, Cost = s.Cost + SkipCostNm, Prev = s, Skipped = step.Token });
                 }
-                if (SidStar().IsMatch(tok) && !HasFix(tok)) continue;   // procedure names: the next token is its fix
-                var candidates = Candidates(tok);
-                if (candidates.Count == 0)
-                {
-                    if (!IsAirway(tok)) unresolved.Add(tok);
-                    continue;
-                }
-                var reference = prev ?? dest;
-                var best = reference is { } r ? candidates.MinBy(c => Distance(r.Lat, r.Lon, c.Lat, c.Lon)) : candidates[0];
-                if (reference is { } rr && Distance(rr.Lat, rr.Lon, best.Lat, best.Lon) > MaxLegNm) { unresolved.Add(tok); continue; }
-                points.Add(new RoutePoint(tok, best.Lat, best.Lon, "", 0));
-                prev = best;
+                // One state per place is enough: the cheapest way of getting there.
+                states = next.GroupBy(x => (x.Ident, Math.Round(x.Pos?.Lat ?? 999, 1), Math.Round(x.Pos?.Lon ?? 999, 1)))
+                    .Select(g => g.MinBy(x => x.Cost)!).ToList();
             }
+
+            var best = states.MinBy(s => s.Cost + (destPos is { } dd ? Leg(s.Pos, dd) : 0));
+            var chain = new List<State>();
+            for (var s = best; s != null; s = s.Prev) chain.Add(s);
+            chain.Reverse();
+            var skipped = new List<string>();
+            foreach (var s in chain)
+            {
+                points.AddRange(s.Added);
+                if (s.Skipped != null) skipped.Add(s.Skipped);
+            }
+            unresolved = tokens.Where(t => unresolved.Contains(t) || skipped.Contains(t)).Distinct().ToList();
         }
-        if (dest is { } d && (points.Count == 0 || points[^1].Ident != destination)) points.Add(new RoutePoint(destination, d.Lat, d.Lon, "", 0));
+        if (destPos is { } dest && (points.Count == 0 || points[^1].Ident != destination)) points.Add(new RoutePoint(destination, dest.Lat, dest.Lon, "", 0));
         return (points, unresolved);
     }
+
+    private static double Leg((double Lat, double Lon)? from, (double Lat, double Lon) to) =>
+        from is { } f ? Distance(f.Lat, f.Lon, to.Lat, to.Lon) : 0;
 
     /// <summary>Keeps the fixes and airway segments of an imported SimBrief route for later routes.</summary>
     public void Learn(IReadOnlyList<RoutePoint> route, string departure, string destination)
@@ -293,6 +346,7 @@ public sealed partial class NavData(Database db, IWebHostEnvironment env, ILogge
         var g = Graph(airway);
         if (g == null || !g.ByIdent.TryGetValue(from.Ident, out var entries) || !g.ByIdent.ContainsKey(exit)) return null;
         var start = entries.MinBy(n => Distance(n.Lat, n.Lon, from.Lat, from.Lon))!;
+        if (Distance(start.Lat, start.Lon, from.Lat, from.Lon) > SameFixNm * 5) return null;
         var previous = new Dictionary<AirwayGraph.Node, AirwayGraph.Node?> { [start] = null };
         var queue = new Queue<AirwayGraph.Node>();
         queue.Enqueue(start);

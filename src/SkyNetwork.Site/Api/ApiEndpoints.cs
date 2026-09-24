@@ -55,6 +55,14 @@ public static class ApiEndpoints
             });
         });
 
+        // A route text as points, for anyone building on the API (SkyPilot, event pages).
+        v1.MapGet("/routes/decode", (string? departure, string? destination, string? route, NavData nav) =>
+        {
+            if (departure is not { Length: 4 } || destination is not { Length: 4 } || route is not { Length: <= 2000 }) return Results.BadRequest();
+            var (points, unresolved) = nav.Decode(departure, destination, route);
+            return Results.Ok(new { waypoints = points.Select(w => new object[] { w.Ident, Math.Round(w.Lat, 4), Math.Round(w.Lon, 4), w.Airway }), unresolved });
+        });
+
         v1.MapGet("/airports/{icao}/layout", async (string icao, AirportLayout layouts, HttpContext ctx) =>
         {
             string? json = await layouts.GetAsync(icao, ctx.RequestAborted);
