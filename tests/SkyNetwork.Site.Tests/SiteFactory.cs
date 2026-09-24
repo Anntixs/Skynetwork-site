@@ -1,0 +1,71 @@
+using System.Net;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using SkyNetwork.Site.Data;
+
+namespace SkyNetwork.Site.Tests;
+
+/// <summary>The site on a fresh temporary database, without the FSD data feed.</summary>
+public sealed class SiteFactory : WebApplicationFactory<Program>
+{
+    public string DatabasePath { get; } = Path.Combine(Path.GetTempPath(), $"skynet-site-{Guid.NewGuid():N}.db");
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseSetting("Site:Database", DatabasePath);
+        builder.UseSetting("Site:DataFeedUrl", "");
+        builder.UseSetting("Site:AuthAttemptsPerMinute", "10000");
+        builder.UseEnvironment(Environment.GetEnvironmentVariable("SITE_TEST_ENV") ?? "Production");
+    }
+
+    public T Get<T>() where T : notnull => Services.GetRequiredService<T>();
+
+    public HttpClient Browser() => CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
+
+    /// <summary>A member created directly in the database (as skynet-admin would).</summary>
+    public long Member(string name = "Test Pilot", int rating = Ratings.OBS, string password = "password1")
+    {
+        var members = Get<MemberService>();
+        long cid = members.Register(name, $"{Guid.NewGuid():N}@example.com", "", password);
+        if (rating != Ratings.OBS) members.SetRating(0, cid, rating);
+        return cid;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        foreach (var f in new[] { DatabasePath, DatabasePath + "-wal", DatabasePath + "-shm" })
+            try { File.Delete(f); } catch (IOException) { }
+    }
+}
+
+public static class BrowserExtensions
+{
+    private static readonly Regex Token = new("name=\"__RequestVerificationToken\" type=\"hidden\" value=\"([^\"]+)\"");
+
+    /// <summary>GETs the page, then posts the form fields with the page's antiforgery token.</summary>
+    public static async Task<HttpResponseMessage> SubmitAsync(this HttpClient c, string page, IDictionary<string, string> fields, string? action = null)
+    {
+        var html = await (await c.GetAsync(page)).Content.ReadAsStringAsync();
+        var m = Token.Match(html);
+        Assert.True(m.Success, $"no form on {page}");
+        var data = new Dictionary<string, string>(fields) { ["__RequestVerificationToken"] = WebUtility.HtmlDecode(m.Groups[1].Value) };
+        return await c.PostAsync(action ?? page, new FormUrlEncodedContent(data));
+    }
+
+    public static async Task LoginAsync(this HttpClient c, long cid, string password = "password1")
+    {
+        var r = await c.SubmitAsync("/login", new Dictionary<string, string> { ["Cid"] = cid.ToString(), ["Password"] = password });
+        Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);
+    }
+
+    public static async Task<string> HtmlAsync(this HttpClient c, string url)
+    {
+        var r = await c.GetAsync(url);
+        var body = await r.Content.ReadAsStringAsync();
+        Assert.True(r.StatusCode == HttpStatusCode.OK, $"{url}: {(int)r.StatusCode}\n{body[..Math.Min(body.Length, 3000)]}");
+        return body;
+    }
+}

@@ -1,0 +1,30 @@
+@page "/events"
+@inject ContentService Site
+@{
+    ViewData["Title"] = "Мероприятия";
+    var events = Site.UpcomingEvents(60);
+}
+<div class="wrap page">
+  <div class="page-head">
+    <h1>Мероприятия</h1>
+    <p>Дни усиленного трафика, fly-in и открытые позиции. На мероприятиях диспетчеры работают полным составом — лучшее время для первого полёта.</p>
+  </div>
+  @if (events.Count == 0)
+  {
+    <div class="empty">Ближайших мероприятий нет. Следите за <a href="/news">новостями</a>.</div>
+  }
+  else
+  {
+    <div class="grid three">
+      @foreach (var e in events)
+      {
+        <a class="card" href="/events/@e.Id">
+          <span class="date-chip">@Format.Span(e.Start, e.End)</span>
+          <h3>@e.Title</h3>
+          <p class="muted small">@e.Summary</p>
+          @if (e.Airports.Length > 0) { <span class="mono small">@e.Airports</span> }
+        </a>
+      }
+    </div>
+  }
+</div>

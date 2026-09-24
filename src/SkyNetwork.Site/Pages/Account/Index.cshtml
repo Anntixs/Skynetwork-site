@@ -1,0 +1,67 @@
+@page "/account"
+@model SkyNetwork.Site.Pages.Account.IndexModel
+@{
+    ViewData["Title"] = "Личный кабинет";
+    var m = Me.Member!;
+}
+<div class="wrap page with-side">
+  <partial name="_AccountNav" />
+  <div>
+    @if (Model.Welcome)
+    {
+      <div class="alert ok">
+        <div>Добро пожаловать в SkyNetwork! Ваш CID:</div>
+        <div class="big-cid">@m.Cid</div>
+        <div>Запишите его: с ним и паролем вы входите на сайт и подключаетесь к сети. Дальше — <a href="/docs/software">установите программу</a>.</div>
+      </div>
+    }
+    <div class="profile-head">
+      <div class="avatar">@Format.Initials(m.Name)</div>
+      <div>
+        <h1 style="font-size:28px;margin:0">@m.Name</h1>
+        <div class="muted">CID <span class="mono">@m.Cid</span> · <span class="badge accent">@m.RatingShort</span> @m.RatingLong</div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>@Format.Hours(Model.Hours.PilotHours)</b><span>в воздухе</span></div>
+      <div class="stat"><b>@Format.Hours(Model.Hours.AtcHours)</b><span>на позициях</span></div>
+      <div class="stat"><b>@Model.Hours.PilotSessions</b><span>полётов</span></div>
+      <div class="stat"><b>@Model.Hours.AtcSessions</b><span>дежурств</span></div>
+    </div>
+
+    <div class="section-head"><h2>Последний план полёта</h2><a href="/flightplan">Подать новый →</a></div>
+    @if (Model.Plan is { } p)
+    {
+      <div class="card" style="margin-bottom:32px">
+        <div class="mono" style="font-size:18px;font-weight:700">@p.Callsign</div>
+        <div class="mono">@p.Departure → @p.Destination · @p.Aircraft · @p.CruiseAltitude · @p.Rules</div>
+        <div class="muted small">Подан @Format.Utc(p.Created). SkyPilot заберёт его по кнопке «Обновить».</div>
+      </div>
+    }
+    else
+    {
+      <div class="empty" style="margin-bottom:32px">Планов пока нет. <a href="/flightplan">Подать план</a></div>
+    }
+
+    <div class="section-head"><h2>Последние сессии</h2></div>
+    @if (Model.Sessions.Count == 0)
+    {
+      <div class="empty">Вы ещё не подключались к сети.</div>
+    }
+    else
+    {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Позывной</th><th>Роль</th><th>Детали</th><th>Начало</th><th>Длительность</th></tr></thead>
+          <tbody>
+          @foreach (var s in Model.Sessions)
+          {
+            <tr><td class="mono">@s.Callsign</td><td>@(s.Kind == "atc" ? "диспетчер" : "пилот")</td><td class="mono small">@s.Details</td>
+                <td>@Format.Utc(s.Start)</td><td>@Format.Duration(s.Duration)@(s.EndedAt == null ? " · в эфире" : "")</td></tr>
+          }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,25 @@
+@page "/docs"
+@inject Microsoft.Extensions.Options.IOptions<SiteOptions> Options
+@{ ViewData["Title"] = "Как начать"; var o = Options.Value; }
+<div class="wrap page with-side">
+  <partial name="_DocsNav" />
+  <div class="prose">
+    <h1 style="font-size:34px">Как начать</h1>
+    <p class="muted">Всё, что нужно для первого подключения: учётная запись, программа и несколько правил эфира.</p>
+
+    <h2 style="font-size:22px;margin-top:32px">Пилоту</h2>
+    <div class="steps" style="grid-template-columns:1fr">
+      <div class="step"><h3>Зарегистрируйтесь</h3><p class="muted">На странице <a href="/register">регистрации</a> вы получите CID. CID и пароль — ваши данные для входа в SkyPilot.</p></div>
+      <div class="step"><h3>Установите SkyPilot</h3><p class="muted">Клиент для MSFS 2020 и 2024. <a href="/docs/software">Скачать</a>. В настройках укажите сервер <span class="mono">@o.FsdHost:@o.FsdPort</span>, CID и пароль.</p></div>
+      <div class="step"><h3>Подайте план полёта</h3><p class="muted">На странице <a href="/flightplan">плана полёта</a>. В SkyPilot нажмите «Обновить» — план появится у диспетчеров.</p></div>
+      <div class="step"><h3>Подключитесь и слушайте частоту</h3><p class="muted">Посмотрите на <a href="/online">странице онлайн</a>, кто работает рядом. Если диспетчера нет, ведите радиообмен на UNICOM 122.800.</p></div>
+    </div>
+
+    <h2 style="font-size:22px;margin-top:40px">Диспетчеру</h2>
+    <div class="steps" style="grid-template-columns:1fr">
+      <div class="step"><h3>Получите рейтинг</h3><p class="muted">Новые участники — наблюдатели (OBS): можно подключиться и слушать, но не управлять. Подайте <a href="/training">заявку на обучение</a> на S1.</p></div>
+      <div class="step"><h3>Установите Network-ATC</h3><p class="muted">Радар диспетчера с секторами EuroScope и собственным форматом .natc. <a href="/docs/software">Скачать</a>.</p></div>
+      <div class="step"><h3>Забронируйте позицию</h3><p class="muted">В <a href="/bookings">расписании</a> пилоты увидят, когда вы будете в эфире.</p></div>
+    </div>
+  </div>
+</div>

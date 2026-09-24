@@ -1,0 +1,26 @@
+@page "/account/settings"
+@model SkyNetwork.Site.Pages.Account.SettingsModel
+@{ ViewData["Title"] = "Настройки"; }
+<div class="wrap page with-side">
+  <partial name="_AccountNav" />
+  <div>
+    <h1 style="font-size:30px">Настройки</h1>
+    @if (Model.Message != null) { <div class="alert ok">@Model.Message</div> }
+    @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+    <h2 style="font-size:20px;margin-top:24px">Профиль</h2>
+    <p class="muted small">Имя меняется через <a href="/account/support">поддержку</a> — по нему вас узнают в эфире.</p>
+    <form method="post" asp-page-handler="Profile" class="form">
+      <label>Электронная почта<input name="Email" type="email" value="@Model.Email" required maxlength="120"></label>
+      <label>Страна<input name="Country" value="@Model.Country" maxlength="60"></label>
+      <div><button class="btn btn-primary" type="submit">Сохранить профиль</button></div>
+    </form>
+    <h2 style="font-size:20px;margin-top:40px">Пароль</h2>
+    <p class="muted small">Пароль один для сайта и для подключения к сети.</p>
+    <form method="post" asp-page-handler="Password" class="form">
+      <label>Текущий пароль<input name="Current" type="password" required autocomplete="current-password"></label>
+      <label>Новый пароль<input name="NewPassword" type="password" required minlength="8" autocomplete="new-password"></label>
+      <label>Новый пароль ещё раз<input name="Confirm" type="password" required minlength="8" autocomplete="new-password"></label>
+      <div><button class="btn btn-primary" type="submit">Сменить пароль</button></div>
+    </form>
+  </div>
+</div>

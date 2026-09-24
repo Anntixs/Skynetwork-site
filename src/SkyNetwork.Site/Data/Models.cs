@@ -1,0 +1,161 @@
+namespace SkyNetwork.Site.Data;
+
+internal static class Time
+{
+    public static DateTime Utc(long unix) => DateTimeOffset.FromUnixTimeSeconds(unix).UtcDateTime;
+}
+
+public sealed class Member
+{
+    public long Cid { get; set; }
+    public string Name { get; set; } = "";
+    public int Rating { get; set; }
+    public bool Suspended { get; set; }
+    public string? Email { get; set; }
+    public string Country { get; set; } = "";
+    public long? RegisteredAt { get; set; }
+    public long? LastLoginAt { get; set; }
+    public string SuspensionReason { get; set; } = "";
+
+    public string RatingShort => Ratings.Short(Rating);
+    public string RatingLong => Ratings.Long(Rating);
+    public DateTime? Registered => RegisteredAt is { } r ? Time.Utc(r) : null;
+}
+
+public sealed class FlightPlan
+{
+    public long Id { get; set; }
+    public long Cid { get; set; }
+    public string Callsign { get; set; } = "";
+    public string Rules { get; set; } = "IFR";
+    public string Aircraft { get; set; } = "";
+    public int CruiseSpeed { get; set; }
+    public string Departure { get; set; } = "";
+    public string Destination { get; set; } = "";
+    public string Alternate { get; set; } = "";
+    public string DepartureTime { get; set; } = "";
+    public string CruiseAltitude { get; set; } = "";
+    public int EnrouteMinutes { get; set; }
+    public int FuelMinutes { get; set; }
+    public string Route { get; set; } = "";
+    public string Remarks { get; set; } = "";
+    public long CreatedAt { get; set; }
+    public DateTime Created => Time.Utc(CreatedAt);
+}
+
+public sealed class NetworkEvent
+{
+    public long Id { get; set; }
+    public string Title { get; set; } = "";
+    public string Summary { get; set; } = "";
+    public string Body { get; set; } = "";
+    public string Airports { get; set; } = "";
+    public long StartsAt { get; set; }
+    public long EndsAt { get; set; }
+    public bool Published { get; set; }
+    public long CreatedBy { get; set; }
+    public DateTime Start => Time.Utc(StartsAt);
+    public DateTime End => Time.Utc(EndsAt);
+}
+
+public sealed class NewsPost
+{
+    public long Id { get; set; }
+    public string Title { get; set; } = "";
+    public string Body { get; set; } = "";
+    public bool Published { get; set; }
+    public long AuthorCid { get; set; }
+    public string AuthorName { get; set; } = "";
+    public long CreatedAt { get; set; }
+    public DateTime Created => Time.Utc(CreatedAt);
+}
+
+public sealed class Booking
+{
+    public long Id { get; set; }
+    public long Cid { get; set; }
+    public string Name { get; set; } = "";
+    public int Rating { get; set; }
+    public string Callsign { get; set; } = "";
+    public long StartsAt { get; set; }
+    public long EndsAt { get; set; }
+    public DateTime Start => Time.Utc(StartsAt);
+    public DateTime End => Time.Utc(EndsAt);
+}
+
+public sealed class NetworkSession
+{
+    public long Id { get; set; }
+    public long Cid { get; set; }
+    public string Callsign { get; set; } = "";
+    /// <summary>"pilot" or "atc".</summary>
+    public string Kind { get; set; } = "";
+    public string Details { get; set; } = "";
+    public long StartedAt { get; set; }
+    public long? EndedAt { get; set; }
+    public DateTime Start => Time.Utc(StartedAt);
+    public TimeSpan Duration => TimeSpan.FromSeconds((EndedAt ?? Database.Now()) - StartedAt);
+}
+
+public sealed class Ticket
+{
+    public long Id { get; set; }
+    public long? Cid { get; set; }
+    public string Name { get; set; } = "";
+    public string Email { get; set; } = "";
+    public string Subject { get; set; } = "";
+    public string Status { get; set; } = "open";
+    public long CreatedAt { get; set; }
+    public long UpdatedAt { get; set; }
+    public DateTime Updated => Time.Utc(UpdatedAt);
+}
+
+public sealed class TicketMessage
+{
+    public long Id { get; set; }
+    public long TicketId { get; set; }
+    public long? Cid { get; set; }
+    public string Name { get; set; } = "";
+    public bool Staff { get; set; }
+    public string Body { get; set; } = "";
+    public long CreatedAt { get; set; }
+    public DateTime Created => Time.Utc(CreatedAt);
+}
+
+public sealed class TrainingRequest
+{
+    public long Id { get; set; }
+    public long Cid { get; set; }
+    public string Name { get; set; } = "";
+    public int Rating { get; set; }
+    public int TargetRating { get; set; }
+    public string Message { get; set; } = "";
+    public string Status { get; set; } = "open";
+    public long? InstructorCid { get; set; }
+    public string StaffComment { get; set; } = "";
+    public long CreatedAt { get; set; }
+    public DateTime Created => Time.Utc(CreatedAt);
+}
+
+public sealed class StaffNote
+{
+    public long Id { get; set; }
+    public long Cid { get; set; }
+    public long AuthorCid { get; set; }
+    public string AuthorName { get; set; } = "";
+    public string Body { get; set; } = "";
+    public long CreatedAt { get; set; }
+    public DateTime Created => Time.Utc(CreatedAt);
+}
+
+public sealed class AuditEntry
+{
+    public long Id { get; set; }
+    public long ActorCid { get; set; }
+    public string ActorName { get; set; } = "";
+    public string Action { get; set; } = "";
+    public string Target { get; set; } = "";
+    public string Details { get; set; } = "";
+    public long CreatedAt { get; set; }
+    public DateTime Created => Time.Utc(CreatedAt);
+}

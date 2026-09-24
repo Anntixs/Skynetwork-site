@@ -1,0 +1,21 @@
+@page "/staff/news/{id}"
+@model SkyNetwork.Site.Pages.Staff.NewsEditModel
+@{ var p = Model.Post; ViewData["Title"] = p.Id == 0 ? "Новая новость" : p.Title; }
+<div class="eyebrow"><a href="/staff/news">Новости</a></div>
+<h1 style="font-size:28px">@(p.Id == 0 ? "Новая новость" : p.Title)</h1>
+@if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+<form method="post" class="form wide">
+  <label>Заголовок<input name="Title" value="@p.Title" required maxlength="160"></label>
+  <label>Текст<textarea name="Body" required maxlength="20000" style="min-height:280px">@p.Body</textarea></label>
+  <label class="check"><input type="checkbox" name="Published" value="true" checked="@p.Published"> <span>Опубликовать</span></label>
+  <div class="inline-form">
+    <button class="btn btn-primary" type="submit">Сохранить</button>
+    @if (p.Id != 0) { <a class="btn" href="/news/@p.Id">Открыть на сайте</a> }
+  </div>
+</form>
+@if (p.Id != 0)
+{
+  <form method="post" asp-page-handler="Delete" style="margin-top:28px" onsubmit="return confirm('Удалить новость?')">
+    <button class="btn btn-danger" type="submit">Удалить новость</button>
+  </form>
+}

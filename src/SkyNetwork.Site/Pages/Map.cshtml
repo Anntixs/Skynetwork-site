@@ -1,0 +1,20 @@
+@page "/map"
+@{
+    ViewData["Title"] = "Карта";
+    ViewData["HideFooter"] = true;
+}
+@section Head {
+  <link rel="stylesheet" href="~/lib/leaflet/leaflet.css">
+}
+<div class="map-page">
+  <div id="map" aria-label="Карта трафика"></div>
+  <div class="map-panel">
+    <div class="eyebrow" style="margin:0 0 4px">В эфире</div>
+    <div><b id="pilot-count">—</b> <span class="muted">пилотов</span> · <b id="atc-count">—</b> <span class="muted">диспетчеров</span></div>
+    <div class="muted small" id="map-updated">Загрузка…</div>
+  </div>
+</div>
+@section Scripts {
+  <script src="~/lib/leaflet/leaflet.js"></script>
+  <script src="~/js/map.js" asp-append-version="true"></script>
+}

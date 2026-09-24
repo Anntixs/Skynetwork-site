@@ -1,0 +1,26 @@
+@page "/docs/ratings"
+@{ ViewData["Title"] = "Рейтинги диспетчеров"; }
+<div class="wrap page with-side">
+  <partial name="_DocsNav" />
+  <div>
+    <h1 style="font-size:34px">Рейтинги диспетчеров</h1>
+    <p class="muted" style="max-width:640px">Рейтинг определяет, какие позиции вам доступны. Каждый следующий получают после обучения и практического экзамена у инструктора.</p>
+    <div class="table-wrap" style="margin-top:20px">
+      <table>
+        <thead><tr><th>Рейтинг</th><th>Название</th><th>Позиции</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">OBS</td><td>Наблюдатель</td><td>Подключение без права управления — слушать и учиться</td></tr>
+          <tr><td class="mono">S1</td><td>@Ratings.Long(Ratings.S1)</td><td>Доставка разрешений и руление: DEL, GND</td></tr>
+          <tr><td class="mono">S2</td><td>@Ratings.Long(Ratings.S2)</td><td>Вышка: TWR</td></tr>
+          <tr><td class="mono">S3</td><td>@Ratings.Long(Ratings.S3)</td><td>Подход и вылет: APP, DEP</td></tr>
+          <tr><td class="mono">C1</td><td>@Ratings.Long(Ratings.C1)</td><td>Районный центр: CTR</td></tr>
+          <tr><td class="mono">C3</td><td>@Ratings.Long(Ratings.C3)</td><td>Все позиции, наставничество</td></tr>
+          <tr><td class="mono">I1–I3</td><td>Инструкторы</td><td>Обучение и экзамены</td></tr>
+          <tr><td class="mono">SUP</td><td>Супервайзер</td><td>Порядок в сети, помощь участникам</td></tr>
+          <tr><td class="mono">ADM</td><td>Администратор</td><td>Управление сетью</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:20px"><a class="btn btn-primary" href="/training">Подать заявку на обучение</a></p>
+  </div>
+</div>

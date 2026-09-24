@@ -1,0 +1,20 @@
+@page "/news"
+@inject ContentService Site
+@{
+    ViewData["Title"] = "Новости";
+    var posts = Site.News(50);
+}
+<div class="wrap page">
+  <div class="page-head"><h1>Новости</h1><p>Изменения в сети, программах и правилах.</p></div>
+  @if (posts.Count == 0) { <div class="empty">Новостей пока нет.</div> }
+  <div class="news-list prose">
+    @foreach (var n in posts)
+    {
+      <div class="news-item">
+        <div class="muted small">@Format.Date(n.Created) · @n.AuthorName</div>
+        <h3><a href="/news/@n.Id">@n.Title</a></h3>
+        <p class="muted">@(n.Body.Length > 280 ? n.Body[..280] + "…" : n.Body)</p>
+      </div>
+    }
+  </div>
+</div>

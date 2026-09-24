@@ -1,0 +1,134 @@
+@page
+@model IndexModel
+@{
+    var s = Model.Online;
+}
+@section Head {
+  <link rel="stylesheet" href="~/lib/leaflet/leaflet.css">
+}
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Сеть виртуальной авиации</div>
+      <h1>Одно небо для пилотов и диспетчеров</h1>
+      <p class="lead">В SkyNetwork пилоты летают в MSFS, а диспетчеры ведут их с земли — по-настоящему, по радио и по правилам. Участие бесплатное.</p>
+      <div class="hero-actions">
+        @if (Me.IsSignedIn)
+        {
+          <a class="btn btn-primary" href="/flightplan">Подать план полёта</a>
+          <a class="btn" href="/map">Карта в реальном времени</a>
+        }
+        else
+        {
+          <a class="btn btn-primary" href="/register">Зарегистрироваться</a>
+          <a class="btn" href="/docs">Как начать</a>
+        }
+      </div>
+      <div class="live-line">
+        @if (s.Available)
+        {
+          <span class="dot"></span>
+          <span>Сейчас в эфире: <b>@s.Pilots.Count</b> @Plural(s.Pilots.Count, "пилот", "пилота", "пилотов") и <b>@s.Controllers.Count</b> @Plural(s.Controllers.Count, "диспетчер", "диспетчера", "диспетчеров")</span>
+        }
+        else
+        {
+          <span class="dot off"></span><span>Сервер сейчас не отвечает</span>
+        }
+      </div>
+    </div>
+    <div class="hero-map" id="map" data-compact="1" aria-label="Карта трафика"></div>
+  </div>
+</section>
+
+<section class="section band">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Диспетчеры в эфире</h2>
+      <a href="/online">Весь онлайн →</a>
+    </div>
+    @if (s.Controllers.Count == 0)
+    {
+      <div class="empty">Сейчас никто не на позиции. Забронируйте время в <a href="/bookings">расписании</a> — пилоты увидят, когда вы выйдете.</div>
+    }
+    else
+    {
+      <div class="strips two">
+        @foreach (var c in s.Controllers.Take(8))
+        {
+          <div class="strip @c.FacilityName">
+            <span class="cs">@c.Callsign</span>
+            <span class="who">@c.Name · @c.Rating</span>
+            <span class="freq">@c.Frequency</span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Ближайшие мероприятия</h2>
+      <a href="/events">Все мероприятия →</a>
+    </div>
+    @if (Model.Events.Count == 0)
+    {
+      <div class="empty">Мероприятий пока не запланировано.</div>
+    }
+    else
+    {
+      <div class="grid three">
+        @foreach (var e in Model.Events)
+        {
+          <a class="card" href="/events/@e.Id">
+            <span class="date-chip">@Format.Span(e.Start, e.End)</span>
+            <h3>@e.Title</h3>
+            <p class="muted small">@e.Summary</p>
+            @if (e.Airports.Length > 0) { <span class="mono small">@e.Airports</span> }
+          </a>
+        }
+      </div>
+    }
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap grid two" style="gap:48px">
+    <div>
+      <div class="section-head"><h2>Как начать</h2></div>
+      <div class="steps" style="grid-template-columns:1fr">
+        <div class="step"><h3>Зарегистрируйтесь</h3><p class="muted small">Вы получите CID — номер участника. С ним и паролем вы входите на сайт и в сеть.</p></div>
+        <div class="step"><h3>Установите программу</h3><p class="muted small">Пилотам — SkyPilot для MSFS 2020/2024, диспетчерам — радар Network-ATC. <a href="/docs/software">Скачать</a></p></div>
+        <div class="step"><h3>Выходите в эфир</h3><p class="muted small">Подайте план полёта на сайте и подключитесь. Диспетчерам нужен рейтинг — начните с <a href="/docs/ratings">обучения</a>.</p></div>
+      </div>
+    </div>
+    <div>
+      <div class="section-head"><h2>Новости</h2><a href="/news">Все новости →</a></div>
+      @if (Model.News.Count == 0)
+      {
+        <div class="empty">Новостей пока нет.</div>
+      }
+      <div class="news-list">
+        @foreach (var n in Model.News)
+        {
+          <div class="news-item">
+            <div class="muted small">@Format.Date(n.Created)</div>
+            <h3><a href="/news/@n.Id">@n.Title</a></h3>
+            <p class="muted small">@(n.Body.Length > 180 ? n.Body[..180] + "…" : n.Body)</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+@section Scripts {
+  <script src="~/lib/leaflet/leaflet.js"></script>
+  <script src="~/js/map.js" asp-append-version="true"></script>
+}
+
+@functions {
+    static string Plural(int n, string one, string few, string many) =>
+        (n % 10 == 1 && n % 100 != 11) ? one : (n % 10 is >= 2 and <= 4 && n % 100 is < 12 or > 14) ? few : many;
+}

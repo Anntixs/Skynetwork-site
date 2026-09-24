@@ -1,0 +1,47 @@
+@page "/staff/online"
+@model SkyNetwork.Site.Pages.Staff.OnlineModel
+@{ ViewData["Title"] = "В эфире"; var s = Model.Online; }
+<h1 style="font-size:30px">В эфире</h1>
+<p class="muted">@(s.Available ? $"Сервер {s.Server}, данные на {Format.Time(s.Updated)}." : "Сервер не отвечает.") Чтобы отключить нарушителя, заблокируйте его в карточке участника — он не сможет переподключиться.</p>
+<h2 style="font-size:20px">Диспетчеры · @s.Controllers.Count</h2>
+<div class="table-wrap" style="margin-bottom:28px">
+  <table>
+    <thead><tr><th>Позывной</th><th>CID</th><th>Имя</th><th>Рейтинг</th><th>Частота</th><th>Дальность</th><th>С</th></tr></thead>
+    <tbody>
+    @foreach (var c in s.Controllers)
+    {
+      var member = Model.Ratings.GetValueOrDefault(c.Cid);
+      bool mismatch = member != 0 && Ratings.FromShort(c.Rating) > member;
+      <tr>
+        <td class="mono">@c.Callsign</td>
+        <td class="mono"><a href="/staff/members/@c.Cid">@c.Cid</a></td>
+        <td>@c.Name</td>
+        <td>@c.Rating @if (mismatch) { <span class="badge danger">выше рейтинга участника</span> }</td>
+        <td class="mono">@c.Frequency</td>
+        <td class="num">@c.VisualRange NM</td>
+        <td>@Format.Time(c.LogonTime)</td>
+      </tr>
+    }
+    </tbody>
+  </table>
+</div>
+<h2 style="font-size:20px">Пилоты · @s.Pilots.Count</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Позывной</th><th>CID</th><th>Имя</th><th>План</th><th>Высота</th><th>Код</th><th>С</th></tr></thead>
+    <tbody>
+    @foreach (var p in s.Pilots)
+    {
+      <tr>
+        <td class="mono">@p.Callsign</td>
+        <td class="mono"><a href="/staff/members/@p.Cid">@p.Cid</a></td>
+        <td>@p.Name</td>
+        <td class="mono small">@(p.FlightPlan is { } fp ? $"{fp.Rules} {fp.Aircraft} {fp.Departure}→{fp.Destination} {fp.CruiseAltitude}" : "нет плана")</td>
+        <td class="num">@p.Altitude</td>
+        <td class="mono">@p.Transponder</td>
+        <td>@Format.Time(p.LogonTime)</td>
+      </tr>
+    }
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,40 @@
+@page "/flightplan"
+@model FlightPlanModel
+@{ ViewData["Title"] = "План полёта"; var p = Model.Plan; }
+<div class="wrap page with-side">
+  <partial name="_AccountNav" />
+  <div>
+    <h1 style="font-size:30px">План полёта</h1>
+    <p class="muted">Подайте план до подключения. В SkyPilot нажмите «Обновить» — план уйдёт диспетчерам. Пока вы в сети, SkyPilot проверяет сайт каждые 30 секунд.</p>
+    @if (Model.Saved) { <div class="alert ok">План подан. Нажмите «Обновить» в SkyPilot.</div> }
+    @if (Model.Error != null) { <div class="alert error">@Model.Error</div> }
+    <form method="post" class="form wide">
+      <div class="row">
+        <label>Позывной<input name="Plan.Callsign" value="@p.Callsign" class="mono" required maxlength="10" pattern="[A-Za-z0-9]{2,10}"></label>
+        <label>Правила
+          <select name="Plan.Rules">
+            <option value="IFR" selected="@(p.Rules == "IFR")">IFR — по приборам</option>
+            <option value="VFR" selected="@(p.Rules == "VFR")">VFR — визуально</option>
+          </select>
+        </label>
+        <label>Тип ВС<input name="Plan.Aircraft" value="@p.Aircraft" class="mono" required maxlength="8" placeholder="A20N"></label>
+        <label>Скорость, узлы<input name="Plan.CruiseSpeed" value="@(p.CruiseSpeed == 0 ? "" : p.CruiseSpeed)" inputmode="numeric" required></label>
+      </div>
+      <div class="row">
+        <label>Вылет<input name="Plan.Departure" value="@p.Departure" class="mono" required maxlength="4" placeholder="UUEE"></label>
+        <label>Назначение<input name="Plan.Destination" value="@p.Destination" class="mono" required maxlength="4" placeholder="ULLI"></label>
+        <label>Запасной<input name="Plan.Alternate" value="@p.Alternate" class="mono" maxlength="4"></label>
+        <label>Вылет, UTC<input name="Plan.DepartureTime" value="@p.DepartureTime" class="mono" required maxlength="4" placeholder="1200"></label>
+      </div>
+      <div class="row">
+        <label>Эшелон<input name="Plan.CruiseAltitude" value="@p.CruiseAltitude" class="mono" required maxlength="6" placeholder="FL350"></label>
+        <label>В пути, мин<input name="Plan.EnrouteMinutes" value="@(p.EnrouteMinutes == 0 ? "" : p.EnrouteMinutes)" inputmode="numeric" required></label>
+        <label>Топливо, мин<input name="Plan.FuelMinutes" value="@(p.FuelMinutes == 0 ? "" : p.FuelMinutes)" inputmode="numeric" required></label>
+      </div>
+      <label>Маршрут<textarea name="Plan.Route" class="mono" required maxlength="1000" style="min-height:80px">@p.Route</textarea></label>
+      <label>Примечания<input name="Plan.Remarks" value="@p.Remarks" maxlength="300">
+        <span class="hint">/V/ — голосовая связь, /R/ — только приём, /T/ — только текст.</span></label>
+      <div><button class="btn btn-primary" type="submit">Подать план</button></div>
+    </form>
+  </div>
+</div>

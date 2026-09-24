@@ -1,0 +1,6 @@
+@page "/staff/audit"
+@model SkyNetwork.Site.Pages.Staff.AuditModel
+@{ ViewData["Title"] = "Журнал действий"; }
+<h1 style="font-size:30px">Журнал действий</h1>
+<p class="muted">Каждое действие команды: рейтинги, блокировки, роли, сбросы паролей, изменения на сайте. Записи не удаляются.</p>
+<partial name="_AuditTable" model="Model.Entries" />
