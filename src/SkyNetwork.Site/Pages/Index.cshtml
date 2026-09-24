@@ -41,7 +41,7 @@
       <a class="screen-link" href="/map"><span>@L["Open the map"]</span><partial name="_Chevron" /></a>
     </div>
 
-    <div class="nums" data-reveal-group>
+    <div class="nums" data-reveal-group="4">
       <div class="num" data-reveal><b data-mirror="pilot-count">@(s.Available ? N(s.Pilots.Count) : "—")</b><span>@L["Pilots in the air"]</span></div>
       <div class="num" data-reveal><b data-mirror="atc-count">@(s.Available ? N(s.Controllers.Count) : "—")</b><span>@L["Controllers on position"]</span></div>
       <div class="num" data-reveal><b>@N(Model.MemberCount)</b><span>@L["Members"]</span></div>
@@ -59,7 +59,7 @@
     <div class="board" data-reveal>
       @if (!s.Available)
       {
-        <div class="empty"><span class="dot off"></span><p>@L["The server is not responding right now"]</p></div>
+        <div class="empty"><p><span class="dot off"></span>@L["The server is not responding right now"]</p></div>
       }
       else if (s.Controllers.Count == 0)
       {
@@ -143,7 +143,7 @@
       <div class="gallery-frame">
         @for (int i = 0; i < Model.Gallery.Count; i++)
         {
-          <img class="slide @(i == 0 ? "active" : "")" src="@Model.Gallery[i]" alt="@L.F("Screenshot {0} of {1}", i + 1, Model.Gallery.Count)" loading="@(i == 0 ? "eager" : "lazy")" decoding="async">
+          <img class="slide @(i == 0 ? "active" : "")" src="@Model.Gallery[i]" alt="@L.F("Screenshot {0} of {1}", i + 1, Model.Gallery.Count)" aria-hidden="@(i == 0 ? "false" : "true")" loading="@(i == 0 ? "eager" : "lazy")" decoding="async">
         }
       </div>
       @if (Model.Gallery.Count > 1)
@@ -229,5 +229,5 @@
 @section Scripts {
   <script src="~/lib/leaflet/leaflet.js"></script>
   <script src="~/js/map.js" asp-append-version="true"></script>
-  <script src="~/js/home.js" asp-append-version="true"></script>
+  <script src="~/js/home.js" asp-append-version="true" onerror="document.documentElement.classList.remove('motion')"></script>
 }
