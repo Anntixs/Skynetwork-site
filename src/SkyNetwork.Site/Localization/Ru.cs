@@ -595,5 +595,10 @@ public static class Ru
         ["A route text as points: waypoints, airways expanded, coordinates; the tokens not found"] = "Текст маршрута точками: пункты, раскрытые трассы, координаты; ненайденные элементы",
         ["Airport diagram: runways, taxiways, aprons, stands (OpenStreetMap)"] = "Схема аэропорта: ВПП, рулёжки, перроны, стоянки (OpenStreetMap)",
         ["Current METAR"] = "Текущий METAR",
+        ["Layers"] = "Слои",
+        ["City names"] = "Названия городов",
+        ["Airport codes"] = "Коды аэропортов",
+        ["Airport diagrams"] = "Схемы аэропортов",
+        ["Fit all traffic"] = "Показать весь трафик",
     };
 }

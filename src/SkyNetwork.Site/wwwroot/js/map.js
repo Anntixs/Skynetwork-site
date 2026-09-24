@@ -116,10 +116,11 @@
   };
   const open = (kind, key) => () => compact ? location.href = '/map#' + encodeURIComponent(key) : select(kind, key, false);
 
+  // A dot until the heading is known (the server reads it from the position packet, older ones cannot).
   const plane = (p, isSelected) => L.divIcon({
-    className: 'plane' + (p.groundspeed < 40 ? ' ground' : '') + (isSelected ? ' selected' : ''),
+    className: 'plane' + ((p.onGround ?? p.groundspeed < 40) ? ' ground' : '') + (isSelected ? ' selected' : ''),
     iconSize: [22, 22], iconAnchor: [11, 11],
-    html: `<svg width="22" height="22" viewBox="0 0 24 24" style="transform:rotate(${p.heading ?? 0}deg)"><path fill="currentColor" d="M12 2c.8 0 1.3.7 1.3 1.6v5.6l7.7 4.6v2l-7.7-2.3v4.4l2.2 1.7v1.6L12 20.2l-3.5 1v-1.6l2.2-1.7v-4.4L3 15.8v-2l7.7-4.6V3.6C10.7 2.7 11.2 2 12 2z"/></svg>`
+    html: p.heading == null ? '<span class="plane-dot"></span>' : `<svg width="22" height="22" viewBox="0 0 24 24" style="transform:rotate(${p.heading}deg)"><path fill="currentColor" d="M12 2c.8 0 1.3.7 1.3 1.6v5.6l7.7 4.6v2l-7.7-2.3v4.4l2.2 1.7v1.6L12 20.2l-3.5 1v-1.6l2.2-1.7v-4.4L3 15.8v-2l7.7-4.6V3.6C10.7 2.7 11.2 2 12 2z"/></svg>`
   });
 
   // ---- reference data ----
@@ -153,12 +154,25 @@
       interactive: false, renderer: outlineRenderer, style: { color: css('--map-fir'), weight: 1, fill: false }
     }).addTo(firOutline);
   }
-  try { if (firToggle && localStorage.getItem('map-firs') === '0') firToggle.checked = false; } catch { }
-  const showOutline = () => (!firToggle || firToggle.checked) ? firOutline.addTo(map) : firOutline.remove();
-  showOutline();
-  firToggle?.addEventListener('change', () => {
-    showOutline();
-    try { localStorage.setItem('map-firs', firToggle.checked ? '1' : '0'); } catch { }
+  // Layer switches in the panel (the home page map follows the same choices), remembered in this browser.
+  const layerOn = {};
+  function layerToggle(id, key, apply) {
+    const box = document.getElementById(id);
+    let on = true;
+    try { on = localStorage.getItem('map-' + key) !== '0'; } catch { }
+    if (box) box.checked = on;
+    layerOn[key] = on;
+    apply(on);
+    box?.addEventListener('change', () => {
+      layerOn[key] = box.checked;
+      try { localStorage.setItem('map-' + key, box.checked ? '1' : '0'); } catch { }
+      apply(box.checked);
+    });
+  }
+  layerToggle('fir-toggle', 'firs', on => on ? firOutline.addTo(map) : firOutline.remove());
+  layerToggle('layer-labels', 'labels', on => on ? labels.addTo(map) : labels.remove());
+  document.addEventListener('click', e => {
+    document.querySelectorAll('details.layers-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; });
   });
 
   // Airport coordinates and names (OurAirports), airline names by ICAO code (OpenFlights): loaded when first needed.
@@ -203,7 +217,7 @@
   const layouts = new Map();   // ICAO → diagram, or 'loading'
 
   async function loadLayouts() {
-    if (compact || map.getZoom() < LAYOUT_ZOOM) return drawLayouts();
+    if (compact || map.getZoom() < LAYOUT_ZOOM || !layerOn.layouts) return drawLayouts();
     await loadAirports();
     const view = map.getBounds().pad(.2), c = map.getCenter();
     const near = Object.entries(airports).filter(([, a]) => view.contains([a[0], a[1]]))
@@ -221,7 +235,7 @@
   function drawLayouts() {
     layoutLayer.clearLayers();
     const z = map.getZoom();
-    if (compact || z < LAYOUT_ZOOM) return;
+    if (compact || z < LAYOUT_ZOOM || !layerOn.layouts) return;
     const near = map.getBounds().pad(.5), view = map.getBounds().pad(.1);
     const col = { apron: css('--apt-apron'), building: css('--apt-building'), runway: css('--apt-runway'), taxiway: css('--apt-taxiway'),
       stand: css('--apt-label'), gate: css('--accent') };
@@ -272,6 +286,7 @@
     }
   }
   map.on('moveend', loadLayouts);
+  layerToggle('layer-layouts', 'layouts', () => loadLayouts());
 
   // ---- airport codes (ICAO): big airports from zoom 5, medium from 7, small from 9 ----
   map.createPane('airportCodes').style.zIndex = 455;
@@ -301,6 +316,14 @@
   }
   map.on('moveend', drawCodes);
   if (!compact) loadAirports().then(drawCodes);
+  layerToggle('layer-codes', 'codes', on => on ? codesLayer.addTo(map) : codesLayer.remove());
+
+  // Everyone on the map at once.
+  let lastPoints = [];
+  document.getElementById('fit-all')?.addEventListener('click', () => {
+    if (lastPoints.length) map.fitBounds(lastPoints, { maxZoom: 7, padding: [30, 30] });
+    document.querySelector('details.layers-menu')?.removeAttribute('open');
+  });
 
   // ---- drawing ----
   function render() {
@@ -326,7 +349,7 @@
           // No known border for this callsign: a circle of the usual size instead.
           L.circle(at, { radius: (c.facility === 'FSS' ? 250 : 180) * 1852, color: ctr, weight: 1.2, fillOpacity: .06, bubblingMouseEvents: false })
             .on('click', open('atc', c.callsign)).addTo(sectors);
-          label(`<span class="atc-label" style="transform:translate(-50%,-50%);display:inline-block">${esc(c.callsign)}</span>`, open('atc', c.callsign))
+          label(`<span class="atc-label" title="${esc(c.name)} · ${esc(c.frequency)}" style="transform:translate(-50%,-50%);display:inline-block">${esc(c.callsign)}</span>`, open('atc', c.callsign))
             .setLatLng(at).addTo(traffic);
         }
         continue;
@@ -343,7 +366,8 @@
       const shape = L.geoJSON(s.features, { style: { color: ctr, weight: 1.6, fillColor: ctr, fillOpacity: .1 }, bubblingMouseEvents: false })
         .on('click', open('atc', cs)).addTo(sectors);
       const names = s.controllers.map(c => esc(c.callsign)).join('<br>');
-      label(`<span class="atc-label" style="transform:translate(-50%,-50%);display:inline-block;text-align:center">${names}</span>`, open('atc', cs))
+      const hint = esc(s.name) + ' · ' + s.controllers.map(c => esc(c.frequency)).join(', ');
+      label(`<span class="atc-label" title="${hint}" style="transform:translate(-50%,-50%);display:inline-block;text-align:center">${names}</span>`, open('atc', cs))
         .setLatLng(s.label ?? shape.getBounds().getCenter()).addTo(traffic);
     }
 
@@ -356,7 +380,8 @@
       const at = c ? [c.latitude, c.longitude] : aptLL(code);
       if (!at) continue;
       const chips = order.filter(f => list.some(x => x.facility === f)).map(f => `<i class="${f}">${f[0]}</i>`).join('');
-      label(`<span class="apt-badge" style="transform:translate(-50%,-50%)">${esc(code)}${chips}</span>`, open('airport', code))
+      const hint = list.map(x => `${esc(x.callsign)} ${esc(x.frequency)}`).join('&#10;');
+      label(`<span class="apt-badge" title="${hint}" style="transform:translate(-50%,-50%)">${esc(code)}${chips}</span>`, open('airport', code))
         .setLatLng(at).addTo(traffic);
     }
 
@@ -568,7 +593,7 @@
     }
     const dDep = at && dep ? distNm(at, dep) : null, dArr = at && arr ? distNm(at, arr) : null;
     let phase;
-    if (gs < 40) phase = dArr != null && dArr < 5 && track.length > 3 ? 'Arrived' : 'On the ground';
+    if (p.onGround ?? gs < 40) phase = dArr != null && dArr < 5 && track.length > 3 ? 'Arrived' : 'On the ground';
     else if (dArr != null && dArr < 30 && vs <= 200 && alt < 12000) phase = 'Arriving';
     else if (dDep != null && dDep < 30 && vs > 200) phase = 'Departing';
     else if (vs > 300) phase = 'Climbing';
@@ -605,7 +630,7 @@
         ${cell(t('Altitude'), feet(alt))}
         ${cell(t('Heading'), p.heading != null ? pad(Math.round(p.heading) % 360, 3) + '°' : '—')}
         ${cell(t('Squawk'), esc(p.transponder || '—'))}
-        ${cell(t('Vertical speed'), gs < 40 ? '—' : (vs > 0 ? '+' : '') + vs + ' ft/min')}
+        ${cell(t('Vertical speed'), (p.onGround ?? gs < 40) ? '—' : (vs > 0 ? '+' : '') + vs + ' ft/min')}
         ${cell(t('Next point'), next && gs >= 40 ? `${esc(next[0])} <small class="muted">${Math.round(distNm(at, [next[1], next[2]]))} nm</small>` : '—')}
       </div>`;
 
@@ -749,6 +774,7 @@
     if (list) list.innerHTML = [...data.pilots, ...data.controllers].map(x => `<option value="${esc(x.callsign)}">`).join('');
 
     const points = render();
+    lastPoints = points;
     if (selected?.kind === 'pilot') {
       loadRoute(selected.key);
       const p = pilotOf(selected.key);

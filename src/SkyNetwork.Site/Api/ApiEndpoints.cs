@@ -93,7 +93,7 @@ public static class ApiEndpoints
                 pilots = s.Pilots.Select(p => new
                 {
                     p.Cid, p.Name, p.Callsign, p.Latitude, p.Longitude, p.Altitude, p.Groundspeed, p.Heading, p.Transponder,
-                    logonTime = p.LogonTime, flightPlan = p.FlightPlan,
+                    onGround = p.OnGround, logonTime = p.LogonTime, flightPlan = p.FlightPlan,
                 }),
                 controllers = s.Controllers.Select(c => new
                 {

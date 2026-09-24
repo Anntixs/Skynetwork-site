@@ -307,7 +307,20 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
   position: absolute; z-index: 1000; background: var(--panel-bg);
   border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 24px var(--shadow); backdrop-filter: blur(6px);
 }
-.map-panel { top: 16px; left: 16px; padding: 14px 16px; width: 280px; display: grid; gap: 10px; }
+.map-panel { top: 16px; left: 16px; padding: 14px 16px; width: 300px; display: grid; gap: 10px; }
+.mp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.layers-menu { position: relative; flex: none; }
+.layers-menu summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px; color: var(--slate); font: 500 12.5px var(--body); background: var(--paper); }
+.layers-menu summary::-webkit-details-marker { display: none; }
+.layers-menu summary svg { width: 15px; height: 15px; }
+.layers-menu summary:hover, .layers-menu[open] summary { color: var(--ink); border-color: var(--line-strong); }
+.layers-menu .menu { position: absolute; right: 0; top: calc(100% + 6px); min-width: 220px; display: grid; gap: 8px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 28px var(--shadow); z-index: 1100; }
+.layers-menu .menu .check { font-size: 13.5px; color: var(--ink); align-items: center; }
+.layers-menu .menu .check input { margin: 0; }
+.layers-menu .menu .btn { margin-top: 4px; }
+.mp-search { position: relative; }
+.mp-search svg { position: absolute; left: 10px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); color: var(--slate); pointer-events: none; }
+.mp-search input { padding-left: 32px; }
 .map-panel b { font: 700 20px var(--display); }
 .map-panel input[type=search] { padding: 7px 10px; font-size: 14px; }
 .map-panel .check { font-size: 13px; color: var(--slate); }
@@ -374,6 +387,7 @@ details.mc-sec .mc-block + .mc-block { margin-top: 12px; }
 
 .plane { color: var(--ink); }
 .plane svg { display: block; transition: transform .3s; }
+.plane-dot { display: block; width: 10px; height: 10px; margin: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 2px var(--paper); }
 .plane.ground { opacity: .6; }
 .plane.selected { color: var(--accent); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 60%, transparent)); }
 .atc-label { font: 600 11px var(--mono); color: #fff; background: var(--f-ctr); padding: 1px 5px; border-radius: 4px; white-space: nowrap; cursor: pointer; }
