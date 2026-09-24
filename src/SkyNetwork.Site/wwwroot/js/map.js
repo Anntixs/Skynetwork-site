@@ -5,8 +5,9 @@
   const compact = el.dataset.compact === '1';
   const map = L.map(el, { zoomControl: !compact, attributionControl: true, worldCopyJump: true, scrollWheelZoom: !compact })
     .setView([55.75, 37.6], compact ? 4 : 5);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 18, subdomains: 'abcd',
+  // Tiles come through the site (see TileProxy), not straight from the provider.
+  L.tileLayer('/tiles/{z}/{x}/{y}.png', {
+    maxZoom: 18,
     attribution: '&copy; OpenStreetMap, &copy; CARTO'
   }).addTo(map);
 

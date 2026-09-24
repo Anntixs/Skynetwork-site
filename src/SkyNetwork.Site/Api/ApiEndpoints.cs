@@ -15,6 +15,12 @@ public static class ApiEndpoints
         app.MapGet("/api/flightplans/latest", (long cid, FlightPlanService plans) =>
             plans.Latest(cid) is { } p ? Results.Ok(PlanDto(p)) : Results.NotFound()).RequireCors("api");
 
+        app.MapGet("/tiles/{z:int}/{x:int}/{y:int}.png", async (int z, int x, int y, TileProxy tiles, HttpContext ctx) =>
+        {
+            ctx.Response.Headers.CacheControl = "public, max-age=604800";
+            return await tiles.GetAsync(z, x, y, ctx.RequestAborted);
+        });
+
         var v1 = app.MapGroup("/api/v1").RequireCors("api");
 
         v1.MapGet("/status", (Microsoft.Extensions.Options.IOptions<SiteOptions> o, NetworkFeed feed) => new

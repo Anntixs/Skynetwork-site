@@ -24,6 +24,13 @@ builder.Services.AddSingleton<SessionService>();
 builder.Services.AddScoped<CurrentUser>();
 builder.Services.AddHttpClient("feed", c => c.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddSingleton<NetworkFeed>();
+builder.Services.AddHttpClient("tiles", c =>
+{
+    c.Timeout = TimeSpan.FromSeconds(10);
+    // Tile providers require an identifying User-Agent.
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("SkyNetworkSite/1.0 (+https://github.com/Anntixs/Skynetwork-site)");
+});
+builder.Services.AddSingleton<TileProxy>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<NetworkFeed>());
 
 // Cyrillic stays as text in the HTML instead of &#x...; entities.
