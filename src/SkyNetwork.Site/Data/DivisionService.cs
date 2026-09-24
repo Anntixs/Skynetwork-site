@@ -6,17 +6,12 @@ using SkyNetwork.Site.Security;
 
 namespace SkyNetwork.Site.Data;
 
+/// <summary>A division that may send rating requests: its code and API key.</summary>
 public sealed class Division
 {
     public long Id { get; set; }
     public string Code { get; set; } = "";
     public string Name { get; set; } = "";
-    public string Region { get; set; } = "";
-    public string Website { get; set; } = "";
-    public string Description { get; set; } = "";
-    public long? DirectorCid { get; set; }
-    public string DirectorName { get; set; } = "";
-    public bool Active { get; set; }
     public string ApiKeyHint { get; set; } = "";
     public long? ApiKeyCreatedAt { get; set; }
     public long CreatedAt { get; set; }
@@ -76,92 +71,51 @@ public sealed partial class DivisionService(Database db, MemberService members, 
         ["pending"] = "awaiting approval", ["approved"] = "approved", ["declined"] = "declined", ["withdrawn"] = "withdrawn",
     };
 
-    private const string DivisionSelect = """
-        SELECT d.*, COALESCE(m.name, '') AS director_name
-        FROM divisions d LEFT JOIN members m ON m.cid = d.director_cid
-        """;
-
-    public IReadOnlyList<Division> All(bool activeOnly = false)
+    public IReadOnlyList<Division> All()
     {
         using var c = db.Open();
-        return c.Query<Division>(DivisionSelect + " WHERE (NOT @activeOnly OR d.active = 1) ORDER BY d.code", new { activeOnly }).ToList();
+        return c.Query<Division>("SELECT * FROM divisions ORDER BY code").ToList();
     }
 
     public Division? Find(long id)
     {
         using var c = db.Open();
-        return c.QuerySingleOrDefault<Division>(DivisionSelect + " WHERE d.id = @id", new { id });
+        return c.QuerySingleOrDefault<Division>("SELECT * FROM divisions WHERE id = @id", new { id });
     }
 
     public Division? FindByCode(string code)
     {
         using var c = db.Open();
-        return c.QuerySingleOrDefault<Division>(DivisionSelect + " WHERE d.code = @code", new { code });
+        return c.QuerySingleOrDefault<Division>("SELECT * FROM divisions WHERE code = @code", new { code });
     }
 
-    // ---- management (administrators) ------------------------------------------------------------
+    // ---- API keys (administrators) ------------------------------------------------------------
 
     [GeneratedRegex("^[A-Z0-9]{3,12}$")]
     private static partial Regex CodePattern();
 
-    /// <summary>Checks the fields; returns an English error or null.</summary>
-    public static string? Validate(string code, string name, string website)
-    {
-        if (!CodePattern().IsMatch(code)) return "The code is 3–12 Latin letters or digits, e.g. SKYRUS";
-        if (name.Length is < 2 or > 60) return "The name is 2 to 60 characters";
-        if (website.Length > 0 && !(Uri.TryCreate(website, UriKind.Absolute, out var u) && u.Scheme is "http" or "https"))
-            return "The website must be an http:// or https:// address";
-        return null;
-    }
-
-    public (long Id, string? Error) Create(long actor, string code, string name, string region, string website, string description)
+    /// <summary>
+    /// A division by code with a new API key (a new division when the code is new). Only the key's
+    /// SHA-256 is stored: the key itself is returned once, to pass on to the division.
+    /// </summary>
+    public (string? Key, string? Error) IssueKey(long actor, string code, string name = "")
     {
         code = code.Trim().ToUpperInvariant();
-        name = name.Trim();
-        website = website.Trim();
-        if (Validate(code, name, website) is { } error) return (0, error);
-        if (FindByCode(code) != null) return (0, "A division with this code already exists");
-        using var c = db.Open();
-        long id = c.ExecuteScalar<long>("""
-            INSERT INTO divisions (code, name, region, website, description, created_at)
-            VALUES (@code, @name, @region, @website, @description, @now) RETURNING id
-            """, new { code, name, region = region.Trim(), website, description = description.Trim(), now = Database.Now() });
-        audit.Log(actor, "division", code, "created");
-        return (id, null);
-    }
-
-    public string? Update(long actor, long id, string name, string region, string website, string description, long? directorCid, bool active)
-    {
-        var d = Find(id);
-        if (d == null) return "Division not found";
-        name = name.Trim();
-        website = website.Trim();
-        if (Validate(d.Code, name, website) is { } error) return error;
-        if (directorCid is { } dc && members.Find(dc) == null) return "No member with this CID";
-        using var c = db.Open();
-        c.Execute("""
-            UPDATE divisions SET name = @name, region = @region, website = @website, description = @description,
-                   director_cid = @directorCid, active = @active WHERE id = @id
-            """, new { id, name, region = region.Trim(), website, description = description.Trim(), directorCid, active = active ? 1 : 0 });
-        audit.Log(actor, "division", d.Code, active ? "updated" : "updated, inactive");
-        return null;
-    }
-
-    /// <summary>
-    /// A new API key for the division, replacing the old one. Only its SHA-256 is stored: the key
-    /// itself is returned once and shown to the administrator to pass on to the division.
-    /// </summary>
-    public string IssueKey(long actor, long id)
-    {
-        var d = Find(id) ?? throw new InvalidOperationException("no division");
+        if (!CodePattern().IsMatch(code)) return (null, "The code is 3–12 Latin letters or digits, e.g. SKYRUS");
         string key = "skd_" + Base64Url(RandomNumberGenerator.GetBytes(30));
         using var c = db.Open();
-        c.Execute("UPDATE divisions SET api_key_hash = @hash, api_key_hint = @hint, api_key_created_at = @now WHERE id = @id",
-            new { id, hash = Hash(key), hint = key[..8] + "…", now = Database.Now() });
-        audit.Log(actor, "division-key", d.Code, "issued");
-        return key;
+        long now = Database.Now();
+        c.Execute("""
+            INSERT INTO divisions (code, name, created_at) VALUES (@code, @name, @now)
+            ON CONFLICT(code) DO UPDATE SET name = CASE WHEN @name = '' THEN name ELSE @name END
+            """, new { code, name = name.Trim(), now });
+        c.Execute("UPDATE divisions SET api_key_hash = @hash, api_key_hint = @hint, api_key_created_at = @now WHERE code = @code",
+            new { code, hash = Hash(key), hint = key[..8] + "…", now });
+        audit.Log(actor, "division-key", code, "issued");
+        return (key, null);
     }
 
+    /// <summary>The division's key stops working; its requests stay.</summary>
     public void RevokeKey(long actor, long id)
     {
         var d = Find(id);
@@ -171,13 +125,13 @@ public sealed partial class DivisionService(Database db, MemberService members, 
         audit.Log(actor, "division-key", d.Code, "revoked");
     }
 
-    /// <summary>The active division the key belongs to, or null.</summary>
+    /// <summary>The division the key belongs to, or null.</summary>
     public Division? Authenticate(string? key)
     {
         if (string.IsNullOrWhiteSpace(key) || !key.StartsWith("skd_", StringComparison.Ordinal) || key.Length > 100) return null;
         using var c = db.Open();
         // Keys are long random strings, so a plain hash lookup is safe (nothing to brute-force).
-        return c.QuerySingleOrDefault<Division>(DivisionSelect + " WHERE d.api_key_hash = @hash AND d.active = 1", new { hash = Hash(key.Trim()) });
+        return c.QuerySingleOrDefault<Division>("SELECT * FROM divisions WHERE api_key_hash = @hash", new { hash = Hash(key.Trim()) });
     }
 
     private static string Hash(string key) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));

@@ -39,8 +39,6 @@ public static class DivisionApi
             return await next(ctx);
         });
 
-        api.MapGet("/division", (HttpContext ctx) => DivisionDto(Current(ctx)));
-
         // Any member: an academy checks a CID before enrolling someone.
         api.MapGet("/members/{cid:long}", (long cid, MemberService members) =>
             members.Find(cid) is { } m ? Results.Ok(MemberDto(m)) : Problem(404, "member_not_found", "No member with this CID"));
@@ -73,11 +71,6 @@ public static class DivisionApi
 
     private static IResult Problem(int status, string code, string message) =>
         Results.Json(new { error = code, message }, statusCode: status);
-
-    private static object DivisionDto(Division d) => new
-    {
-        d.Code, d.Name, d.Region, d.Website, d.Description, director = d.DirectorCid,
-    };
 
     private static object MemberDto(Member m) => new
     {

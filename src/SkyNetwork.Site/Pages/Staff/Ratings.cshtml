@@ -60,3 +60,43 @@
     </div>
   }
 </div>
+
+@if (Model.Me.Has(Perm.ManageDivisions))
+{
+  <h2 id="keys" style="font-size:20px;margin-top:36px">@L["Division API keys"]</h2>
+  <p class="muted small" style="max-width:720px">@L["A division's website sends requests with its key in the Authorization: Bearer header. The key is shown once; a new key replaces the old one at once."] <a href="/developers#division-api">@L["Division API"]</a></p>
+  @if (Model.NewKey != null)
+  {
+    <div class="alert ok">@L["New key issued. Copy it now and pass it to the division securely: it is shown only once."]</div>
+    <div class="key-box" id="new-key" style="margin-bottom:16px">@Model.NewKey</div>
+  }
+  @if (Model.Keys.Count > 0)
+  {
+    <div class="table-wrap" style="margin-bottom:16px">
+      <table>
+        <thead><tr><th>@L["Code"]</th><th>@L["Division name"]</th><th>@L["API key"]</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var d in Model.Keys)
+        {
+          <tr>
+            <td class="mono">@d.Code</td><td>@d.Name</td>
+            <td>@if (d.HasApiKey) { <span class="mono small">@d.ApiKeyHint</span> <span class="muted small">@L["issued"] @Format.Utc(d.ApiKeyCreated!.Value)</span> } else { <span class="muted">@L["none"]</span> }</td>
+            <td class="inline-form" style="justify-content:flex-end">
+              <form method="post" asp-page-handler="Key"><input type="hidden" name="divisionCode" value="@d.Code"><button class="btn btn-small" type="submit">@L["Issue a new key"]</button></form>
+              @if (d.HasApiKey)
+              {
+                <form method="post" asp-page-handler="Revoke" onsubmit="return confirm('@L["Revoke the key? The division's website stops working with the network until a new key is issued."]')"><input type="hidden" name="id" value="@d.Id"><button class="btn btn-small" type="submit">@L["Revoke"]</button></form>
+              }
+            </td>
+          </tr>
+        }
+        </tbody>
+      </table>
+    </div>
+  }
+  <form method="post" asp-page-handler="Key" class="inline-form">
+    <label>@L["Code"]<input name="divisionCode" required maxlength="12" placeholder="SKYRUS" style="text-transform:uppercase"></label>
+    <label>@L["Division name"]<input name="name" maxlength="60" placeholder="SkyRUS"></label>
+    <button class="btn btn-primary" type="submit">@L["Issue a key"]</button>
+  </form>
+}

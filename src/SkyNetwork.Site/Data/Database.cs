@@ -110,12 +110,10 @@ public sealed class Database
                 instructor_cid INTEGER, staff_comment TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
 
-            -- Divisions (e.g. SKYRUS, SKYEUD) train on their own websites and send rating requests
-            -- through the division API; a supervisor approves them.
+            -- Divisions (e.g. SKYRUS) send rating requests through the division API with their key;
+            -- a supervisor approves them in the staff area.
             CREATE TABLE IF NOT EXISTS divisions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE COLLATE NOCASE, name TEXT NOT NULL,
-                region TEXT NOT NULL DEFAULT '', website TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '',
-                director_cid INTEGER, active INTEGER NOT NULL DEFAULT 1,
+                id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE COLLATE NOCASE, name TEXT NOT NULL DEFAULT '',
                 api_key_hash TEXT UNIQUE, api_key_hint TEXT NOT NULL DEFAULT '', api_key_created_at INTEGER,
                 created_at INTEGER NOT NULL);
 
@@ -164,13 +162,6 @@ public sealed class Database
         AddColumn(c, "events", "banner", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "news", "banner", "TEXT NOT NULL DEFAULT ''");
 
-        // The first divisions; administrators add more and issue their API keys in the staff area.
-        if (c.ExecuteScalar<long>("SELECT COUNT(*) FROM divisions") == 0)
-            c.Execute("""
-                INSERT INTO divisions (code, name, region, created_at) VALUES
-                    ('SKYRUS', 'SkyRUS', 'Russia', @now),
-                    ('SKYEUD', 'SkyEUD', 'Europe', @now)
-                """, new { now = Now() });
     }
 
     private static void AddColumn(SqliteConnection c, string table, string column, string type)

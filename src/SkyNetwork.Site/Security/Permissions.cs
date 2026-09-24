@@ -25,7 +25,7 @@ public enum Perm
     PilotRatings = 1 << 14,
     /// <summary>Change a member's first and last name.</summary>
     EditNames = 1 << 15,
-    /// <summary>Create divisions and issue their API keys.</summary>
+    /// <summary>Issue and revoke division API keys.</summary>
     ManageDivisions = 1 << 16,
     /// <summary>Approve or decline the rating requests divisions send after an exam.</summary>
     ApproveRatings = 1 << 17,

@@ -15,34 +15,17 @@ public class DivisionTests
         return c;
     }
 
-    /// <summary>The whole &lt;form&gt; element that contains <paramref name="marker"/>.</summary>
-    private static string FormWith(string html, string marker)
-    {
-        foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(html, "<form[^>]*>.*?</form>", System.Text.RegularExpressions.RegexOptions.Singleline))
-            if (m.Value.Contains(marker)) return m.Value;
-        Assert.Fail($"no form with {marker}");
-        return "";
-    }
-
     private static async Task<JsonElement> Json(HttpResponseMessage r) =>
         JsonDocument.Parse(await r.Content.ReadAsStringAsync()).RootElement;
 
-    /// <summary>The seeded SKYRUS division with a fresh key, as an administrator would set it up.</summary>
+    private const string Probe = "/api/division/v1/rating-requests";
+
+    /// <summary>A SKYRUS key, as an administrator would issue it.</summary>
     private static (Division Division, string Key) Skyrus(SiteFactory site)
     {
         var divisions = site.Get<DivisionService>();
-        var d = divisions.FindByCode("SKYRUS")!;
-        return (d, divisions.IssueKey(0, d.Id));
-    }
-
-    [Fact]
-    public async Task FirstDivisionsExist_OnlyInManagement()
-    {
-        using var site = new SiteFactory();
-        Assert.NotNull(site.Get<DivisionService>().FindByCode("SKYRUS"));
-        Assert.NotNull(site.Get<DivisionService>().FindByCode("SKYEUD"));
-        // No public division pages.
-        Assert.Equal(HttpStatusCode.NotFound, (await site.Browser().GetAsync("/divisions")).StatusCode);
+        var (key, _) = divisions.IssueKey(0, "SKYRUS", "SkyRUS");
+        return (divisions.FindByCode("SKYRUS")!, key!);
     }
 
     [Fact]
@@ -50,23 +33,22 @@ public class DivisionTests
     {
         using var site = new SiteFactory();
         var (d, key) = Skyrus(site);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await site.CreateClient().GetAsync("/api/division/v1/division")).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Api(site, "skd_wrong").GetAsync("/api/division/v1/division")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await site.CreateClient().GetAsync(Probe)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Api(site, "skd_wrong").GetAsync(Probe)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Api(site, key).GetAsync(Probe)).StatusCode);
 
-        var ok = await Api(site, key).GetAsync("/api/division/v1/division");
-        Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
-        Assert.Equal("SKYRUS", (await Json(ok)).GetProperty("code").GetString());
-
-        // X-Api-Key works too; a new key replaces the old one; an inactive division is locked out.
+        // X-Api-Key works too; a new key replaces the old one; a revoked key stops working.
         var x = site.CreateClient();
         x.DefaultRequestHeaders.Add("X-Api-Key", key);
-        Assert.Equal(HttpStatusCode.OK, (await x.GetAsync("/api/division/v1/division")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await x.GetAsync(Probe)).StatusCode);
         var divisions = site.Get<DivisionService>();
-        string newKey = divisions.IssueKey(0, d.Id);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Api(site, key).GetAsync("/api/division/v1/division")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await Api(site, newKey).GetAsync("/api/division/v1/division")).StatusCode);
-        divisions.Update(0, d.Id, d.Name, d.Region, d.Website, d.Description, null, active: false);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Api(site, newKey).GetAsync("/api/division/v1/division")).StatusCode);
+        string newKey = divisions.IssueKey(0, "skyrus").Key!;
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Api(site, key).GetAsync(Probe)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Api(site, newKey).GetAsync(Probe)).StatusCode);
+        Assert.Single(divisions.All());
+        divisions.RevokeKey(0, d.Id);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Api(site, newKey).GetAsync(Probe)).StatusCode);
+        Assert.Equal("The code is 3–12 Latin letters or digits, e.g. SKYRUS", divisions.IssueKey(0, "a b").Error);
     }
 
     [Fact]
@@ -152,7 +134,7 @@ public class DivisionTests
         Assert.Equal((HttpStatusCode.Created, null), await Post(new { cid = member, track = "pilot", rating = "PPL" }));
 
         // Another division's requests are invisible.
-        string eudKey = divisions.IssueKey(0, divisions.FindByCode("SKYEUD")!.Id);
+        string eudKey = divisions.IssueKey(0, "SKYEUD").Key!;
         Assert.Equal(HttpStatusCode.NotFound, (await Api(site, eudKey).GetAsync($"/api/division/v1/rating-requests/{id}")).StatusCode);
         Assert.Equal(0, (await Json(await Api(site, eudKey).GetAsync("/api/division/v1/rating-requests"))).GetArrayLength());
     }
@@ -187,7 +169,7 @@ public class DivisionTests
     }
 
     [Fact]
-    public async Task Administrator_CreatesDivision_AndIssuesKey()
+    public async Task Administrator_IssuesKeys_InTheRequestsSection()
     {
         using var site = new SiteFactory();
         long admin = site.Member("Anna Admin", Ratings.ADM);
@@ -195,29 +177,27 @@ public class DivisionTests
         var a = site.Browser();
         await a.LoginAsync(admin);
 
-        var created = await a.SubmitAsync("/staff/divisions", new Dictionary<string, string>
-        {
-            ["code"] = "skyasia", ["name"] = "SkyASIA", ["region"] = "Asia", ["website"] = "https://asia.example", ["description"] = "",
-        });
-        Assert.Equal(HttpStatusCode.Redirect, created.StatusCode);
-        var d = site.Get<DivisionService>().FindByCode("SKYASIA")!;
-        Assert.Equal("Asia", d.Region);
-
-        var page = await (await a.SubmitPageFormAsync($"/staff/divisions/{d.Id}", "Key", new Dictionary<string, string>())).Content.ReadAsStringAsync();
+        var r = await a.SubmitPageFormAsync("/staff/ratings", "Key", new Dictionary<string, string> { ["divisionCode"] = "skyasia", ["name"] = "SkyASIA" });
+        var page = await r.Content.ReadAsStringAsync();
         var key = System.Text.RegularExpressions.Regex.Match(page, "skd_[A-Za-z0-9_-]{40}").Value;
         Assert.NotEmpty(key);
-        // Saving the division from this page must not issue yet another key.
-        var save = FormWith(page, "name=\"director\"");
-        Assert.Contains($"action=\"/staff/divisions/{d.Id}\"", save);
-        Assert.Contains("__RequestVerificationToken", save);
-        Assert.Equal(HttpStatusCode.OK, (await Api(site, key).GetAsync("/api/division/v1/division")).StatusCode);
+        Assert.Equal("SkyASIA", site.Get<DivisionService>().FindByCode("SKYASIA")!.Name);
+        Assert.Equal(HttpStatusCode.OK, (await Api(site, key).GetAsync(Probe)).StatusCode);
         // Shown once: the page afterwards only has the hint.
-        Assert.DoesNotContain(key, await a.HtmlAsync($"/staff/divisions/{d.Id}"));
+        Assert.DoesNotContain(key, await a.HtmlAsync("/staff/ratings"));
 
-        // Supervisors approve ratings but do not manage divisions.
+        // Supervisors see the requests but not the keys, and cannot issue them.
+        long student = site.Member("Petr Student");
+        var divisions = site.Get<DivisionService>();
+        Assert.Null(divisions.Submit(divisions.FindByCode("SKYASIA")!, new RatingRequestInput(student, "atc", "S1")).Error);
         var s = site.Browser();
         await s.LoginAsync(sup);
-        Assert.Equal(HttpStatusCode.NotFound, (await s.GetAsync("/staff/divisions")).StatusCode);
-        await s.HtmlAsync("/staff/ratings");
+        Assert.DoesNotContain("handler=Key", await s.HtmlAsync("/staff/ratings"));
+        var forced = await s.SubmitAsync("/staff/ratings", new Dictionary<string, string> { ["divisionCode"] = "HACK" }, "/staff/ratings?handler=Key");
+        Assert.Equal(HttpStatusCode.NotFound, forced.StatusCode);
+        Assert.Null(site.Get<DivisionService>().FindByCode("HACK"));
+        // No separate division pages.
+        Assert.Equal(HttpStatusCode.NotFound, (await a.GetAsync("/staff/divisions")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await a.GetAsync("/divisions")).StatusCode);
     }
 }

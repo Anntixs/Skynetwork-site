@@ -42,7 +42,6 @@ public sealed class AuditService(Database db)
         "booking-delete" => "Booking deleted",
         "ticket" => "Support ticket",
         "training" => "Training",
-        "division" => "Division",
         "division-key" => "Division API key",
         "rating-request" => "Rating request",
         _ => action,
