@@ -355,10 +355,11 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 :root .leaflet-tooltip.wp-label { background: none; border: 0; box-shadow: none; padding: 0; font: 600 10px var(--mono); color: var(--ink); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper), 0 0 2px var(--paper); }
 .leaflet-tooltip.wp-label::before { display: none; }
 .wp-hide .wp-label { display: none; }
-.apt-code { display: inline-block; transform: translate(-50%, -50%); font: 600 10px var(--mono); color: var(--slate); background: var(--panel-bg);
-  border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; line-height: 1.5; cursor: pointer; white-space: nowrap; }
-.apt-code.r0 { color: var(--ink); font-size: 11px; }
-.apt-code:hover { color: var(--accent); border-color: var(--accent); }
+/* Airport codes as on radar screens: plain bold text, the bigger airports a little brighter. */
+.apt-code { display: inline-block; transform: translate(-50%, -50%); font: 700 11px var(--body); letter-spacing: .02em; color: var(--slate);
+  opacity: .8; white-space: nowrap; cursor: pointer; text-shadow: 0 0 3px var(--paper), 0 0 2px var(--paper); }
+.apt-code.r0 { color: var(--ink); opacity: .75; font-size: 12px; }
+.apt-code:hover { color: var(--accent); opacity: 1; }
 .apt-lbl { display: inline-block; transform: translate(-50%, -50%); font: 600 10px var(--mono); color: var(--apt-label); white-space: nowrap;
   text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper); }
 .apt-lbl.rwy { font-size: 12px; font-weight: 700; color: var(--apt-rwy); }
