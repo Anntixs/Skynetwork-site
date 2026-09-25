@@ -437,9 +437,13 @@ details.mc-sec .mc-block + .mc-block { margin-top: 12px; }
 
 .plane { color: var(--ink); }
 .plane svg { display: block; transition: transform .3s; }
-.plane-dot { display: block; width: 10px; height: 10px; margin: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 2px var(--paper); }
+.plane { position: relative; }
+.plane-cs { position: absolute; top: 23px; left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  font: 600 10.5px/1 var(--mono, ui-monospace, monospace); letter-spacing: .02em; color: currentColor;
+  text-shadow: 0 0 2px var(--paper), 0 0 2px var(--paper), 0 0 3px var(--paper); }
 .plane.ground { opacity: .6; }
-.plane.selected { color: var(--accent); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 60%, transparent)); }
+.plane.selected { color: var(--accent); }
+.plane.selected svg { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 60%, transparent)); }
 .atc-label { font: 600 11px var(--mono); color: #fff; background: var(--f-ctr); padding: 1px 5px; border-radius: 4px; white-space: nowrap; cursor: pointer; }
 .atc-label.APP { background: var(--f-app); }
 .apt-badge { display: inline-flex; align-items: center; gap: 2px; font: 600 11px var(--mono); background: var(--paper); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 3px 1px 5px; white-space: nowrap; cursor: pointer; box-shadow: 0 6px 24px var(--shadow); }

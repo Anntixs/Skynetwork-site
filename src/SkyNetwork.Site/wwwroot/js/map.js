@@ -116,11 +116,12 @@
   };
   const open = (kind, key) => () => compact ? location.href = '/map#' + encodeURIComponent(key) : select(kind, key, false);
 
-  // A dot until the heading is known (the server reads it from the position packet, older ones cannot).
+  // An aircraft pointing along its heading (north until the heading is known), its callsign underneath.
   const plane = (p, isSelected) => L.divIcon({
     className: 'plane' + ((p.onGround ?? p.groundspeed < 40) ? ' ground' : '') + (isSelected ? ' selected' : ''),
     iconSize: [22, 22], iconAnchor: [11, 11],
-    html: p.heading == null ? '<span class="plane-dot"></span>' : `<svg width="22" height="22" viewBox="0 0 24 24" style="transform:rotate(${p.heading}deg)"><path fill="currentColor" d="M12 2c.8 0 1.3.7 1.3 1.6v5.6l7.7 4.6v2l-7.7-2.3v4.4l2.2 1.7v1.6L12 20.2l-3.5 1v-1.6l2.2-1.7v-4.4L3 15.8v-2l7.7-4.6V3.6C10.7 2.7 11.2 2 12 2z"/></svg>`
+    html: `<svg width="22" height="22" viewBox="0 0 24 24" style="transform:rotate(${p.heading ?? 0}deg)"><path fill="currentColor" d="M12 2c.8 0 1.3.7 1.3 1.6v5.6l7.7 4.6v2l-7.7-2.3v4.4l2.2 1.7v1.6L12 20.2l-3.5 1v-1.6l2.2-1.7v-4.4L3 15.8v-2l7.7-4.6V3.6C10.7 2.7 11.2 2 12 2z"/></svg>` +
+      `<span class="plane-cs">${esc(p.callsign)}</span>`
   });
 
   // ---- reference data ----
