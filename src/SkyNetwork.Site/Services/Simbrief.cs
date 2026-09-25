@@ -129,10 +129,23 @@ public sealed class Simbrief(IHttpClientFactory http, NavData nav, ILogger<Simbr
             points.Add(new RoutePoint(ident, la, lo, NavData.IsAirway(airway.ToUpperInvariant()) ? airway.ToUpperInvariant() : "", Int(alt)));
         }
         Add(Str(root, "origin", "icao_code"), Str(root, "origin", "pos_lat"), Str(root, "origin", "pos_long"), "", "");
-        if (root.TryGetProperty("navlog", out var navlog) && navlog.ValueKind == JsonValueKind.Object && navlog.TryGetProperty("fix", out var fixes))
-            foreach (var f in fixes.ValueKind == JsonValueKind.Array ? fixes.EnumerateArray() : Enumerable.Repeat(fixes, 1))
+        if (root.TryGetProperty("navlog", out var navlog))
+            foreach (var f in Fixes(navlog))
                 Add(Str(f, "ident"), Str(f, "pos_lat"), Str(f, "pos_long"), Str(f, "via_airway"), Str(f, "altitude_feet"));
         Add(Str(root, "destination", "icao_code"), Str(root, "destination", "pos_lat"), Str(root, "destination", "pos_long"), "", "");
+    }
+
+    /// <summary>
+    /// The navlog comes in three shapes: {"fix": [...]}, {"fix": {...}} for a single point, and, from some OFPs,
+    /// the points keyed by index ({"0": {...}, "1": {...}}) or a plain array.
+    /// </summary>
+    private static IEnumerable<JsonElement> Fixes(JsonElement navlog)
+    {
+        if (navlog.ValueKind == JsonValueKind.Array) return navlog.EnumerateArray();
+        if (navlog.ValueKind != JsonValueKind.Object) return [];
+        if (navlog.TryGetProperty("fix", out var fixes))
+            return fixes.ValueKind == JsonValueKind.Array ? fixes.EnumerateArray() : [fixes];
+        return navlog.EnumerateObject().Where(p => p.Value.ValueKind == JsonValueKind.Object && p.Value.TryGetProperty("ident", out _)).Select(p => p.Value);
     }
 
     /// <summary>Route points sent back by the form: kept only when they are a well-formed route.</summary>

@@ -791,5 +791,6 @@
     }
   }
   refresh();
-  setInterval(refresh, 15000);
+  // Every 5 s: the client reports every 5 s and the site reads the server every 5 s, so the map lags by 15 s at most.
+  setInterval(refresh, 5000);
 })();

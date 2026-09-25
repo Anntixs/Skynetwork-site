@@ -7,7 +7,7 @@
 <div class="wrap page">
   <div class="page-head">
     <h1>@L["Who is on the air"]</h1>
-    <p>@(s.Available ? L.F("Server data as of {0}. The list updates every 15 seconds.", Format.Time(s.Updated)) : L["The server is not responding — showing the last known data."])</p>
+    <p>@(s.Available ? L.F("Server data as of {0}. The list updates every 5 seconds.", Format.Time(s.Updated)) : L["The server is not responding — showing the last known data."])</p>
   </div>
 
   <div class="section-head"><h2>@L["Controllers"] · @s.Controllers.Count</h2></div>

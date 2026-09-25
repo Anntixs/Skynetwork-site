@@ -54,6 +54,33 @@ public class SimbriefTests
     }
 
     [Fact]
+    public void ReadsANavlogKeyedByIndex()
+    {
+        // Some OFPs (seen with a Fenix A320 plan UUDD–LOWW) list the points as {"0": {...}, "1": {...}} instead of {"fix": [...]}.
+        string ofp = Ofp.Replace("\"navlog\":{\"fix\":[", "\"navlog\":{\"0\":").Replace("},
+            {\"ident\":\"TOC\"", "},
+            \"1\":{\"ident\":\"TOC\"")
+            .Replace("},
+            {\"ident\":\"NEVEM\"", "},
+            \"2\":{\"ident\":\"NEVEM\"").Replace("},
+            {\"ident\":\"GOLSA\"", "},
+            \"3\":{\"ident\":\"GOLSA\"")
+            .Replace("},
+            {\"ident\":\"EDDF\"", "},
+            \"4\":{\"ident\":\"EDDF\"").Replace("\"364\"}]}}", "\"364\"}}}");
+        Assert.DoesNotContain("\"fix\"", ofp);
+        var (plan, error) = Simbrief.Parse(ofp);
+        Assert.Null(error);
+        var stored = StoredRoute.Parse(plan!.Waypoints);
+        Assert.NotNull(stored);
+        Assert.Equal(["UUEE", "ARTIM", "NEVEM", "GOLSA", "EDDF"], stored.Points.Select(p => p.Ident));
+
+        // A plain array works too.
+        var (plan2, _) = Simbrief.Parse(Ofp.Replace("\"navlog\":{\"fix\":[", "\"navlog\":[").Replace("\"364\"}]}}", "\"364\"}]}"));
+        Assert.Equal(5, StoredRoute.Parse(plan2!.Waypoints)!.Points.Count);
+    }
+
+    [Fact]
     public void ExplainsWhatWentWrong()
     {
         var (plan, error) = Simbrief.Parse("""{"fetch":{"userid":"","status":"Error: Unknown UserID"}}""");
