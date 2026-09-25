@@ -160,7 +160,8 @@ html.at-top .site-header::after { opacity: 0; }
 .site-header .wrap { display: flex; align-items: center; gap: 20px; height: 64px; }
 .brand { display: flex; align-items: center; gap: 10px; font: 800 18px var(--display); color: var(--ink); letter-spacing: -0.02em; }
 .brand:hover { color: var(--ink); text-decoration: none; }
-.brand svg { width: 26px; height: 26px; }
+.brand .brand-mark { width: 28px; height: 28px; border-radius: 7px; display: block; }
+.brand .brand-net { color: var(--accent); }
 .nav { display: flex; gap: 0; flex: 1; white-space: nowrap; }
 .nav a, .user-nav a { color: var(--slate); font-weight: 500; padding: 6px 9px; border-radius: 6px; transition: color var(--t-hover) var(--ease); }
 .nav a:hover, .user-nav a:hover { color: var(--ink); text-decoration: none; }
