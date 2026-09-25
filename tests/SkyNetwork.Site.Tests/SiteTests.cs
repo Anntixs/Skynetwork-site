@@ -105,7 +105,7 @@ public class AccountTests
         {
             ["Plan.Callsign"] = "afl123", ["Plan.Rules"] = "IFR", ["Plan.Aircraft"] = "a20n", ["Plan.CruiseSpeed"] = "450",
             ["Plan.Departure"] = "uuee", ["Plan.Destination"] = "ulli", ["Plan.Alternate"] = "ullo", ["Plan.DepartureTime"] = "1200",
-            ["Plan.CruiseAltitude"] = "fl350", ["Plan.EnrouteMinutes"] = "70", ["Plan.FuelMinutes"] = "180",
+            ["Plan.CruiseAltitude"] = "fl350", ["Enroute"] = "0110", ["Fuel"] = "03:00",
             ["Plan.Route"] = "n0450f350  demo5 dm100", ["Plan.Remarks"] = "/V/",
         };
         var bad = await c.SubmitAsync("/flightplan", new Dictionary<string, string>(plan) { ["Plan.Departure"] = "SVO" });

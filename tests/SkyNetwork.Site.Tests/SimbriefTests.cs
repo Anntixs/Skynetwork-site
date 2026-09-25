@@ -85,6 +85,18 @@ public class SimbriefTests
     }
 
     [Fact]
+    public void ReadsTimesGivenAsClockStrings()
+    {
+        // Another OFP variant: durations as "03:45:00" and moments as ISO 8601 instead of seconds.
+        string ofp = Ofp.Replace("\"sched_out\":\"1790251200\"", "\"sched_out\":\"2026-09-24T12:00:00Z\"").Replace("\"sched_off\":\"1790252100\"", "\"sched_off\":\"2026-09-24T12:15:00Z\"")
+            .Replace("\"est_time_enroute\":\"13500\"", "\"est_time_enroute\":\"03:45:00\"").Replace("\"endurance\":\"19800\"", "\"endurance\":\"05:30:00\"");
+        var (plan, error) = Simbrief.Parse(ofp);
+        Assert.Null(error);
+        Assert.Equal(("1200", 225, 330), (plan!.DepartureTime, plan.EnrouteMinutes, plan.FuelMinutes));
+        Assert.Equal(1790252100, StoredRoute.Parse(plan.Waypoints)!.OffTime);
+    }
+
+    [Fact]
     public void ExplainsWhatWentWrong()
     {
         var (plan, error) = Simbrief.Parse("""{"fetch":{"userid":"","status":"Error: Unknown UserID"}}""");
@@ -121,7 +133,7 @@ public class SimbriefTests
         {
             ["Plan.Callsign"] = "AFL1234", ["Plan.Rules"] = "IFR", ["Plan.Aircraft"] = "A20N", ["Plan.CruiseSpeed"] = "447",
             ["Plan.Departure"] = "UUEE", ["Plan.Destination"] = "EDDF", ["Plan.Alternate"] = "", ["Plan.DepartureTime"] = "0920",
-            ["Plan.CruiseAltitude"] = "FL350", ["Plan.EnrouteMinutes"] = "225", ["Plan.FuelMinutes"] = "330",
+            ["Plan.CruiseAltitude"] = "FL350", ["Enroute"] = "03:45", ["Fuel"] = "05:30",
             ["Plan.Route"] = "ARTIM UL603 NEVEM", ["Plan.Remarks"] = "/V/",
             ["Plan.Waypoints"] = """{"points":[["UUEE",55.97,37.41],["ARTIM",55.93,36.91,"",8000],["EDDF",50.03,8.57]],"reg":"VP-BXX","airac":"2609"}""",
         });

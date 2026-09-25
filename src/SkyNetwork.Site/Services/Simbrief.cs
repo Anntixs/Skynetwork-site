@@ -79,7 +79,7 @@ public sealed class Simbrief(IHttpClientFactory http, NavData nav, ILogger<Simbr
         string aircraft = Str(root, "aircraft", "icao_code");
         if (aircraft.Length == 0) aircraft = Str(root, "aircraft", "icaocode");
         int level = Int(Str(root, "general", "initial_altitude"));
-        long outTime = (long)Num(Str(root, "times", "sched_out"));
+        long outTime = Unix(Str(root, "times", "sched_out"));
 
         var stored = new StoredRoute
         {
@@ -91,8 +91,8 @@ public sealed class Simbrief(IHttpClientFactory http, NavData nav, ILogger<Simbr
             CruiseMach = Str(root, "general", "cruise_mach"),
             Airac = Str(root, "params", "airac"),
             RouteDistance = Int(Str(root, "general", "route_distance")),
-            OffTime = (long)Num(Str(root, "times", "sched_off")),
-            OnTime = (long)Num(Str(root, "times", "sched_on")),
+            OffTime = Unix(Str(root, "times", "sched_off")),
+            OnTime = Unix(Str(root, "times", "sched_on")),
         };
         Points(root, stored.Points);
 
@@ -107,8 +107,8 @@ public sealed class Simbrief(IHttpClientFactory http, NavData nav, ILogger<Simbr
             Alternate = Alternate(root).ToUpperInvariant(),
             DepartureTime = outTime > 0 ? DateTimeOffset.FromUnixTimeSeconds(outTime).UtcDateTime.ToString("HHmm", CultureInfo.InvariantCulture) : "",
             CruiseAltitude = level >= 10000 ? $"FL{level / 100:000}" : level > 0 ? level.ToString(CultureInfo.InvariantCulture) : "",
-            EnrouteMinutes = (int)Math.Round(Int(Str(root, "times", "est_time_enroute")) / 60.0),
-            FuelMinutes = (int)Math.Round(Int(Str(root, "times", "endurance")) / 60.0),
+            EnrouteMinutes = (int)Math.Round(Seconds(Str(root, "times", "est_time_enroute")) / 60.0),
+            FuelMinutes = (int)Math.Round(Seconds(Str(root, "times", "endurance")) / 60.0),
             Route = string.Join(' ', Str(root, "general", "route").Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant(),
             Waypoints = stored.Points.Count > 1 ? stored.ToJson() : "",
         };
@@ -172,6 +172,24 @@ public sealed class Simbrief(IHttpClientFactory http, NavData nav, ILogger<Simbr
             JsonValueKind.Number => e.GetRawText(),
             _ => "",
         };
+    }
+
+    /// <summary>Times come as seconds ("13500") or, in some OFPs, as a clock ("03:45:00").</summary>
+    private static int Seconds(string s)
+    {
+        if (!s.Contains(':')) return Int(s);
+        var parts = s.Split(':');
+        if (parts.Length is not (2 or 3) || !parts.All(p => int.TryParse(p, NumberStyles.None, CultureInfo.InvariantCulture, out _))) return 0;
+        return int.Parse(parts[0], CultureInfo.InvariantCulture) * 3600 + int.Parse(parts[1], CultureInfo.InvariantCulture) * 60
+               + (parts.Length == 3 ? int.Parse(parts[2], CultureInfo.InvariantCulture) : 0);
+    }
+
+    /// <summary>Moments come as unix seconds ("1790251200") or, in some OFPs, as ISO 8601 ("2026-09-24T12:00:00Z").</summary>
+    private static long Unix(string s)
+    {
+        if (long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var unix)) return unix;
+        return DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var when)
+            ? when.ToUnixTimeSeconds() : 0;
     }
 
     private static double Num(string s) =>

@@ -13,6 +13,9 @@ public sealed partial class FlightPlanModel(CurrentUser me, FlightPlanService pl
     private const string SimbriefCookie = "simbrief";
 
     [BindProperty] public FlightPlan Plan { get; set; } = new();
+    /// <summary>Time en route and fuel as typed: "02:20", "0220" or minutes (see <see cref="Duration"/>).</summary>
+    [BindProperty] public string Enroute { get; set; } = "";
+    [BindProperty] public string Fuel { get; set; } = "";
     public bool Saved { get; private set; }
     public string? Error { get; private set; }
     public bool Imported { get; private set; }
@@ -26,6 +29,13 @@ public sealed partial class FlightPlanModel(CurrentUser me, FlightPlanService pl
         // Start from the last plan: most flights are re-filed with small changes.
         Plan = plans.Latest(me.Cid) ?? new FlightPlan { Remarks = "/V/" };
         if (!string.IsNullOrWhiteSpace(callsign)) Plan.Callsign = callsign.Trim().ToUpperInvariant();
+        ShowDurations();
+    }
+
+    private void ShowDurations()
+    {
+        Enroute = Duration.Format(Plan.EnrouteMinutes);
+        Fuel = Duration.Format(Plan.FuelMinutes);
     }
 
     /// <summary>Fills the form from the latest SimBrief plan; the pilot checks it and files it as usual.</summary>
@@ -38,6 +48,7 @@ public sealed partial class FlightPlanModel(CurrentUser me, FlightPlanService pl
         {
             Error = error;
             Plan = current ?? new FlightPlan { Remarks = "/V/" };
+            ShowDurations();
             return Page();
         }
         Response.Cookies.Append(SimbriefCookie, SimbriefUser, new CookieOptions
@@ -48,6 +59,7 @@ public sealed partial class FlightPlanModel(CurrentUser me, FlightPlanService pl
         plans.SetSimbriefUser(me.Cid, SimbriefUser);
         imported.Remarks = current?.Remarks is { Length: > 0 } remarks ? remarks : "/V/";
         Plan = imported;
+        ShowDurations();
         Imported = true;
         return Page();
     }
@@ -70,6 +82,13 @@ public sealed partial class FlightPlanModel(CurrentUser me, FlightPlanService pl
         p.Remarks = (p.Remarks ?? "").Trim();
         p.Waypoints = Simbrief.Clean(p.Waypoints);
         SimbriefUser = Request.Cookies[SimbriefCookie] ?? "";
+        if (!Duration.TryParseMinutes(Enroute, out var enroute) || !Duration.TryParseMinutes(Fuel, out var fuel))
+        {
+            Error = "Time en route and fuel: hours:minutes, for example 02:20";
+            return Page();
+        }
+        p.EnrouteMinutes = enroute;
+        p.FuelMinutes = fuel;
         Error = Validate(p);
         if (Error != null) return Page();
         plans.File(p);
