@@ -17,7 +17,7 @@ public class MapDataTests
         var fields = new Dictionary<string, string>
         {
             ["Name"] = "Anna Smirnova", ["Email"] = "anna@example.com", ["Country"] = "Narnia",
-            ["Password"] = "secret123", ["Confirm"] = "secret123", ["AcceptRules"] = "true",
+            ["Password"] = "secret123", ["Confirm"] = "secret123",
         };
         Assert.Contains("Choose a country from the list", await (await c.SubmitAsync("/register", fields)).Content.ReadAsStringAsync());
         // A Russian name from before the list is recognised and stored in English.

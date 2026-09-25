@@ -14,6 +14,10 @@
   <title>@(ViewData["Title"] is string t ? t + " — SkyNetwork" : "SkyNetwork — " + L["virtual aviation network"])</title>
   <meta name="description" content="@L["SkyNetwork is a virtual aviation network: pilots and controllers in one sky."]">
   @if (path.StartsWith("/staff", StringComparison.OrdinalIgnoreCase)) { <meta name="robots" content="noindex, nofollow"> }
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48 64x64 256x256">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta property="og:image" content="@(Context.Request.Scheme + "://" + Context.Request.Host + "/img/logo.png")">
   <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true">
   <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
   <script src="~/js/theme.js" asp-append-version="true"></script>
@@ -23,7 +27,7 @@
   <div id="scroll-top" aria-hidden="true"></div>
   <header class="site-header" id="header">
     <div class="wrap">
-      <a class="brand" href="/"><partial name="_Logo" /> SkyNetwork</a>
+      <a class="brand" href="/"><partial name="_Logo" /><span>Sky<span class="brand-net">Network</span></span></a>
       <button class="btn btn-small nav-toggle" type="button" aria-label="@L["Menu"]"
               onclick="document.getElementById('header').classList.toggle('open')">@L["Menu"]</button>
       <nav class="nav" aria-label="@L["Sections"]">
@@ -61,7 +65,6 @@
       <div class="wrap">
         <span>© @DateTime.UtcNow.Year SkyNetwork · @L["virtual aviation network"]</span>
         <nav>
-          <a href="/docs/rules">@L["Rules"]</a>
           <a href="/docs/software">@L["Software"]</a>
           <a href="/developers">API</a>
           <a href="/support">@L["Support"]</a>

@@ -28,8 +28,7 @@
   --chrome-bg: rgba(255,255,255,.72);
   --glass-bg: rgba(255,255,255,.8);
   --staff-bar-bg: #0e1726; --staff-bar-text: #c9d2de; --staff-bar-strong: #ffffff;
-  /* Map: sector borders, the selected aircraft's route, airport diagrams when zoomed in. */
-  --map-fir: rgba(91,104,120,.45);
+  /* Map: the selected aircraft's route, airport diagrams when zoomed in. */
   --map-route: #1f5fbf;
   --map-flown: #e07b2a;
   --apt-apron: #dfe4eb; --apt-building: #c9d1dc; --apt-runway: #7d8899; --apt-taxiway: #aab4c1; --apt-label: #5b6878; --apt-rwy: #c2410c;
@@ -85,7 +84,7 @@
   --glass-bg: rgba(22,29,39,.8);
   --staff-bar-bg: #06090d; --staff-bar-text: #9aa7b8; --staff-bar-strong: #e6ebf2;
   --f-del: #8a9ab0; --f-gnd: #4fb482; --f-twr: #e3ab4a; --f-app: #5b9bf0; --f-ctr: #9a83e6; --f-pilot: #5a687c;
-  --map-fir: rgba(148,161,178,.35); --map-route: #79abf6; --map-flown: #f4a15d;
+  --map-route: #79abf6; --map-flown: #f4a15d;
   --apt-apron: #1b222c; --apt-building: #29323f; --apt-runway: #66728a; --apt-taxiway: #465266; --apt-label: #9aa6b5; --apt-rwy: #f07a4a;
 }
 @media (prefers-color-scheme: dark) {
@@ -118,7 +117,7 @@
     --glass-bg: rgba(22,29,39,.8);
     --staff-bar-bg: #06090d; --staff-bar-text: #9aa7b8; --staff-bar-strong: #e6ebf2;
     --f-del: #8a9ab0; --f-gnd: #4fb482; --f-twr: #e3ab4a; --f-app: #5b9bf0; --f-ctr: #9a83e6; --f-pilot: #5a687c;
-  --map-fir: rgba(148,161,178,.35); --map-route: #79abf6; --map-flown: #f4a15d;
+  --map-route: #79abf6; --map-flown: #f4a15d;
   --apt-apron: #1b222c; --apt-building: #29323f; --apt-runway: #66728a; --apt-taxiway: #465266; --apt-label: #9aa6b5; --apt-rwy: #f07a4a;
 }
 }
@@ -160,7 +159,8 @@ html.at-top .site-header::after { opacity: 0; }
 .site-header .wrap { display: flex; align-items: center; gap: 20px; height: 64px; }
 .brand { display: flex; align-items: center; gap: 10px; font: 800 18px var(--display); color: var(--ink); letter-spacing: -0.02em; }
 .brand:hover { color: var(--ink); text-decoration: none; }
-.brand svg { width: 26px; height: 26px; }
+.brand .brand-mark { width: 28px; height: 28px; border-radius: 7px; display: block; }
+.brand .brand-net { color: var(--accent); }
 .nav { display: flex; gap: 0; flex: 1; white-space: nowrap; }
 .nav a, .user-nav a { color: var(--slate); font-weight: 500; padding: 6px 9px; border-radius: 6px; transition: color var(--t-hover) var(--ease); }
 .nav a:hover, .user-nav a:hover { color: var(--ink); text-decoration: none; }
@@ -435,15 +435,16 @@ details.mc-sec .mc-block + .mc-block { margin-top: 12px; }
 .mc-text { font: 13px/1.5 var(--mono); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; word-break: break-word; }
 .mc-list { display: grid; gap: 6px; }
 
-.plane { color: var(--ink); }
+.plane { color: var(--ink); position: relative; }
 .plane svg { display: block; transition: transform .3s; }
-.plane { position: relative; }
-.plane-cs { position: absolute; top: 23px; left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
-  font: 600 10.5px/1 var(--mono, ui-monospace, monospace); letter-spacing: .02em; color: currentColor;
-  text-shadow: 0 0 2px var(--paper), 0 0 2px var(--paper), 0 0 3px var(--paper); }
-.plane.ground { opacity: .6; }
-.plane.selected { color: var(--accent); }
-.plane.selected svg { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 60%, transparent)); }
+.plane.nohdg svg { opacity: .55; }
+/* The callsign under the symbol; a halo in the page colour keeps it readable over the map. */
+.plane .cs { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); font: 600 10.5px/1 var(--mono); color: var(--ink); white-space: nowrap; pointer-events: none;
+  text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper), 0 0 4px var(--paper), 0 1px 2px var(--paper); }
+.plane.selected .cs { color: var(--accent); }
+.leaflet-container.no-cs .plane .cs { display: none; }
+.plane.ground { opacity: .7; }
+.plane.selected { color: var(--accent); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 60%, transparent)); }
 .atc-label { font: 600 11px var(--mono); color: #fff; background: var(--f-ctr); padding: 1px 5px; border-radius: 4px; white-space: nowrap; cursor: pointer; }
 .atc-label.APP { background: var(--f-app); }
 .apt-badge { display: inline-flex; align-items: center; gap: 2px; font: 600 11px var(--mono); background: var(--paper); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 3px 1px 5px; white-space: nowrap; cursor: pointer; box-shadow: 0 6px 24px var(--shadow); }
@@ -453,8 +454,6 @@ details.mc-sec .mc-block + .mc-block { margin-top: 12px; }
 .apt-badge .TWR { background: var(--f-twr); }
 .apt-badge .APP { background: var(--f-app); }
 .apt-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--paper); border: 2px solid var(--map-route); }
-.fir-label { background: none; border: 0; box-shadow: none; font: 700 11px var(--mono); color: var(--f-ctr); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper); }
-.fir-label::before { display: none; }
 /* Airport codes as on radar screens: plain bold text, the bigger airports a little brighter. */
 .apt-code { display: inline-block; transform: translate(-50%, 9px); font: 700 11px var(--body); letter-spacing: .02em; color: var(--slate);
   opacity: .8; white-space: nowrap; cursor: pointer; text-shadow: 0 0 3px var(--paper), 0 0 2px var(--paper); }

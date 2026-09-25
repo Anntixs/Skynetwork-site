@@ -15,7 +15,6 @@ public sealed class RegisterModel(MemberService members) : PageModel
     [BindProperty] public string Country { get; set; } = "";
     [BindProperty] public string Password { get; set; } = "";
     [BindProperty] public string Confirm { get; set; } = "";
-    [BindProperty] public bool AcceptRules { get; set; }
     public string? Error { get; private set; }
 
     public IActionResult OnGet() => User.Identity?.IsAuthenticated == true ? Redirect("/account") : Page();
@@ -44,7 +43,6 @@ public sealed class RegisterModel(MemberService members) : PageModel
         if (Password.Length < 8) return "The password must be at least 8 characters";
         if (Password.Contains(':')) return "The password cannot contain a colon";
         if (Password != Confirm) return "The passwords do not match";
-        if (!AcceptRules) return "You need to accept the rules";
         return null;
     }
 }

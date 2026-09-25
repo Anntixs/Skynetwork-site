@@ -40,8 +40,8 @@
       </div>
       <div class="row">
         <label>@L["Cruise level"]<input name="Plan.CruiseAltitude" value="@p.CruiseAltitude" class="mono" required maxlength="6" placeholder="FL350"></label>
-        <label>@L["En route, min"]<input name="Plan.EnrouteMinutes" value="@(p.EnrouteMinutes == 0 ? "" : p.EnrouteMinutes)" inputmode="numeric" required></label>
-        <label>@L["Fuel, min"]<input name="Plan.FuelMinutes" value="@(p.FuelMinutes == 0 ? "" : p.FuelMinutes)" inputmode="numeric" required></label>
+        <label>@L["En route, h:mm"]<input name="Enroute" value="@Model.Enroute" class="mono" required maxlength="5" placeholder="02:20" title="@L["Hours and minutes: 02:20 or 0220"]"></label>
+        <label>@L["Fuel, h:mm"]<input name="Fuel" value="@Model.Fuel" class="mono" required maxlength="5" placeholder="03:30" title="@L["Hours and minutes: 02:20 or 0220"]"></label>
       </div>
       <label>@L["Route"]<textarea name="Plan.Route" class="mono" required maxlength="1000" style="min-height:80px">@p.Route</textarea>
         @if (p.Waypoints.Length > 0) { <span class="hint">@L["The SimBrief route points are saved with the plan and shown on the map."]</span> }</label>

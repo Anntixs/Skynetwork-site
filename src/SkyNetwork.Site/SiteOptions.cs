@@ -8,7 +8,7 @@ public sealed class SiteOptions
     public string Database { get; set; } = "skynetwork.db";
     /// <summary>FSD server data feed; empty disables the live data.</summary>
     public string DataFeedUrl { get; set; } = "http://127.0.0.1:8080/data.json";
-    public int FeedPollSeconds { get; set; } = 15;
+    public int FeedPollSeconds { get; set; } = 5;
     /// <summary>Shown on the "how to connect" pages.</summary>
     public string FsdHost { get; set; } = "127.0.0.1";
     public int FsdPort { get; set; } = 6809;
