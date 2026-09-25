@@ -144,7 +144,10 @@ public sealed class Simbrief(IHttpClientFactory http, NavData nav, ILogger<Simbr
         if (navlog.ValueKind == JsonValueKind.Array) return navlog.EnumerateArray();
         if (navlog.ValueKind != JsonValueKind.Object) return [];
         if (navlog.TryGetProperty("fix", out var fixes))
-            return fixes.ValueKind == JsonValueKind.Array ? fixes.EnumerateArray() : [fixes];
+        {
+            if (fixes.ValueKind == JsonValueKind.Array) return fixes.EnumerateArray();
+            return [fixes];
+        }
         return navlog.EnumerateObject().Where(p => p.Value.ValueKind == JsonValueKind.Object && p.Value.TryGetProperty("ident", out _)).Select(p => p.Value);
     }
 
