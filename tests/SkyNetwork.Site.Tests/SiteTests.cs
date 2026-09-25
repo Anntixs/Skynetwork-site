@@ -20,7 +20,6 @@ public class PublicPagesTests
     [InlineData("/docs")]
     [InlineData("/docs/software")]
     [InlineData("/docs/ratings")]
-    [InlineData("/docs/rules")]
     [InlineData("/developers")]
     [InlineData("/register")]
     [InlineData("/login")]
@@ -57,7 +56,7 @@ public class AccountTests
         var r = await site.Browser().SubmitAsync("/register", new Dictionary<string, string>
         {
             ["Name"] = "Ivan Petrov", ["Email"] = "ivan@example.com", ["Country"] = "",
-            ["Password"] = "secret123", ["Confirm"] = "secret123", ["AcceptRules"] = "true",
+            ["Password"] = "secret123", ["Confirm"] = "secret123",
         });
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         Assert.Contains("Choose a country from the list", await r.Content.ReadAsStringAsync());
@@ -72,7 +71,7 @@ public class AccountTests
         var fields = new Dictionary<string, string>
         {
             ["Name"] = "Ivan Petrov", ["Email"] = "ivan@example.com", ["Country"] = "Россия",
-            ["Password"] = "secret123", ["Confirm"] = "secret123", ["AcceptRules"] = "true",
+            ["Password"] = "secret123", ["Confirm"] = "secret123",
         };
         var r = await c.SubmitAsync("/register", fields);
         Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);

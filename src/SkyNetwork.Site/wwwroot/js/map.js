@@ -1,4 +1,4 @@
-// Live traffic map, radar style: aircraft with their flight plans and routes, controllers with their sectors, airports.
+// Live traffic map, radar style: aircraft with their flight plans and routes, controllers with their coverage, airports.
 (function () {
   const el = document.getElementById('map');
   if (!el || !window.L) return;
@@ -17,7 +17,7 @@
   // Leaflet's default prefix carries a flag; just the name here.
   map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
 
-  // Tiles come through the site (see TileProxy); the base map follows the site theme, labels sit above the sectors.
+  // Tiles come through the site (see TileProxy); the base map follows the site theme, labels sit above the coverage areas.
   map.createPane('labels').classList.add('labels-pane');
   map.getPane('labels').style.zIndex = 450;
   const tileOptions = { maxZoom: 18, maxNativeZoom: 16 };
@@ -27,14 +27,12 @@
   // Place names stop at 15: closer in they would only be blown up and blurred over the airport diagram.
   const labels = L.tileLayer(`/tiles/${theme()}-labels/{z}/{x}/{y}.png`, { ...tileOptions, maxZoom: 15, pane: 'labels' }).addTo(map);
 
-  const firOutline = L.layerGroup();              // every sector border (switchable)
-  const sectors = L.layerGroup().addTo(map);      // staffed sectors and approach areas
+  const coverage = L.layerGroup().addTo(map);     // centre and approach coverage circles
   const traffic = L.layerGroup().addTo(map);      // aircraft, controller labels, airport badges
   const routeLayer = L.layerGroup().addTo(map);   // the selected flight
 
   const card = document.getElementById('map-card');
   const search = document.getElementById('map-search');
-  const firToggle = document.getElementById('fir-toggle');
   let data = null, selected = null, fitted = false;
   let pendingHash = compact ? '' : decodeURIComponent(location.hash.slice(1));
   let route = null;                 // the selected aircraft's route points, extras and flown track
@@ -149,37 +147,7 @@
     html: `<span class="cs">${esc(p.callsign)}</span><svg width="22" height="22" viewBox="0 0 24 24" style="transform:rotate(${p.heading ?? 0}deg)"><path fill="currentColor" d="M12 2c.8 0 1.3.7 1.3 1.6v5.6l7.7 4.6v2l-7.7-2.3v4.4l2.2 1.7v1.6L12 20.2l-3.5 1v-1.6l2.2-1.7v-4.4L3 15.8v-2l7.7-4.6V3.6C10.7 2.7 11.2 2 12 2z"/></svg>`
   });
 
-  // ---- reference data ----
-  // Sector borders (see data/firs.LICENSE.txt): features by id, callsign prefixes → sector, upper sectors → several FIRs.
-  let firs = { features: [], prefixes: {}, uirs: {} }, firById = new Map();
-  fetch('/data/firs.json').then(r => r.json()).then(d => {
-    firs = d;
-    firById = new Map(d.features.map(f => [f.properties.id, f]));
-    drawOutline();
-    render();
-  }).catch(() => { });
-
-  // Sector of a CTR/FSS position, the longest callsign prefix first: UUWV_N_CTR → UUWV-N, UUWV_CTR → UUWV, RU-WRC_FSS → UMMV+UUWV+UWWW.
-  function sectorOf(c) {
-    const parts = String(c.callsign).toUpperCase().split('_').slice(0, -1);
-    for (let n = parts.length; n > 0; n--) {
-      const key = parts.slice(0, n).join('_');
-      const fir = firs.prefixes[key], f = fir && firById.get(fir.b);
-      if (f) return { id: fir.b, name: fir.n, features: [f], label: f.properties.lat != null ? [f.properties.lat, f.properties.lon] : null };
-      const uir = firs.uirs[key], list = uir ? uir.b.map(id => firById.get(id)).filter(Boolean) : [];
-      if (list.length) return { id: key, name: uir.n, features: list, label: null };
-    }
-    return null;
-  }
-
-  // Canvas: hundreds of borders draw much faster there than as SVG.
-  const outlineRenderer = L.canvas({ padding: .5 });
-  function drawOutline() {
-    firOutline.clearLayers();
-    L.geoJSON(firs.features.filter(f => f.properties.top), {
-      interactive: false, renderer: outlineRenderer, style: { color: css('--map-fir'), weight: 1, fill: false }
-    }).addTo(firOutline);
-  }
+  // ---- layers ----
   // Layer switches in the panel (the home page map follows the same choices), remembered in this browser.
   const layerOn = {};
   function layerToggle(id, key, apply) {
@@ -195,7 +163,6 @@
       apply(box.checked);
     });
   }
-  layerToggle('fir-toggle', 'firs', on => on ? firOutline.addTo(map) : firOutline.remove());
   layerToggle('layer-labels', 'labels', on => on ? labels.addTo(map) : labels.remove());
   document.addEventListener('click', e => {
     document.querySelectorAll('details.layers-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; });
@@ -354,11 +321,10 @@
   // ---- drawing ----
   function render() {
     if (!data) return [];
-    sectors.clearLayers();
+    coverage.clearLayers();
     traffic.clearLayers();
     const points = [];
     const ctr = css('--f-ctr'), app = css('--f-app');
-    const staffed = new Map();   // sector id → { features, controllers }
     const towers = new Map();    // airport → controllers (DEL/GND/TWR/APP)
 
     for (const c of data.controllers) {
@@ -366,15 +332,10 @@
       const at = c.latitude != null ? [c.latitude, c.longitude] : null;
       if (at) points.push(at);
       if (c.facility === 'CTR' || c.facility === 'FSS') {
-        const sector = sectorOf(c);
-        if (sector) {
-          const s = staffed.get(sector.id) ?? { ...sector, controllers: [] };
-          s.controllers.push(c);
-          staffed.set(sector.id, s);
-        } else if (at) {
-          // No known border for this callsign: a circle of the usual size instead.
+        // A circle of the usual size around the controller's position.
+        if (at) {
           L.circle(at, { radius: (c.facility === 'FSS' ? 250 : 180) * 1852, color: ctr, weight: 1.2, fillOpacity: .06, bubblingMouseEvents: false })
-            .on('click', open('atc', c.callsign)).addTo(sectors);
+            .on('click', open('atc', c.callsign)).addTo(coverage);
           label(`<span class="atc-label" title="${esc(c.name)} · ${esc(c.frequency)}" style="transform:translate(-50%,-50%);display:inline-block">${esc(c.callsign)}</span>`, open('atc', c.callsign))
             .setLatLng(at).addTo(traffic);
         }
@@ -384,17 +345,7 @@
       towers.set(code, [...(towers.get(code) ?? []), c]);
       if (c.facility === 'APP' && at)
         L.circle(at, { radius: 45 * 1852, color: app, weight: 1, dashArray: '4 4', fillOpacity: .05, bubblingMouseEvents: false })
-          .on('click', open('airport', code)).addTo(sectors);
-    }
-
-    for (const [, s] of staffed) {
-      const cs = s.controllers[0].callsign;
-      const shape = L.geoJSON(s.features, { style: { color: ctr, weight: 1.6, fillColor: ctr, fillOpacity: .1 }, bubblingMouseEvents: false })
-        .on('click', open('atc', cs)).addTo(sectors);
-      const names = s.controllers.map(c => esc(c.callsign)).join('<br>');
-      const hint = esc(s.name) + ' · ' + s.controllers.map(c => esc(c.frequency)).join(', ');
-      label(`<span class="atc-label" title="${hint}" style="transform:translate(-50%,-50%);display:inline-block;text-align:center">${names}</span>`, open('atc', cs))
-        .setLatLng(s.label ?? shape.getBounds().getCenter()).addTo(traffic);
+          .on('click', open('airport', code)).addTo(coverage);
     }
 
     const order = ['DEL', 'GND', 'TWR', 'APP'];
@@ -479,9 +430,8 @@
       const p = pilotOf(key);
       if (p?.latitude != null) map.flyTo([p.latitude, p.longitude], Math.max(map.getZoom(), 6), { duration: .8 });
     } else if (kind === 'atc') {
-      const c = atcOf(key), sector = c && sectorOf(c);
-      if (sector) map.flyToBounds(L.geoJSON(sector.features).getBounds(), { padding: [40, 40], duration: .8 });
-      else if (c?.latitude != null) map.flyTo([c.latitude, c.longitude], Math.max(map.getZoom(), 6), { duration: .8 });
+      const c = atcOf(key);
+      if (c?.latitude != null) map.flyTo([c.latitude, c.longitude], Math.max(map.getZoom(), 6), { duration: .8 });
     } else {
       await loadAirports();
       const c = data?.controllers.find(x => prefix(x.callsign) === key && x.latitude != null);
@@ -725,7 +675,6 @@
   function atcCard(cs) {
     const c = atcOf(cs);
     if (!c) return head(esc(cs), t('Offline'));
-    const sector = (c.facility === 'CTR' || c.facility === 'FSS') ? sectorOf(c) : null;
     const code = prefix(c.callsign);
     return head(esc(c.callsign), `<a href="/members/${c.cid}">${esc(c.name)}</a> · CID ${c.cid}`,
       `<span class="badge accent">${esc(c.facility)}</span><span class="badge">${esc(c.rating)}</span>`) + `
@@ -735,8 +684,7 @@
           ${cell(t('Rating'), esc(c.rating || '—'))}
           ${cell(t('Online for'), onlineFor(c.logonTime))}
         </div>
-        ${sector ? `<div class="small"><span class="muted">${t('Sector:')}</span> ${esc(sector.name)}</div>`
-                 : `<div class="small"><span class="muted">${t('Airport:')}</span> <a href="#" data-select="airport|${esc(code)}">${esc(code)}</a></div>`}
+        <div class="small"><span class="muted">${t('Airport:')}</span> <a href="#" data-select="airport|${esc(code)}">${esc(code)}</a></div>
       </div>`;
   }
 
@@ -785,7 +733,6 @@
   window.addEventListener('themechange', () => {
     base.setUrl(`/tiles/${theme()}/{z}/{x}/{y}.png`);
     labels.setUrl(`/tiles/${theme()}-labels/{z}/{x}/{y}.png`);
-    drawOutline();
     drawLayouts();
     render();
   });

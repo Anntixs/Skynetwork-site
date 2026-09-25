@@ -15,7 +15,7 @@ public static class MapTexts
         "Alternate", "Route distance", "Departure", "En route", "Fuel", "Step climbs", "Route", "Remarks",
         "Route from SimBrief (AIRAC {0})", "Route worked out from the flight plan", "Not found in the database: {0}",
         "Center on aircraft", "Follow", "Following", "Share link", "Link copied",
-        "Online for {0}", "Online for", "Frequency", "Rating", "Sector:", "Airport:",
+        "Online for {0}", "Online for", "Frequency", "Rating", "Airport:",
         "none", "no data", "Loading…", "Controllers", "nobody", "Departures", "Arrivals", "Not found: {0}",
     ];
 
