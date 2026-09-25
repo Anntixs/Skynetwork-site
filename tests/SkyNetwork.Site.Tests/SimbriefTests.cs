@@ -53,30 +53,34 @@ public class SimbriefTests
         Assert.False(stored.Extras().ContainsKey("points"));
     }
 
+    // Some OFPs (seen with a Fenix A320 plan UUDD–LOWW) list the points as {"0": {...}, "1": {...}} instead of {"fix": [...]}.
+    private const string OfpIndexed = """
+        {"fetch":{"status":"Success"},
+         "origin":{"icao_code":"UUEE","pos_lat":"55.972642","pos_long":"37.414589"},
+         "destination":{"icao_code":"EDDF","pos_lat":"50.033306","pos_long":"8.570456"},
+         "aircraft":{"icao_code":"A20N"},
+         "general":{"route":"ARTIM UL603 NEVEM DCT GOLSA"},
+         "navlog":{
+            "0":{"ident":"ARTIM","type":"wpt","via_airway":"DCT","pos_lat":"55.931","pos_long":"36.915","altitude_feet":"8000"},
+            "1":{"ident":"TOC","type":"ltlg","via_airway":"UL603","pos_lat":"55.5","pos_long":"33.0","altitude_feet":"35000"},
+            "2":{"ident":"NEVEM","type":"wpt","via_airway":"UL603","pos_lat":"54.1","pos_long":"28.2","altitude_feet":"35000"},
+            "3":{"ident":"GOLSA","type":"wpt","via_airway":"DCT","pos_lat":"51.2","pos_long":"12.1","altitude_feet":"35000"},
+            "4":{"ident":"EDDF","type":"apt","via_airway":"DCT","pos_lat":"50.033306","pos_long":"8.570456","altitude_feet":"364"}}}
+        """;
+
     [Fact]
     public void ReadsANavlogKeyedByIndex()
     {
-        // Some OFPs (seen with a Fenix A320 plan UUDD–LOWW) list the points as {"0": {...}, "1": {...}} instead of {"fix": [...]}.
-        string ofp = Ofp.Replace("\"navlog\":{\"fix\":[", "\"navlog\":{\"0\":").Replace("},
-            {\"ident\":\"TOC\"", "},
-            \"1\":{\"ident\":\"TOC\"")
-            .Replace("},
-            {\"ident\":\"NEVEM\"", "},
-            \"2\":{\"ident\":\"NEVEM\"").Replace("},
-            {\"ident\":\"GOLSA\"", "},
-            \"3\":{\"ident\":\"GOLSA\"")
-            .Replace("},
-            {\"ident\":\"EDDF\"", "},
-            \"4\":{\"ident\":\"EDDF\"").Replace("\"364\"}]}}", "\"364\"}}}");
-        Assert.DoesNotContain("\"fix\"", ofp);
-        var (plan, error) = Simbrief.Parse(ofp);
+        var (plan, error) = Simbrief.Parse(OfpIndexed);
         Assert.Null(error);
         var stored = StoredRoute.Parse(plan!.Waypoints);
         Assert.NotNull(stored);
         Assert.Equal(["UUEE", "ARTIM", "NEVEM", "GOLSA", "EDDF"], stored.Points.Select(p => p.Ident));
 
         // A plain array works too.
-        var (plan2, _) = Simbrief.Parse(Ofp.Replace("\"navlog\":{\"fix\":[", "\"navlog\":[").Replace("\"364\"}]}}", "\"364\"}]}"));
+        string asArray = OfpIndexed.Replace("\"navlog\":{", "\"navlog\":[").Replace("\"364\"}}}", "\"364\"}]}");
+        for (int i = 0; i < 5; i++) asArray = asArray.Replace($"\"{i}\":{{", "{");
+        var (plan2, _) = Simbrief.Parse(asArray);
         Assert.Equal(5, StoredRoute.Parse(plan2!.Waypoints)!.Points.Count);
     }
 
