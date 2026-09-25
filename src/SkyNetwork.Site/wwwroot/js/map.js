@@ -98,6 +98,31 @@
     return out.length ? out : points;
   }
 
+  // The flown track is a fix every 5 s. On the ground those are 30–50 m apart, so straight legs cut the
+  // corners of taxiways; a centripetal Catmull-Rom curve through the fixes follows them instead (no loops or
+  // overshoot, unlike the uniform spline). Long legs (cruise) stay straight.
+  function flat(a, b) { return Math.hypot(b[0] - a[0], (b[1] - a[1]) * Math.cos(a[0] * Math.PI / 180)); }
+  function catmull(p0, p1, p2, p3, t0, t1, t2, t3, t) {
+    const lerp = (a, b, ta, tb) => tb - ta < 1e-12 ? a : [((tb - t) * a[0] + (t - ta) * b[0]) / (tb - ta), ((tb - t) * a[1] + (t - ta) * b[1]) / (tb - ta)];
+    const a1 = lerp(p0, p1, t0, t1), a2 = lerp(p1, p2, t1, t2), a3 = lerp(p2, p3, t2, t3);
+    const b1 = lerp(a1, a2, t0, t2), b2 = lerp(a2, a3, t1, t3);
+    return lerp(b1, b2, t1, t2);
+  }
+  function smooth(pts) {
+    if (pts.length < 3) return pts;
+    const out = [pts[0]];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      const leg = distNm(p1, p2);
+      if (leg > 3 || leg < 0.003) { out.push(p2); continue; }
+      const t1 = Math.sqrt(flat(p0, p1)), t2 = t1 + Math.sqrt(flat(p1, p2)), t3 = t2 + Math.sqrt(flat(p2, p3));
+      const n = leg > 0.5 ? 3 : 6;
+      for (let k = 1; k < n; k++) out.push(catmull(p0, p1, p2, p3, 0, t1, t2, t3, t1 + (t2 - t1) * k / n));
+      out.push(p2);
+    }
+    return out;
+  }
+
   // Index of the route point the aircraft is flying to: the leg it is closest to lying on.
   function nextPoint(points, at) {
     if (!at) return 1;
@@ -484,7 +509,7 @@
     else if (dep && arr) line([dep, arr], { color: colRoute, weight: 1.5, opacity: .3, dashArray: '4 6' });
     if (at) {
       const flown = track.length > 1 ? [...track.map(q => [q[0], q[1]]), at] : ll ? [...ll.slice(0, i), at] : dep ? [dep, at] : null;
-      if (flown && flown.length > 1) line(flown, { color: colFlown, weight: 2.5 });
+      if (flown && flown.length > 1) line(smooth(flown), { color: colFlown, weight: 2.5 });
       if (ll) line([at, ...ll.slice(i)], { color: colRoute, weight: 2 });
       else if (arr) line([at, arr], { color: colRoute, weight: 2, dashArray: '6 6' });
     }

@@ -14,7 +14,8 @@ public sealed class NetworkFeed(IOptions<SiteOptions> options, Database db, IHtt
     private volatile OnlineSnapshot _current = OnlineSnapshot.Empty;
     private bool _adopted;
     // Where each online aircraft has been since it connected (in memory only), for the flown track on the map.
-    private const int MaxTrackPoints = 5000;
+    // A fix every 5 s for a long flight is ~7000 points; the oldest go once this is exceeded.
+    private const int MaxTrackPoints = 20000;
     private readonly Dictionary<string, (long Cid, List<TrackPoint> Points)> _tracks = new(StringComparer.OrdinalIgnoreCase);
 
     public OnlineSnapshot Current => _current;
@@ -71,8 +72,10 @@ public sealed class NetworkFeed(IOptions<SiteOptions> options, Database db, IHtt
                 if (t.Points.Count > 0)
                 {
                     var last = t.Points[^1];
-                    // A point when the aircraft has moved, climbed or descended, or every 5 minutes while it stands still.
-                    if (FeedParser.Distance(last.Latitude, last.Longitude, lat, lon) < 0.3
+                    // Taxiing aircraft get a point every ~30 m so the track follows the taxiways; in the air one every
+                    // 0.3 nm or 500 ft; while standing still one every 5 minutes.
+                    double minMove = p.OnGround || p.Groundspeed < 50 ? 0.015 : 0.3;
+                    if (FeedParser.Distance(last.Latitude, last.Longitude, lat, lon) < minMove
                         && Math.Abs(last.Altitude - p.Altitude) < 500 && now - last.Time < 300) continue;
                 }
                 t.Points.Add(new TrackPoint(lat, lon, p.Altitude, p.Groundspeed, now));
