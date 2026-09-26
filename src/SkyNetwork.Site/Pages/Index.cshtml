@@ -107,9 +107,10 @@
         @foreach (var e in Model.Events)
         {
           <a class="card" href="/events/@e.Id" data-reveal>
-            <span class="card-media @(e.BannerUrl == null ? "blank" : "")">
+            <span class="card-media @(e.BannerUrl == null ? "blank" : e.BannerClasses)">
               @if (e.BannerUrl is { } banner)
               {
+                if (e.BannerWhole) { <img class="banner-fill" src="@banner" alt="" loading="lazy" decoding="async"> }
                 <img src="@banner" alt="" loading="lazy" decoding="async">
               }
               else
@@ -195,7 +196,7 @@
           <a class="card" href="/news/@n.Id" data-reveal>
             @if (n.BannerUrl is { } thumb)
             {
-              <span class="card-media"><img src="@thumb" alt="" loading="lazy" decoding="async"></span>
+              <span class="card-media @n.BannerClasses">@if (n.BannerWhole) { <img class="banner-fill" src="@thumb" alt="" loading="lazy" decoding="async"> }<img src="@thumb" alt="" loading="lazy" decoding="async"></span>
             }
             <div class="card-body">
               <span class="card-date">@Format.Date(n.Created)</span>

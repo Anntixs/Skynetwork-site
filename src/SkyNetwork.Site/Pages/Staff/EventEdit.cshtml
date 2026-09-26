@@ -15,12 +15,7 @@
     <label>@L["Time"]<input name="EndTime" type="time" value="@Format.InputTime(e.End)" required></label>
   </div>
   <label>@L["Description"]<textarea name="Body" maxlength="10000" style="min-height:220px">@e.Body</textarea></label>
-  <div class="banner-field">
-    @if (e.BannerUrl is { } url) { <img class="banner-preview" src="@url" alt=""> }
-    <label>@L["Banner"]<input type="file" name="banner" accept="image/jpeg,image/png,image/webp">
-      <span class="hint">@L["JPEG, PNG or WebP up to 5 MB; wide pictures (about 1600 × 600) look best."]</span></label>
-    @if (e.BannerUrl != null) { <label class="check"><input type="checkbox" name="removeBanner" value="true"> <span>@L["Remove the banner"]</span></label> }
-  </div>
+  <partial name="_BannerFields" model="new BannerFields(e.BannerUrl, e.BannerSize, e.BannerFocus, ForEvent: true)" />
   <label class="check"><input type="checkbox" name="Published" value="true" checked="@e.Published"> <span>@L["Publish"]</span></label>
   <div class="inline-form">
     <button class="btn btn-primary" type="submit">@L["Save"]</button>
@@ -32,4 +27,8 @@
   <form method="post" asp-page-handler="Delete" style="margin-top:28px" onsubmit="return confirm('@L["Delete the event?"]')">
     <button class="btn btn-danger" type="submit">@L["Delete event"]</button>
   </form>
+}
+
+@section Scripts {
+  <script src="~/js/banner-editor.js" asp-append-version="true"></script>
 }

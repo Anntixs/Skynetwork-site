@@ -364,14 +364,46 @@ a.card:hover { border-color: var(--line-strong); box-shadow: 0 14px 36px -14px v
 
 /* ---- banners (events, news) ---- */
 .card.with-banner { padding-top: 0; overflow: hidden; }
-.card-banner { display: block; width: calc(100% + 44px); max-width: none; margin: 0 -22px 16px; aspect-ratio: 16 / 7; object-fit: cover; background: var(--surface); }
+.card-banner { display: block; position: relative; overflow: hidden; width: calc(100% + 44px); max-width: none; margin: 0 -22px 16px; aspect-ratio: 16 / 7; background: var(--surface); }
+.card-banner img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .page-banner { display: block; width: 100%; max-height: 380px; aspect-ratio: 16 / 6; object-fit: cover; border-radius: 20px; border: 1px solid var(--line); margin-bottom: 32px; background: var(--surface); box-shadow: 0 24px 60px -30px var(--shadow-strong); }
 .news-item.with-thumb { display: grid; grid-template-columns: 176px 1fr; column-gap: 22px; }
 .news-item.with-thumb > :not(.news-thumb) { grid-column: 2; }
-.news-thumb { grid-row: 1 / span 3; }
-.news-thumb img { display: block; width: 176px; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
-.banner-field { display: grid; gap: 10px; }
-.banner-preview { display: block; max-width: 420px; width: 100%; aspect-ratio: 16 / 6; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); }
+.news-thumb { grid-row: 1 / span 3; position: relative; display: block; overflow: hidden; width: 176px; aspect-ratio: 16 / 10; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+.news-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* The layout chosen in the editor: height on its own page and the part kept in view when the picture is cropped.
+   "Whole picture" is never cropped: on its page it keeps its own shape, on cards it sits over a blurred copy of itself. */
+.page-banner.banner-strip { aspect-ratio: 4 / 1; max-height: 300px; }
+.page-banner.banner-tall { aspect-ratio: 16 / 9; max-height: 640px; }
+.page-banner.banner-full { width: auto; max-width: 100%; height: auto; max-height: min(760px, 85vh); aspect-ratio: auto; object-fit: contain; margin-left: auto; margin-right: auto; }
+.focus-top, .focus-top > img { object-position: 50% 0; }
+.focus-bottom, .focus-bottom > img { object-position: 50% 100%; }
+.card-media { position: relative; }
+.banner-fill { display: none; }
+.banner-full > img:not(.banner-fill) { position: relative; object-fit: contain; }
+.banner-full > img.banner-fill { display: block; position: absolute; inset: 0; object-fit: cover; filter: blur(18px) saturate(1.2); transform: scale(1.15); opacity: .6; }
+/* Banner editor: a live preview (its page and a card) and segmented choices for the height and the crop. */
+.banner-field { display: grid; gap: 14px; }
+.banner-look { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 18px; align-items: start; padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+.banner-look[hidden] { display: none; }
+.banner-look figure { display: grid; gap: 8px; min-width: 0; margin: 0; }
+.banner-look figcaption { font-size: 12.5px; color: var(--slate); }
+.banner-look .page-banner { margin-bottom: 0; border-radius: 12px; box-shadow: none; }
+.banner-look .page-banner.banner-full { max-height: 320px; }
+.banner-look .card-media { border-radius: 12px; border: 1px solid var(--line); background: var(--card-bg); }
+.banner-choices { display: flex; flex-wrap: wrap; gap: 14px 28px; }
+.choice { min-width: 0; margin: 0; padding: 0; border: 0; transition: opacity var(--t-hover) var(--ease); }
+.choice legend { padding: 0; margin-bottom: 7px; font-weight: 600; font-size: 13.5px; }
+.choice[disabled] { opacity: .45; }
+.segmented { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.segmented label { position: relative; display: block; font-weight: 500; font-size: 13.5px; cursor: pointer; }
+.choice[disabled] .segmented label { cursor: default; }
+.segmented input[type=radio] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: inherit; }
+.segmented span { display: block; padding: 8px 14px; border-radius: 9px; color: var(--slate); white-space: nowrap; transition: background-color var(--t-hover) var(--ease), color var(--t-hover) var(--ease), box-shadow var(--t-hover) var(--ease); }
+.segmented label:hover span { color: var(--ink); }
+.segmented input:checked + span { background: var(--card-bg); color: var(--ink); box-shadow: 0 1px 3px var(--shadow-strong), 0 0 0 1px var(--line); }
+.segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
+@media (max-width: 760px) { .banner-look { grid-template-columns: 1fr; } }
 .news-item { padding: 20px 0; border-bottom: 1px solid var(--line); }
 .news-item:first-child { padding-top: 0; }
 .news-item h3 { margin-bottom: 4px; }
@@ -779,7 +811,7 @@ html.motion [data-reveal].in { opacity: 1; transform: none; }
   .news-item.with-thumb { grid-template-columns: 1fr; }
   .news-item.with-thumb > :not(.news-thumb) { grid-column: 1; }
   .news-thumb { grid-row: auto; margin-bottom: 10px; }
-  .news-thumb img { width: 100%; }
+  .news-thumb { width: 100%; }
   .stat:nth-child(2) { border-right: 0; }
   .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
 }

@@ -171,6 +171,11 @@ public sealed class Database
         AddColumn(c, "member_profiles", "simbrief", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "events", "banner", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "news", "banner", "TEXT NOT NULL DEFAULT ''");
+        // Banner layout chosen in the editor (see BannerLayout): height on its page and the part kept in view.
+        AddColumn(c, "events", "banner_size", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "events", "banner_focus", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "banner_size", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "banner_focus", "TEXT NOT NULL DEFAULT ''");
 
     }
 

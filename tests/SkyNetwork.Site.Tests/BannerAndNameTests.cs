@@ -93,6 +93,58 @@ public class BannerTests
         Assert.Contains($"/uploads/{post.Banner}", await site.Browser().HtmlAsync($"/news/{post.Id}"));
     }
 
+    [Fact]
+    public async Task BannerLayout_HeightAndCrop_AreSavedAndShown()
+    {
+        using var site = new SiteFactory();
+        long sup = site.Member("Sergey Supervisor", Ratings.SUP);
+        var s = site.Browser();
+        await s.LoginAsync(sup);
+
+        // A poster shown whole: uncropped on its page, over a blurred copy of itself on the cards (list and home page).
+        var poster = new Dictionary<string, string>(Event("Poster Night")) { ["BannerSize"] = "full", ["BannerFocus"] = "top" };
+        Assert.Equal(HttpStatusCode.Redirect, (await PostMultipart(s, "/staff/events/new", poster, ("poster.png", Png))).StatusCode);
+        var e = Assert.Single(site.Get<ContentService>().AllEvents());
+        Assert.Equal(("full", "top"), (e.BannerSize, e.BannerFocus));
+        Assert.Contains("class=\"page-banner banner-full focus-top\"", await site.Browser().HtmlAsync($"/events/{e.Id}"));
+        string list = await site.Browser().HtmlAsync("/events");
+        Assert.Contains("class=\"card-banner banner-full focus-top\"", list);
+        Assert.Contains("class=\"banner-fill\"", list);
+        Assert.Contains("class=\"card-media banner-full focus-top\"", await site.Browser().HtmlAsync("/"));
+
+        // The editor shows the choice back; the crop choice is off for the whole picture.
+        string editor = await s.HtmlAsync($"/staff/events/{e.Id}");
+        Assert.Contains("value=\"full\" checked=\"checked\"", editor);
+        Assert.Contains("data-banner-focus disabled=\"disabled\"", editor);
+
+        // A low strip keeping the bottom in view; cards crop to it as well and need no blurred copy.
+        await PostMultipart(s, $"/staff/events/{e.Id}", new Dictionary<string, string>(Event("Poster Night")) { ["BannerSize"] = "strip", ["BannerFocus"] = "bottom" });
+        Assert.Contains("class=\"page-banner banner-strip focus-bottom\"", await site.Browser().HtmlAsync($"/events/{e.Id}"));
+        Assert.DoesNotContain("banner-fill", await site.Browser().HtmlAsync("/events"));
+
+        // Anything else is not stored: the standard look.
+        await PostMultipart(s, $"/staff/events/{e.Id}", new Dictionary<string, string>(Event("Poster Night"))
+            { ["BannerSize"] = "huge\" onerror=\"alert(1)", ["BannerFocus"] = "left" });
+        e = site.Get<ContentService>().Event(e.Id)!;
+        Assert.Equal(("", ""), (e.BannerSize, e.BannerFocus));
+        Assert.Contains("class=\"page-banner\"", await site.Browser().HtmlAsync($"/events/{e.Id}"));
+
+        // News: the same choice for the post page and the list; removing the banner forgets it.
+        long editorCid = site.Member("News Editor");
+        site.Get<MemberService>().SetRoles(0, editorCid, ["news"]);
+        var n = site.Browser();
+        await n.LoginAsync(editorCid);
+        var news = new Dictionary<string, string> { ["title"] = "New radar", ["body"] = "Network-ATC 2.0", ["published"] = "true", ["BannerSize"] = "tall", ["BannerFocus"] = "top" };
+        await PostMultipart(n, "/staff/news/new", news, ("radar.png", Png));
+        var post = Assert.Single(site.Get<ContentService>().News());
+        Assert.Equal(("tall", "top"), (post.BannerSize, post.BannerFocus));
+        Assert.Contains("class=\"page-banner banner-tall focus-top\"", await site.Browser().HtmlAsync($"/news/{post.Id}"));
+        Assert.Contains("class=\"news-thumb banner-tall focus-top\"", await site.Browser().HtmlAsync("/news"));
+        await PostMultipart(n, $"/staff/news/{post.Id}", new Dictionary<string, string>(news) { ["removeBanner"] = "true" });
+        post = site.Get<ContentService>().Post(post.Id)!;
+        Assert.Equal(("", "", ""), (post.Banner, post.BannerSize, post.BannerFocus));
+    }
+
     [Theory]
     [InlineData(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }, "jpg")]
     [InlineData(new byte[] { 0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50 }, "webp")]

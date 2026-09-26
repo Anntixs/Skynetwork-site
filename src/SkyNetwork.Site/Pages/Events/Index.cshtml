@@ -19,7 +19,10 @@
       @foreach (var e in events)
       {
         <a class="card @(e.BannerUrl != null ? "with-banner" : "")" href="/events/@e.Id">
-          @if (e.BannerUrl is { } banner) { <img class="card-banner" src="@banner" alt="" loading="lazy"> }
+          @if (e.BannerUrl is { } banner)
+          {
+            <span class="card-banner @e.BannerClasses">@if (e.BannerWhole) { <img class="banner-fill" src="@banner" alt="" loading="lazy"> }<img src="@banner" alt="" loading="lazy"></span>
+          }
           <span class="date-chip">@Format.Span(e.Start, e.End)</span>
           <h3>@e.Title</h3>
           <p class="muted small">@e.Summary</p>

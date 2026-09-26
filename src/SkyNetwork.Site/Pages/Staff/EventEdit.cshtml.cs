@@ -33,7 +33,7 @@ public sealed class EventEditModel(CurrentUser me, ContentService content, Uploa
     public IActionResult OnGet(string id) => Load(id) ? Page() : NotFound();
 
     public async Task<IActionResult> OnPostAsync(string id, string title, string? summary, string? airports, string startDate, string startTime,
-        string endDate, string endTime, string? body, bool published, IFormFile? banner, bool removeBanner)
+        string endDate, string endTime, string? body, bool published, IFormFile? banner, bool removeBanner, string? bannerSize, string? bannerFocus)
     {
         if (!Load(id)) return NotFound();
         long? start = Format.ParseUtc(startDate, startTime), end = Format.ParseUtc(endDate, endTime);
@@ -42,6 +42,8 @@ public sealed class EventEditModel(CurrentUser me, ContentService content, Uploa
         Event.Airports = string.Join(' ', (airports ?? "").ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));
         Event.Body = (body ?? "").Trim();
         Event.Published = published;
+        Event.BannerSize = BannerLayout.Size(bannerSize);
+        Event.BannerFocus = BannerLayout.Focus(bannerFocus);
         if (Event.Title.Length < 3) Error = "Enter a title";
         else if (start == null || end == null || end <= start) Error = "Check the start and end times";
         if (Error != null) return Page();
@@ -59,7 +61,11 @@ public sealed class EventEditModel(CurrentUser me, ContentService content, Uploa
             }
             Event.Banner = name!;
         }
-        else if (removeBanner) Event.Banner = "";
+        else if (removeBanner)
+        {
+            Event.Banner = "";
+            Event.BannerSize = Event.BannerFocus = "";
+        }
         long saved = content.SaveEvent(Me.Cid, Event);
         if (old.Length > 0 && old != Event.Banner) uploads.Delete(old);
         return Redirect($"/staff/events/{saved}");

@@ -26,12 +26,15 @@ public sealed class NewsEditModel(CurrentUser me, ContentService content, Upload
 
     public IActionResult OnGet(string id) => Load(id) ? Page() : NotFound();
 
-    public async Task<IActionResult> OnPostAsync(string id, string title, string body, bool published, IFormFile? banner, bool removeBanner)
+    public async Task<IActionResult> OnPostAsync(string id, string title, string body, bool published, IFormFile? banner, bool removeBanner,
+        string? bannerSize, string? bannerFocus)
     {
         if (!Load(id)) return NotFound();
         Post.Title = (title ?? "").Trim();
         Post.Body = (body ?? "").Trim();
         Post.Published = published;
+        Post.BannerSize = BannerLayout.Size(bannerSize);
+        Post.BannerFocus = BannerLayout.Focus(bannerFocus);
         if (Post.Title.Length < 3 || Post.Body.Length < 3)
         {
             Error = "Fill in the headline and text";
@@ -48,7 +51,11 @@ public sealed class NewsEditModel(CurrentUser me, ContentService content, Upload
             }
             Post.Banner = name!;
         }
-        else if (removeBanner) Post.Banner = "";
+        else if (removeBanner)
+        {
+            Post.Banner = "";
+            Post.BannerSize = Post.BannerFocus = "";
+        }
         long saved = content.SavePost(Me.Cid, Post);
         if (old.Length > 0 && old != Post.Banner) uploads.Delete(old);
         return Redirect($"/staff/news/{saved}");

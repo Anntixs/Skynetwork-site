@@ -71,6 +71,12 @@ public sealed class NetworkEvent
     /// <summary>Uploaded banner file name ("" for none), served from /uploads/.</summary>
     public string Banner { get; set; } = "";
     public string? BannerUrl => Banner.Length > 0 ? "/uploads/" + Banner : null;
+    /// <summary>Banner height on the event's page and the part kept in view when it is cropped (<see cref="BannerLayout"/>).</summary>
+    public string BannerSize { get; set; } = "";
+    public string BannerFocus { get; set; } = "";
+    public string? BannerClasses => BannerLayout.Classes(BannerSize, BannerFocus);
+    /// <summary>The whole picture is shown uncropped; on cards it sits over a blurred copy of itself.</summary>
+    public bool BannerWhole => BannerLayout.Size(BannerSize) == "full";
     public long CreatedBy { get; set; }
     public DateTime Start => Time.Utc(StartsAt);
     public DateTime End => Time.Utc(EndsAt);
@@ -85,6 +91,12 @@ public sealed class NewsPost
     /// <summary>Uploaded banner file name ("" for none), served from /uploads/.</summary>
     public string Banner { get; set; } = "";
     public string? BannerUrl => Banner.Length > 0 ? "/uploads/" + Banner : null;
+    /// <summary>Banner height on the post's page and the part kept in view when it is cropped (<see cref="BannerLayout"/>).</summary>
+    public string BannerSize { get; set; } = "";
+    public string BannerFocus { get; set; } = "";
+    public string? BannerClasses => BannerLayout.Classes(BannerSize, BannerFocus);
+    /// <summary>The whole picture is shown uncropped; on cards it sits over a blurred copy of itself.</summary>
+    public bool BannerWhole => BannerLayout.Size(BannerSize) == "full";
     public long AuthorCid { get; set; }
     public string AuthorName { get; set; } = "";
     public long CreatedAt { get; set; }
