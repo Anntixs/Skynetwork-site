@@ -36,7 +36,8 @@
   }
 </div>
 <h2 style="font-size:20px">@L["New site"]</h2>
-<form method="post" class="card form">
+@* Posts to the page itself: after Update or Secret the address still carries that handler. *@
+<form method="post" asp-page="/Staff/Connect" class="card form">
   <label>@L["Site name"]<input name="name" maxlength="80" required placeholder="SkyRUS"></label>
   <label>@L["Redirect addresses, one per line"]<textarea name="redirects" class="mono" style="min-height:70px" required placeholder="https://skyrus.example.com/login/callback"></textarea></label>
   <div><button class="btn btn-primary" type="submit">@L["Register the site"]</button></div>
