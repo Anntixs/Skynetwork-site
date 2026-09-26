@@ -224,6 +224,8 @@ public static class Ru
         ["No upcoming events. Keep an eye on the"] = "Ближайших мероприятий нет. Следите за",
         ["news"] = "новостями",
         ["Draft — visible to the team only."] = "Черновик — видно только команде.",
+        ["Sector:"] = "Сектор:",
+        ["Sector borders"] = "Границы секторов",
         ["Changes to the network and software."] = "Изменения в сети и программах.",
         ["Position bookings"] = "Бронирование позиций",
         ["When controllers plan to be on the air. Times are UTC. Members rated S1 and above can book."] = "Когда диспетчеры планируют выйти в эфир. Время — UTC. Бронировать могут участники с рейтингом S1 и выше.",
