@@ -103,11 +103,18 @@ public class SignupProtectionTests
     [Fact]
     public async Task FormSentAtOnce_OrWithoutItsTime_IsRefused()
     {
-        using var site = new SiteFactory(new() { ["Site:SignupMinSeconds"] = "1" });
+        // Half a minute: sending at once stays "at once" even on a busy test machine.
+        using var site = new SiteFactory(new() { ["Site:SignupMinSeconds"] = "30" });
         Assert.Contains(SignupGuard.NotAPerson, await (await RegisterAsync(site.Browser(), Form("Ivan Petrov", "ivan@mail.ru"))).Content.ReadAsStringAsync());
         var forged = await site.Browser().SubmitAsync("/register", new Dictionary<string, string>(Form("Ivan Petrov", "ivan@mail.ru")) { ["Started"] = "0" });
         Assert.Contains(SignupGuard.NotAPerson, await forged.Content.ReadAsStringAsync());
         Assert.Equal(0, site.Get<MemberService>().Count());
+    }
+
+    [Fact]
+    public async Task FormFilledInForAWhile_IsAccepted()
+    {
+        using var site = new SiteFactory(new() { ["Site:SignupMinSeconds"] = "1" });
         Assert.Equal(HttpStatusCode.Redirect, (await RegisterAsync(site.Browser(), Form("Ivan Petrov", "ivan@mail.ru"), pauseMs: 1300)).StatusCode);
     }
 
