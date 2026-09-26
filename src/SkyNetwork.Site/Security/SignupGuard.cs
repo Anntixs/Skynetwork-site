@@ -194,6 +194,10 @@ public sealed class SignupGuard(IDataProtectionProvider protection, IOptions<Sit
 
     // ---- accounts already registered ------------------------------------------------------------------------------
 
-    /// <summary>Why an existing account looks like a junk registration (for the staff list), or null.</summary>
-    public static string? Suspicion(Member m) => CheckName(m.Name) ?? (m.Email is { Length: > 0 } email ? CheckEmail(email) : null);
+    /// <summary>
+    /// Why an existing account looks like a junk registration (for the staff list), or null. The team and members given a
+    /// rating have been looked at by a person already.
+    /// </summary>
+    public static string? Suspicion(Member m) =>
+        m.StaffRank > 0 || m.Rating > Ratings.OBS ? null : CheckName(m.Name) ?? (m.Email is { Length: > 0 } email ? CheckEmail(email) : null);
 }

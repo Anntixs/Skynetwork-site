@@ -436,16 +436,28 @@ a.card:hover { border-color: var(--line-strong); box-shadow: 0 14px 36px -14px v
 .bulk-bar input[name=reason] { flex: 1 1 220px; max-width: 360px; min-height: 38px; padding: 7px 12px; }
 .bulk-bar .btn[disabled] { opacity: .45; cursor: default; }
 .bulk-count { min-width: 110px; font-size: 13.5px; color: var(--slate); font-variant-numeric: tabular-nums; }
+/* Fixed columns: the member column takes the room that is left and cuts long names and emails short (the whole
+   value is in the tooltip); on a phone the ratings and the date give way. */
+.members-table { table-layout: fixed; }
 .members-table td { vertical-align: middle; }
-.members-table .tick { width: 44px; padding-right: 0; }
-/* The member column takes the room that is left and cuts long names and emails short (the whole value is in the tooltip). */
-.members-table .who { width: 100%; max-width: 0; }
+.members-table th.tick { width: 48px; }
+.members-table th.cid { width: 96px; }
+.members-table th.rating { width: 150px; }
+.members-table th.date { width: 168px; }
+.members-table th.state { width: 150px; }
+.members-table .tick { padding-right: 0; }
 .members-table .who a, .members-table .who span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .members-table .who a { font-weight: 600; color: var(--ink); }
 .members-table .who span { font-size: 12.5px; color: var(--slate); margin-top: 2px; }
-.members-table .state { white-space: nowrap; }
-.members-table .state .badge + .badge, .members-table .state .badge + .small { margin-left: 6px; }
+.members-table .rating, .members-table .date { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.members-table .state-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
 .members-table tr.suspicious td { background: color-mix(in srgb, var(--warn-soft) 55%, transparent); }
+@media (max-width: 760px) {
+  .members-table .rating, .members-table .date { display: none; }
+  .members-table th.cid { width: 76px; }
+  .members-table th.state { width: 124px; }
+  .members-table th, .members-table td { padding-left: 10px; padding-right: 10px; }
+}
 .nowrap { white-space: nowrap; }
 
 /* ---- tables ---- */

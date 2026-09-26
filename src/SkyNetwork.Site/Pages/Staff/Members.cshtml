@@ -42,7 +42,7 @@
     <thead>
       <tr>
         @if (Model.CanSuspend) { <th class="tick"><input type="checkbox" data-bulk-all aria-label="@L["Tick all"]"></th> }
-        <th>CID</th><th>@L["Member"]</th><th>@L["Ratings"]</th><th>@L["Registered"]</th><th>@L["Status"]</th>
+        <th class="cid">CID</th><th>@L["Member"]</th><th class="rating">@L["Ratings"]</th><th class="date">@L["Registered"]</th><th class="state">@L["Status"]</th>
       </tr>
     </thead>
     <tbody>
@@ -53,17 +53,17 @@
         @if (Model.CanSuspend) { <td class="tick"><input type="checkbox" name="cids" value="@m.Cid" form="bulk" aria-label="@m.Cid"></td> }
         <td class="mono"><a href="/staff/members/@m.Cid">@m.Cid</a></td>
         <td class="who"><a href="/staff/members/@m.Cid" title="@m.Name">@m.Name</a><span title="@m.Email">@m.Email</span></td>
-        <td class="mono small nowrap">@m.DisplayShort · @PilotRatings.Pilot.Short(m.PilotRating) · @PilotRatings.Military.Short(m.MilitaryRating)</td>
-        <td class="nowrap">@(m.Registered is { } r ? Format.Date(r) : "—")</td>
-        <td class="state">
+        <td class="rating mono small">@m.DisplayShort · @PilotRatings.Pilot.Short(m.PilotRating) · @PilotRatings.Military.Short(m.MilitaryRating)</td>
+        <td class="date">@(m.Registered is { } r ? Format.Date(r) : "—")</td>
+        <td class="state"><div class="state-badges">
           @if (m.Suspended)
           {
             <span class="badge danger">@L["suspended"]</span>
-            @if (m.SuspensionEnds is { } until) { <span class="muted small">@L["until"] @Format.Utc(until)</span> }
+            @if (m.SuspensionEnds is { } until) { <span class="muted small until">@L["until"] @Format.Utc(until)</span> }
           }
           else { <span class="badge ok">@L["active"]</span> }
           @if (why != null) { <span class="badge warn" title="@L[why]">@L["suspicious"]</span> }
-        </td>
+        </div></td>
       </tr>
     }
     @if (Model.Results.Count == 0) { <tr><td colspan="6" class="muted">@L["No one found"]</td></tr> }
