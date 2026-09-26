@@ -162,6 +162,14 @@ html.at-top .site-header::after { opacity: 0; }
 .brand:hover { color: var(--ink); text-decoration: none; }
 .brand .brand-mark { width: 28px; height: 28px; border-radius: 7px; display: block; }
 .brand .brand-net { color: var(--accent); }
+/* The mark follows the theme: the light one on the light site, the dark one on the dark site. */
+.brand .mark-dark { display: none; }
+:root[data-theme="dark"] .brand .mark-light { display: none; }
+:root[data-theme="dark"] .brand .mark-dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand .mark-light { display: none; }
+  :root:not([data-theme="light"]) .brand .mark-dark { display: block; }
+}
 .nav { display: flex; gap: 0; flex: 1; white-space: nowrap; }
 .nav a, .user-nav a { color: var(--slate); font-weight: 500; padding: 6px 9px; border-radius: 6px; transition: color var(--t-hover) var(--ease); }
 .nav a:hover, .user-nav a:hover { color: var(--ink); text-decoration: none; }
