@@ -459,6 +459,8 @@ a.card:hover { border-color: var(--line-strong); box-shadow: 0 14px 36px -14px v
   .members-table th, .members-table td { padding-left: 10px; padding-right: 10px; }
 }
 .nowrap { white-space: nowrap; }
+/* Docs: the simulators SkyPilot works with. */
+.sim-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
 
 /* ---- tables ---- */
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--card-bg); }
@@ -826,21 +828,6 @@ main > #cta { position: relative; overflow: hidden; color: #e8f1fd;
 .cta .btn-primary:hover { background: #eaf3fe; color: #0b3f8f; }
 .cta a:not(.btn) { color: #a9d4fa; }
 
-/* gallery: cross-fade; the outgoing slide (.was) stays opaque underneath so the frame never shows through */
-.gallery-frame { position: relative; isolation: isolate; aspect-ratio: 16 / 9; border-radius: var(--r-panel); overflow: hidden; background: var(--line);
-  box-shadow: inset 0 0 0 1px var(--line), 0 2px 6px var(--shadow), 0 44px 90px -34px var(--shadow-strong); }
-.gallery-frame::before { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 1px 0 var(--edge-bright); pointer-events: none; z-index: 3; }
-.gallery-frame .slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--t-fade) var(--ease); }
-.gallery-frame .slide.active { opacity: 1; z-index: 2; }
-.gallery-frame .slide.was { opacity: 1; z-index: 1; transition: none; }
-.gallery-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-top: 18px; }
-.gallery-dots[hidden] { display: none; }
-.gallery-dots button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
-.gallery-dots button:focus-visible { border-radius: 50%; }
-.gallery-dots button i { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--slate); opacity: .5; transition: opacity var(--t-hover) var(--ease), transform var(--t-hover) var(--ease), background-color var(--t-hover) var(--ease); }
-.gallery-dots button:hover i { opacity: .9; }
-.gallery-dots button[aria-pressed="true"] i { background: var(--accent); opacity: 1; transform: scale(1.3); }
-
 /* Reveals: hidden only under html.motion (set in the page head when motion is allowed); home.js adds .in once and then drops the attribute.
    Last in the home block on purpose: it must outrank the card hover transition while the reveal runs. */
 html.motion [data-reveal] { opacity: 0; transform: translateY(18px); transition: opacity var(--t-reveal) var(--ease), transform var(--t-reveal) var(--ease); transition-delay: calc(var(--i, 0) * 70ms); }
@@ -879,7 +866,6 @@ html.motion [data-reveal].in { opacity: 1; transform: none; }
   .map-card { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 55%; border-radius: 20px 20px 0 0; }
   .strip { grid-template-columns: 104px 1fr; }
   .strip .freq { grid-column: 2; }
-  .gallery-frame { aspect-ratio: 4 / 3; }
   .screen-link { top: auto; right: auto; bottom: 16px; left: 16px; min-height: 44px; padding: 0 16px 0 14px; }
   .auth-box { padding: 32px 22px 24px; border-radius: 20px; }
   .page { padding-top: 40px; }

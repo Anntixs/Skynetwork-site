@@ -14,7 +14,7 @@
     <div class="hero-text" data-reveal-group>
       <div class="eyebrow" data-reveal>@L["Virtual aviation network"]</div>
       <h1 id="hero-h" data-reveal>@L["One sky for pilots and controllers"]</h1>
-      <p class="lead" data-reveal>@L["On SkyNetwork pilots fly in MSFS while controllers guide them from the ground — for real, on the radio and by the rules. Membership is free."]</p>
+      <p class="lead" data-reveal>@L["On SkyNetwork pilots fly in MSFS, X-Plane and Prepar3D while controllers guide them from the ground — for real, on the radio and by the rules. Membership is free."]</p>
       <div class="hero-actions" data-reveal>
         @if (Me.IsSignedIn)
         {
@@ -133,35 +133,6 @@
   </div>
 </section>
 
-@if (Model.Gallery.Count > 0)
-{
-<section class="sec" id="gallery" aria-labelledby="gallery-h">
-  <div class="wrap">
-    <div class="sec-head" data-reveal>
-      <h2 id="gallery-h">@L["Screenshots from the network"]</h2>
-      <p>@L["Moments caught by our members."]</p>
-    </div>
-    <div class="gallery" role="region" aria-roledescription="carousel" aria-label="@L["Screenshot gallery"]" data-reveal>
-      <div class="gallery-frame">
-        @for (int i = 0; i < Model.Gallery.Count; i++)
-        {
-          <img class="slide @(i == 0 ? "active" : "")" src="@Model.Gallery[i]" alt="@L.F("Screenshot {0} of {1}", i + 1, Model.Gallery.Count)" aria-hidden="@(i == 0 ? "false" : "true")" loading="@(i == 0 ? "eager" : "lazy")" decoding="async">
-        }
-      </div>
-      @if (Model.Gallery.Count > 1)
-      {
-        <div class="gallery-dots" hidden>
-          @for (int i = 0; i < Model.Gallery.Count; i++)
-          {
-            <button type="button" aria-label="@L.F("Show screenshot {0}", i + 1)" aria-pressed="@(i == 0 ? "true" : "false")"><i></i></button>
-          }
-        </div>
-      }
-    </div>
-  </div>
-</section>
-}
-
 <section class="sec" id="start" aria-labelledby="start-h">
   <div class="wrap">
     <div class="sec-head" data-reveal>
@@ -170,7 +141,7 @@
     </div>
     <div class="steps" data-reveal-group>
       <div class="step" data-reveal><h3>@L["Register"]</h3><p>@L["You get a CID, your member number. With it and your password you sign in to the website and the network."]</p></div>
-      <div class="step" data-reveal><h3>@L["Install the software"]</h3><p>@L["Pilots use SkyPilot for MSFS 2020/2024, controllers use the Network-ATC radar."] <a href="/docs/software">@L["Download"]</a></p></div>
+      <div class="step" data-reveal><h3>@L["Install the software"]</h3><p>@L["Pilots use SkyPilot for MSFS 2020/2024, X-Plane 11/12 and Prepar3D v4–v6, controllers use the Network-ATC radar."] <a href="/docs/software">@L["Download"]</a></p></div>
       <div class="step" data-reveal><h3>@L["Get on the air"]</h3><p>@L["File a flight plan on the website and connect. Controllers need a rating —"] <a href="/docs/ratings">@L["about ratings"]</a>.</p></div>
     </div>
   </div>
