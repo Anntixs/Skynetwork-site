@@ -37,6 +37,19 @@ public class MapDataTests
     }
 
     [Fact]
+    public async Task MapShowsSectorBorders()
+    {
+        using var site = new SiteFactory();
+        var c = site.Browser();
+        Assert.Contains("id=\"fir-toggle\"", await c.HtmlAsync("/map"));
+        Assert.Contains("/data/firs.json", await c.HtmlAsync("/js/map.js"));
+        using var firs = JsonDocument.Parse(await c.HtmlAsync("/data/firs.json"));
+        Assert.True(firs.RootElement.GetProperty("features").GetArrayLength() > 100);
+        // A CTR callsign finds its sector: UUWV_CTR → the Moscow FIR.
+        Assert.Equal("UUWV", firs.RootElement.GetProperty("prefixes").GetProperty("UUWV").GetProperty("b").GetString());
+    }
+
+    [Fact]
     public void EveryMapTextHasARussianTranslation()
     {
         var missing = MapTexts.Keys.Where(k => !Ru.Texts.ContainsKey(k)).ToList();

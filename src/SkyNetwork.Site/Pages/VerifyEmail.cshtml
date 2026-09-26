@@ -1,0 +1,18 @@
+@page "/verify-email"
+@model VerifyEmailModel
+@{ ViewData["Title"] = L["Email confirmation"]; }
+<div class="wrap page">
+  <div class="auth-box">
+    <h1 style="font-size:34px">@L["Email confirmation"]</h1>
+    @if (Model.Confirmed)
+    {
+      <div class="alert ok">@L.F("The address {0} is confirmed. You can connect to the network.", Model.Email)</div>
+      <p><a class="btn btn-primary" href="/account">@L["My account"]</a></p>
+    }
+    else
+    {
+      <div class="alert error">@L["The link is invalid or has expired. Sign in and send a new one from your account page."]</div>
+      <p><a class="btn" href="/account">@L["My account"]</a></p>
+    }
+  </div>
+</div>

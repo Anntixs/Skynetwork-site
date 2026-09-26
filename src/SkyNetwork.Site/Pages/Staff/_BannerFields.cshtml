@@ -1,0 +1,44 @@
+@model BannerFields
+@* The banners of an event or a news post: a picture for each language, the height on its page, the part kept in view when
+   it is cropped, and a preview of both places it appears that follows the choices at once (js/staff-editor.js). *@
+<div class="banner-field" data-banner-editor data-url-ru="@Model.Url" data-url-en="@Model.UrlEn">
+  <div class="banner-look" hidden="@(Model.Shown == null)">
+    <figure>
+      <img class="page-banner @Model.Classes" src="@Model.Shown" alt="" data-banner-page data-banner-src>
+      <figcaption>@(Model.ForEvent ? L["On the event page"] : L["On the news page"])</figcaption>
+    </figure>
+    <figure>
+      <span class="card-media @Model.Classes" data-banner-card><img class="banner-fill" src="@Model.Shown" alt="" data-banner-src><img src="@Model.Shown" alt="" data-banner-src></span>
+      <figcaption>@L["On cards"]</figcaption>
+    </figure>
+  </div>
+  <div class="lang-part" data-lang-part="ru" hidden="@(Model.Lang == "en")">
+    <label>@L["Banner"]<input type="file" name="banner" accept="image/jpeg,image/png,image/webp">
+      <span class="hint">@L["JPEG, PNG or WebP up to 5 MB; wide pictures (about 1600 × 600) look best."]</span></label>
+    @if (Model.Url != null) { <label class="check"><input type="checkbox" name="removeBanner" value="true"> <span>@L["Remove the banner"]</span></label> }
+  </div>
+  <div class="lang-part" data-lang-part="en" hidden="@(Model.Lang != "en")">
+    <label>@L["Banner for the English site"]<input type="file" name="bannerEn" accept="image/jpeg,image/png,image/webp">
+      <span class="hint">@L["Optional: without it the English site shows the Russian banner."]</span></label>
+    @if (Model.UrlEn != null) { <label class="check"><input type="checkbox" name="removeBannerEn" value="true"> <span>@L["Remove the English banner"]</span></label> }
+  </div>
+  <div class="banner-choices">
+    <fieldset class="choice">
+      <legend>@L["Height on the page"]</legend>
+      <div class="segmented">
+        <label><input type="radio" name="BannerSize" value="strip" checked="@(Model.Size == "strip")"><span>@L["Low strip"]</span></label>
+        <label><input type="radio" name="BannerSize" value="" checked="@(Model.Size == "")"><span>@L["Standard"]</span></label>
+        <label><input type="radio" name="BannerSize" value="tall" checked="@(Model.Size == "tall")"><span>@L["Tall"]</span></label>
+        <label><input type="radio" name="BannerSize" value="full" checked="@(Model.Size == "full")"><span>@L["Whole picture"]</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="choice" data-banner-focus disabled="@(Model.Size == "full")">
+      <legend>@L["When cropped, keep in view"]</legend>
+      <div class="segmented">
+        <label><input type="radio" name="BannerFocus" value="top" checked="@(Model.Focus == "top")"><span>@L["Top"]</span></label>
+        <label><input type="radio" name="BannerFocus" value="" checked="@(Model.Focus == "")"><span>@L["Centre"]</span></label>
+        <label><input type="radio" name="BannerFocus" value="bottom" checked="@(Model.Focus == "bottom")"><span>@L["Bottom"]</span></label>
+      </div>
+    </fieldset>
+  </div>
+</div>

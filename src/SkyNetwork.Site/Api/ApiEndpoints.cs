@@ -159,18 +159,20 @@ public static class ApiEndpoints
                 minutes = (int)s.Duration.TotalMinutes,
             }));
 
-        v1.MapGet("/events", (ContentService content) => content.UpcomingEvents(50).Select(EventDto));
-        v1.MapGet("/events/{id:long}", (long id, ContentService content) =>
-            content.Event(id) is { Published: true } e ? Results.Ok(EventDto(e)) : Results.NotFound());
+        // Events and news in Russian, or with ?lang=en in English where they have an English version.
+        v1.MapGet("/events", (string? lang, ContentService content) => content.UpcomingEvents(50).Select(e => EventDto(e, lang == "en")));
+        v1.MapGet("/events/{id:long}", (long id, string? lang, ContentService content) =>
+            content.Event(id) is { Published: true } e ? Results.Ok(EventDto(e, lang == "en")) : Results.NotFound());
 
         v1.MapGet("/bookings", (ContentService content) => content.Bookings().Select(b => new
         {
             b.Id, b.Callsign, b.Cid, b.Name, rating = Ratings.Short(b.Rating), start = b.Start, end = b.End,
         }));
 
-        v1.MapGet("/news", (ContentService content) => content.News(20).Select(n => new
+        v1.MapGet("/news", (string? lang, ContentService content) => content.News(20).Select(n => new
         {
-            n.Id, n.Title, n.Body, author = n.AuthorName, created = n.Created, banner = n.BannerUrl,
+            n.Id, title = n.TitleIn(lang == "en"), body = n.BodyIn(lang == "en"), author = n.AuthorName, created = n.Created,
+            banner = n.BannerUrlIn(lang == "en"),
         }));
     }
 
@@ -195,9 +197,9 @@ public static class ApiEndpoints
         filed = p.Created,
     };
 
-    private static object EventDto(NetworkEvent e) => new
+    private static object EventDto(NetworkEvent e, bool en) => new
     {
-        e.Id, e.Title, e.Summary, e.Body, airports = e.Airports.Split(' ', StringSplitOptions.RemoveEmptyEntries), start = e.Start, end = e.End,
-        banner = e.BannerUrl,
+        e.Id, title = e.TitleIn(en), summary = e.SummaryIn(en), body = e.BodyIn(en),
+        airports = e.Airports.Split(' ', StringSplitOptions.RemoveEmptyEntries), start = e.Start, end = e.End, banner = e.BannerUrlIn(en),
     };
 }

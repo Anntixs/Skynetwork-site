@@ -170,14 +170,38 @@ public sealed class Database
             """);
         AddColumn(c, "member_profiles", "simbrief", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "events", "banner", "TEXT NOT NULL DEFAULT ''");
+        // Email confirmation: members who were there before it are counted as confirmed.
+        if (AddColumn(c, "member_profiles", "email_verified", "INTEGER NOT NULL DEFAULT 0"))
+            c.Execute("UPDATE member_profiles SET email_verified = 1");
+        c.Execute("""
+            CREATE TABLE IF NOT EXISTS email_tokens (
+                token_hash TEXT PRIMARY KEY, cid INTEGER NOT NULL, purpose TEXT NOT NULL, email TEXT NOT NULL DEFAULT '',
+                created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0);
+            CREATE INDEX IF NOT EXISTS ix_email_tokens_cid ON email_tokens (cid, purpose, created_at);
+            """);
         AddColumn(c, "news", "banner", "TEXT NOT NULL DEFAULT ''");
+        // Banner layout chosen in the editor (see BannerLayout): height on its page and the part kept in view.
+        AddColumn(c, "events", "banner_size", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "events", "banner_focus", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "banner_size", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "banner_focus", "TEXT NOT NULL DEFAULT ''");
+        // English versions of events and news (optional: the English site falls back to the Russian ones).
+        AddColumn(c, "events", "title_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "events", "summary_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "events", "body_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "events", "banner_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "title_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "body_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "banner_en", "TEXT NOT NULL DEFAULT ''");
 
     }
 
-    private static void AddColumn(SqliteConnection c, string table, string column, string type)
+    /// <summary>Adds the column if it is missing; true when it was added.</summary>
+    private static bool AddColumn(SqliteConnection c, string table, string column, string type)
     {
         var columns = c.Query<string>($"SELECT name FROM pragma_table_info('{table}')");
-        if (!columns.Contains(column, StringComparer.OrdinalIgnoreCase))
-            c.Execute($"ALTER TABLE {table} ADD COLUMN {column} {type}");
+        if (columns.Contains(column, StringComparer.OrdinalIgnoreCase)) return false;
+        c.Execute($"ALTER TABLE {table} ADD COLUMN {column} {type}");
+        return true;
     }
 }

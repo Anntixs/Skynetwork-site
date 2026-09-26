@@ -43,6 +43,17 @@ public sealed partial class UploadStore(IOptions<SiteOptions> options, IWebHostE
         return (name, null);
     }
 
+    /// <summary>
+    /// A picture after an edit: a new upload replaces <paramref name="current"/>, <paramref name="remove"/> clears it. The replaced
+    /// file stays on disk until the caller has saved and deletes it; on an error <paramref name="current"/> is kept.
+    /// </summary>
+    public async Task<(string Name, string? Error)> ReplaceAsync(IFormFile? upload, bool remove, string current, CancellationToken ct = default)
+    {
+        if (upload is not { Length: > 0 }) return (remove ? "" : current, null);
+        var (name, error) = await SaveImageAsync(upload, ct);
+        return error == null ? (name!, null) : (current, error);
+    }
+
     public void Delete(string? name)
     {
         if (name == null || !FileName().IsMatch(name)) return;

@@ -9,7 +9,7 @@
     @foreach (var n in Model.List)
     {
       <tr>
-        <td><a href="/staff/news/@n.Id">@n.Title</a></td>
+        <td><a href="/staff/news/@n.Id">@n.TitleIn(!L.IsRu)</a>@if (n.Title.Length > 0 && n.TitleEn.Length > 0) { <span class="badge" style="margin-left:8px">RU · EN</span> }</td>
         <td>@n.AuthorName</td>
         <td>@Format.Date(n.Created)</td>
         <td>@if (n.Published) { <span class="badge ok">@L["published"]</span> } else { <span class="badge">@L["draft"]</span> }</td>

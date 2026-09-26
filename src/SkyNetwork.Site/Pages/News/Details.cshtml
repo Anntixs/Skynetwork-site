@@ -1,11 +1,11 @@
 @page "/news/{id:long}"
 @model SkyNetwork.Site.Pages.News.DetailsModel
-@{ ViewData["Title"] = Model.Post.Title; }
+@{ var p = Model.Post; bool en = !L.IsRu; ViewData["Title"] = p.TitleIn(en); }
 <div class="wrap page">
-  @if (Model.Post.BannerUrl is { } banner) { <img class="page-banner" src="@banner" alt=""> }
+  @if (p.BannerUrlIn(en) is { } banner) { <img class="page-banner @p.BannerClasses" src="@banner" alt=""> }
   <div class="eyebrow"><a href="/news">@L["News"]</a></div>
-  <h1>@Model.Post.Title</h1>
-  <p class="muted">@Format.Date(Model.Post.Created) · @Model.Post.AuthorName</p>
-  @if (!Model.Post.Published) { <div class="alert">@L["Draft — visible to the team only."]</div> }
-  <div class="prose"><p>@Model.Post.Body</p></div>
+  <h1>@p.TitleIn(en)</h1>
+  <p class="muted">@Format.Date(p.Created) · @p.AuthorName</p>
+  @if (!p.Published) { <div class="alert">@L["Draft — visible to the team only."]</div> }
+  <div class="prose"><p>@p.BodyIn(en)</p></div>
 </div>

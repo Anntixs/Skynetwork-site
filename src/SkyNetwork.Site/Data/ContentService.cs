@@ -30,26 +30,33 @@ public sealed class ContentService(Database db, AuditService audit)
     public long SaveEvent(long actor, NetworkEvent e)
     {
         using var c = db.Open();
-        var args = new { e.Id, e.Title, e.Summary, e.Body, e.Airports, e.StartsAt, e.EndsAt, e.Banner, published = e.Published ? 1 : 0, actor, now = Database.Now() };
+        var args = new
+        {
+            e.Id, e.Title, e.Summary, e.Body, e.TitleEn, e.SummaryEn, e.BodyEn, e.Airports, e.StartsAt, e.EndsAt, e.Banner, e.BannerEn,
+            e.BannerSize, e.BannerFocus, published = e.Published ? 1 : 0, actor, now = Database.Now(),
+        };
         long id = e.Id;
         if (e.Id == 0)
             id = c.ExecuteScalar<long>("""
-                INSERT INTO events (title, summary, body, airports, starts_at, ends_at, banner, published, created_by, created_at)
-                VALUES (@Title, @Summary, @Body, @Airports, @StartsAt, @EndsAt, @Banner, @published, @actor, @now) RETURNING id
+                INSERT INTO events (title, summary, body, title_en, summary_en, body_en, airports, starts_at, ends_at, banner, banner_en,
+                    banner_size, banner_focus, published, created_by, created_at)
+                VALUES (@Title, @Summary, @Body, @TitleEn, @SummaryEn, @BodyEn, @Airports, @StartsAt, @EndsAt, @Banner, @BannerEn,
+                    @BannerSize, @BannerFocus, @published, @actor, @now) RETURNING id
                 """, args);
         else
             c.Execute("""
-                UPDATE events SET title=@Title, summary=@Summary, body=@Body, airports=@Airports, starts_at=@StartsAt,
-                    ends_at=@EndsAt, banner=@Banner, published=@published WHERE id=@Id
+                UPDATE events SET title=@Title, summary=@Summary, body=@Body, title_en=@TitleEn, summary_en=@SummaryEn, body_en=@BodyEn,
+                    airports=@Airports, starts_at=@StartsAt, ends_at=@EndsAt, banner=@Banner, banner_en=@BannerEn, banner_size=@BannerSize,
+                    banner_focus=@BannerFocus, published=@published WHERE id=@Id
                 """, args);
-        audit.Log(actor, "event", id.ToString(), e.Title);
+        audit.Log(actor, "event", id.ToString(), e.TitleIn(false));
         return id;
     }
 
     public void DeleteEvent(long actor, long id)
     {
         using var c = db.Open();
-        var title = c.ExecuteScalar<string>("SELECT title FROM events WHERE id = @id", new { id }) ?? "";
+        var title = c.ExecuteScalar<string>("SELECT COALESCE(NULLIF(title, ''), title_en) FROM events WHERE id = @id", new { id }) ?? "";
         c.Execute("DELETE FROM events WHERE id = @id", new { id });
         audit.Log(actor, "event-delete", id.ToString(), title);
     }
@@ -76,22 +83,30 @@ public sealed class ContentService(Database db, AuditService audit)
     public long SavePost(long actor, NewsPost p)
     {
         using var c = db.Open();
-        var args = new { p.Id, p.Title, p.Body, p.Banner, published = p.Published ? 1 : 0, actor, now = Database.Now() };
+        var args = new
+        {
+            p.Id, p.Title, p.Body, p.TitleEn, p.BodyEn, p.Banner, p.BannerEn, p.BannerSize, p.BannerFocus, published = p.Published ? 1 : 0, actor,
+            now = Database.Now(),
+        };
         long id = p.Id;
         if (p.Id == 0)
             id = c.ExecuteScalar<long>("""
-                INSERT INTO news (title, body, banner, published, author_cid, created_at) VALUES (@Title, @Body, @Banner, @published, @actor, @now) RETURNING id
+                INSERT INTO news (title, body, title_en, body_en, banner, banner_en, banner_size, banner_focus, published, author_cid, created_at)
+                VALUES (@Title, @Body, @TitleEn, @BodyEn, @Banner, @BannerEn, @BannerSize, @BannerFocus, @published, @actor, @now) RETURNING id
                 """, args);
         else
-            c.Execute("UPDATE news SET title=@Title, body=@Body, banner=@Banner, published=@published WHERE id=@Id", args);
-        audit.Log(actor, "news", id.ToString(), p.Title);
+            c.Execute("""
+                UPDATE news SET title=@Title, body=@Body, title_en=@TitleEn, body_en=@BodyEn, banner=@Banner, banner_en=@BannerEn,
+                    banner_size=@BannerSize, banner_focus=@BannerFocus, published=@published WHERE id=@Id
+                """, args);
+        audit.Log(actor, "news", id.ToString(), p.TitleIn(false));
         return id;
     }
 
     public void DeletePost(long actor, long id)
     {
         using var c = db.Open();
-        var title = c.ExecuteScalar<string>("SELECT title FROM news WHERE id = @id", new { id }) ?? "";
+        var title = c.ExecuteScalar<string>("SELECT COALESCE(NULLIF(title, ''), title_en) FROM news WHERE id = @id", new { id }) ?? "";
         c.Execute("DELETE FROM news WHERE id = @id", new { id });
         audit.Log(actor, "news-delete", id.ToString(), title);
     }

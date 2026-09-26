@@ -123,6 +123,34 @@ public class SimbriefTests
     }
 
     [Fact]
+    public async Task PlanLoadedFromSimbrief_IsFiledByTheFilePlanButton()
+    {
+        // After a SimBrief import the page is at /flightplan?handler=Simbrief. The plan form there used to post back to that
+        // address: "File plan" imported again ("Enter your SimBrief username") and the loaded plan was gone.
+        using var site = new SiteFactory();
+        long cid = site.Member("Import Pilot");
+        var c = site.Browser();
+        await c.LoginAsync(cid);
+        // An import without a username answers at once (SimBrief is not asked) and renders the page at the import address.
+        var imported = await c.SubmitAsync("/flightplan", new Dictionary<string, string> { ["simbriefUser"] = "" }, "/flightplan?handler=Simbrief");
+        string html = await imported.Content.ReadAsStringAsync();
+        var planForm = System.Text.RegularExpressions.Regex.Match(html, @"<form[^>]*class=""form wide""[^>]*>");
+        Assert.True(planForm.Success, "no plan form on the page");
+        string action = WebUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Match(planForm.Value, @"action=""([^""]*)""").Groups[1].Value);
+        Assert.Equal("/flightplan", action);
+
+        var filed = await c.SubmitAsync("/flightplan", new Dictionary<string, string>
+        {
+            ["Plan.Callsign"] = "afl123", ["Plan.Rules"] = "IFR", ["Plan.Aircraft"] = "a20n", ["Plan.CruiseSpeed"] = "450",
+            ["Plan.Departure"] = "uuee", ["Plan.Destination"] = "ulli", ["Plan.Alternate"] = "ullo", ["Plan.DepartureTime"] = "1200",
+            ["Plan.CruiseAltitude"] = "fl350", ["Enroute"] = "0110", ["Fuel"] = "03:00",
+            ["Plan.Route"] = "n0450f350  demo5 dm100", ["Plan.Remarks"] = "/V/",
+        }, action);
+        Assert.Equal(HttpStatusCode.Redirect, filed.StatusCode);
+        Assert.Equal("/flightplan?saved=1", filed.Headers.Location!.OriginalString);
+    }
+
+    [Fact]
     public async Task MapGetsTheRoute_FromSimbriefOrWorkedOut_AndTheFlownTrack()
     {
         using var site = new SiteFactory();

@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Dapper;
 using SkyNetwork.Site.Security;
+using SkyNetwork.Site.Services;
 
 namespace SkyNetwork.Site.Data;
 
@@ -64,7 +65,7 @@ public sealed record RatingRequestInput(
 public sealed record RequestError(int Status, string Code, string Message);
 
 /// <summary>Divisions, their API keys and the rating requests they send after exams.</summary>
-public sealed partial class DivisionService(Database db, MemberService members, AuditService audit)
+public sealed partial class DivisionService(Database db, MemberService members, AuditService audit, Notifications notify)
 {
     public static readonly IReadOnlyDictionary<string, string> RequestStatuses = new Dictionary<string, string>
     {
@@ -290,6 +291,7 @@ public sealed partial class DivisionService(Database db, MemberService members, 
             UPDATE rating_requests SET status = 'declined', reviewer_cid = @actor, review_comment = @comment, updated_at = @now WHERE id = @id
             """, new { id, actor = actor.Cid, comment = Clip(comment, 1000), now = Database.Now() });
         audit.Log(actor.Cid, "rating-request", r.Cid.ToString(), $"{r.DivisionCode}: {r.TargetShort} declined");
+        notify.RatingRequestDeclined(r.Cid, r.DivisionCode, r.TargetShort, comment.Trim());
         return null;
     }
 

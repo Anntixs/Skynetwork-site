@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = L["News"];
     var posts = Site.News(50);
+    bool en = !L.IsRu;
 }
 <div class="wrap page">
   <div class="page-head"><h1>@L["News"]</h1><p>@L["Changes to the network and software."]</p></div>
@@ -10,11 +11,15 @@
   <div class="news-list prose">
     @foreach (var n in posts)
     {
-      <div class="news-item @(n.BannerUrl != null ? "with-thumb" : "")">
-        @if (n.BannerUrl is { } thumb) { <a href="/news/@n.Id" class="news-thumb"><img src="@thumb" alt="" loading="lazy"></a> }
+      <div class="news-item @(n.BannerUrlIn(en) != null ? "with-thumb" : "")">
+        @if (n.BannerUrlIn(en) is { } thumb)
+        {
+          @* The headline links to the post too: the picture is no extra stop for the keyboard or a screen reader. *@
+          <a href="/news/@n.Id" class="news-thumb @n.BannerClasses" tabindex="-1" aria-hidden="true">@if (n.BannerWhole) { <img class="banner-fill" src="@thumb" alt="" loading="lazy"> }<img src="@thumb" alt="" loading="lazy"></a>
+        }
         <div class="muted small">@Format.Date(n.Created) · @n.AuthorName</div>
-        <h3><a href="/news/@n.Id">@n.Title</a></h3>
-        <p class="muted">@(n.Body.Length > 280 ? n.Body[..280] + "…" : n.Body)</p>
+        <h3><a href="/news/@n.Id">@n.TitleIn(en)</a></h3>
+        <p class="muted">@n.ExcerptIn(en, 280)</p>
       </div>
     }
   </div>

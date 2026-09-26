@@ -3,6 +3,7 @@
 @{
     var s = Model.Online;
     string N(long n) => n.ToString("N0", L.Culture);
+    bool en = !L.IsRu;
 }
 @section Head {
   <link rel="stylesheet" href="~/lib/leaflet/leaflet.css">
@@ -13,7 +14,7 @@
     <div class="hero-text" data-reveal-group>
       <div class="eyebrow" data-reveal>@L["Virtual aviation network"]</div>
       <h1 id="hero-h" data-reveal>@L["One sky for pilots and controllers"]</h1>
-      <p class="lead" data-reveal>@L["On SkyNetwork pilots fly in MSFS while controllers guide them from the ground — for real, on the radio and by the rules. Membership is free."]</p>
+      <p class="lead" data-reveal>@L["On SkyNetwork pilots fly in MSFS, X-Plane and Prepar3D while controllers guide them from the ground — for real, on the radio and by the rules. Membership is free."]</p>
       <div class="hero-actions" data-reveal>
         @if (Me.IsSignedIn)
         {
@@ -107,9 +108,10 @@
         @foreach (var e in Model.Events)
         {
           <a class="card" href="/events/@e.Id" data-reveal>
-            <span class="card-media @(e.BannerUrl == null ? "blank" : "")">
-              @if (e.BannerUrl is { } banner)
+            <span class="card-media @(e.BannerUrlIn(en) == null ? "blank" : e.BannerClasses)">
+              @if (e.BannerUrlIn(en) is { } banner)
               {
+                if (e.BannerWhole) { <img class="banner-fill" src="@banner" alt="" loading="lazy" decoding="async"> }
                 <img src="@banner" alt="" loading="lazy" decoding="async">
               }
               else
@@ -119,8 +121,8 @@
             </span>
             <div class="card-body">
               <span class="date-chip">@Format.Span(e.Start, e.End)</span>
-              <h3>@e.Title</h3>
-              <p>@e.Summary</p>
+              <h3>@e.TitleIn(en)</h3>
+              <p>@e.SummaryIn(en)</p>
               @if (e.Airports.Length > 0) { <span class="mono airports">@e.Airports</span> }
             </div>
           </a>
@@ -131,35 +133,6 @@
   </div>
 </section>
 
-@if (Model.Gallery.Count > 0)
-{
-<section class="sec" id="gallery" aria-labelledby="gallery-h">
-  <div class="wrap">
-    <div class="sec-head" data-reveal>
-      <h2 id="gallery-h">@L["Screenshots from the network"]</h2>
-      <p>@L["Moments caught by our members."]</p>
-    </div>
-    <div class="gallery" role="region" aria-roledescription="carousel" aria-label="@L["Screenshot gallery"]" data-reveal>
-      <div class="gallery-frame">
-        @for (int i = 0; i < Model.Gallery.Count; i++)
-        {
-          <img class="slide @(i == 0 ? "active" : "")" src="@Model.Gallery[i]" alt="@L.F("Screenshot {0} of {1}", i + 1, Model.Gallery.Count)" aria-hidden="@(i == 0 ? "false" : "true")" loading="@(i == 0 ? "eager" : "lazy")" decoding="async">
-        }
-      </div>
-      @if (Model.Gallery.Count > 1)
-      {
-        <div class="gallery-dots" hidden>
-          @for (int i = 0; i < Model.Gallery.Count; i++)
-          {
-            <button type="button" aria-label="@L.F("Show screenshot {0}", i + 1)" aria-pressed="@(i == 0 ? "true" : "false")"><i></i></button>
-          }
-        </div>
-      }
-    </div>
-  </div>
-</section>
-}
-
 <section class="sec" id="start" aria-labelledby="start-h">
   <div class="wrap">
     <div class="sec-head" data-reveal>
@@ -168,7 +141,7 @@
     </div>
     <div class="steps" data-reveal-group>
       <div class="step" data-reveal><h3>@L["Register"]</h3><p>@L["You get a CID, your member number. With it and your password you sign in to the website and the network."]</p></div>
-      <div class="step" data-reveal><h3>@L["Install the software"]</h3><p>@L["Pilots use SkyPilot for MSFS 2020/2024, controllers use the Network-ATC radar."] <a href="/docs/software">@L["Download"]</a></p></div>
+      <div class="step" data-reveal><h3>@L["Install the software"]</h3><p>@L["Pilots use SkyPilot for MSFS 2020/2024, X-Plane 11/12 and Prepar3D v4–v6, controllers use the Network-ATC radar."] <a href="/docs/software">@L["Download"]</a></p></div>
       <div class="step" data-reveal><h3>@L["Get on the air"]</h3><p>@L["File a flight plan on the website and connect. Controllers need a rating —"] <a href="/docs/ratings">@L["about ratings"]</a>.</p></div>
     </div>
   </div>
@@ -193,14 +166,14 @@
         @foreach (var n in Model.News)
         {
           <a class="card" href="/news/@n.Id" data-reveal>
-            @if (n.BannerUrl is { } thumb)
+            @if (n.BannerUrlIn(en) is { } thumb)
             {
-              <span class="card-media"><img src="@thumb" alt="" loading="lazy" decoding="async"></span>
+              <span class="card-media @n.BannerClasses">@if (n.BannerWhole) { <img class="banner-fill" src="@thumb" alt="" loading="lazy" decoding="async"> }<img src="@thumb" alt="" loading="lazy" decoding="async"></span>
             }
             <div class="card-body">
               <span class="card-date">@Format.Date(n.Created)</span>
-              <h3>@n.Title</h3>
-              <p>@(n.Body.Length > 160 ? n.Body[..160] + "…" : n.Body)</p>
+              <h3>@n.TitleIn(en)</h3>
+              <p>@n.ExcerptIn(en, 160)</p>
             </div>
           </a>
         }

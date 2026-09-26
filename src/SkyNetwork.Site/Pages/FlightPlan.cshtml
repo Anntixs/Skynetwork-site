@@ -19,7 +19,8 @@
         <button class="btn" type="submit">@L["Load"]</button>
       </div>
     </form>
-    <form method="post" class="form wide">
+    @* The plan form always posts to the filing handler: after a SimBrief import the page sits at ?handler=Simbrief. *@
+    <form method="post" asp-page="/FlightPlan" class="form wide">
       <input type="hidden" name="Plan.Waypoints" value="@p.Waypoints">
       <div class="row">
         <label>@L["Callsign"]<input name="Plan.Callsign" value="@p.Callsign" class="mono" required maxlength="10" pattern="[A-Za-z0-9]{2,10}"></label>

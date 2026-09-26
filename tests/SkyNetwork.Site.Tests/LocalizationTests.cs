@@ -47,6 +47,8 @@ public class LocalizationTests
             foreach (var (_, name, privileges) in ladder.Levels) { yield return name; yield return privileges; }
         foreach (var (_, title) in TrainingTracks.All) yield return title;
         foreach (var title in Permissions.Roles.Values) yield return title;
+        foreach (var text in new[] { SignupGuard.RealName, SignupGuard.BadName, SignupGuard.BadEmail, SignupGuard.TemporaryEmail, SignupGuard.NotAPerson })
+            yield return text;
         foreach (var title in SupportService.TicketStatuses.Values) yield return title;
         foreach (var title in DivisionService.RequestStatuses.Values) yield return title;
         foreach (var title in ConnectService.Scopes.Values) yield return title;

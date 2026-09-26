@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using SkyNetwork.Site.Data;
 using SkyNetwork.Site.Services;
@@ -13,18 +14,19 @@ public class BannerTests
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
 
     private static async Task<HttpResponseMessage> PostMultipart(HttpClient c, string page, IDictionary<string, string> fields,
-        (string Name, byte[] Bytes)? file = null)
+        (string Name, byte[] Bytes)? file = null, (string Name, byte[] Bytes)? fileEn = null)
     {
         var html = await (await c.GetAsync(page)).Content.ReadAsStringAsync();
         var token = Regex.Match(html, "name=\"__RequestVerificationToken\" type=\"hidden\" value=\"([^\"]+)\"");
         Assert.True(token.Success);
         var form = new MultipartFormDataContent { { new StringContent(WebUtility.HtmlDecode(token.Groups[1].Value)), "__RequestVerificationToken" } };
         foreach (var (k, v) in fields) form.Add(new StringContent(v), k);
-        if (file is { } f)
+        foreach (var (field, upload) in new[] { ("banner", file), ("bannerEn", fileEn) })
         {
+            if (upload is not { } f) continue;
             var content = new ByteArrayContent(f.Bytes);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            form.Add(content, "banner", f.Name);
+            form.Add(content, field, f.Name);
         }
         return await c.PostAsync(page, form);
     }
@@ -91,6 +93,129 @@ public class BannerTests
         Assert.NotEqual("", post.Banner);
         Assert.Contains($"/uploads/{post.Banner}", await site.Browser().HtmlAsync("/news"));
         Assert.Contains($"/uploads/{post.Banner}", await site.Browser().HtmlAsync($"/news/{post.Id}"));
+    }
+
+    [Fact]
+    public async Task BannerLayout_HeightAndCrop_AreSavedAndShown()
+    {
+        using var site = new SiteFactory();
+        long sup = site.Member("Sergey Supervisor", Ratings.SUP);
+        var s = site.Browser();
+        await s.LoginAsync(sup);
+
+        // A poster shown whole: uncropped on its page, over a blurred copy of itself on the cards (list and home page).
+        var poster = new Dictionary<string, string>(Event("Poster Night")) { ["BannerSize"] = "full", ["BannerFocus"] = "top" };
+        Assert.Equal(HttpStatusCode.Redirect, (await PostMultipart(s, "/staff/events/new", poster, ("poster.png", Png))).StatusCode);
+        var e = Assert.Single(site.Get<ContentService>().AllEvents());
+        Assert.Equal(("full", "top"), (e.BannerSize, e.BannerFocus));
+        Assert.Contains("class=\"page-banner banner-full focus-top\"", await site.Browser().HtmlAsync($"/events/{e.Id}"));
+        string list = await site.Browser().HtmlAsync("/events");
+        Assert.Contains("class=\"card-banner banner-full focus-top\"", list);
+        Assert.Contains("class=\"banner-fill\"", list);
+        Assert.Contains("class=\"card-media banner-full focus-top\"", await site.Browser().HtmlAsync("/"));
+
+        // The editor shows the choice back; the crop choice is off for the whole picture.
+        string editor = await s.HtmlAsync($"/staff/events/{e.Id}");
+        Assert.Contains("value=\"full\" checked=\"checked\"", editor);
+        Assert.Contains("data-banner-focus disabled=\"disabled\"", editor);
+
+        // A low strip keeping the bottom in view; cards crop to it as well and need no blurred copy.
+        await PostMultipart(s, $"/staff/events/{e.Id}", new Dictionary<string, string>(Event("Poster Night")) { ["BannerSize"] = "strip", ["BannerFocus"] = "bottom" });
+        Assert.Contains("class=\"page-banner banner-strip focus-bottom\"", await site.Browser().HtmlAsync($"/events/{e.Id}"));
+        Assert.DoesNotContain("banner-fill", await site.Browser().HtmlAsync("/events"));
+
+        // Anything else is not stored: the standard look.
+        await PostMultipart(s, $"/staff/events/{e.Id}", new Dictionary<string, string>(Event("Poster Night"))
+            { ["BannerSize"] = "huge\" onerror=\"alert(1)", ["BannerFocus"] = "left" });
+        e = site.Get<ContentService>().Event(e.Id)!;
+        Assert.Equal(("", ""), (e.BannerSize, e.BannerFocus));
+        Assert.Contains("class=\"page-banner\"", await site.Browser().HtmlAsync($"/events/{e.Id}"));
+
+        // News: the same choice for the post page and the list; removing the banner forgets it.
+        long editorCid = site.Member("News Editor");
+        site.Get<MemberService>().SetRoles(0, editorCid, ["news"]);
+        var n = site.Browser();
+        await n.LoginAsync(editorCid);
+        var news = new Dictionary<string, string> { ["title"] = "New radar", ["body"] = "Network-ATC 2.0", ["published"] = "true", ["BannerSize"] = "tall", ["BannerFocus"] = "top" };
+        await PostMultipart(n, "/staff/news/new", news, ("radar.png", Png));
+        var post = Assert.Single(site.Get<ContentService>().News());
+        Assert.Equal(("tall", "top"), (post.BannerSize, post.BannerFocus));
+        Assert.Contains("class=\"page-banner banner-tall focus-top\"", await site.Browser().HtmlAsync($"/news/{post.Id}"));
+        Assert.Contains("class=\"news-thumb banner-tall focus-top\"", await site.Browser().HtmlAsync("/news"));
+        await PostMultipart(n, $"/staff/news/{post.Id}", new Dictionary<string, string>(news) { ["removeBanner"] = "true" });
+        post = site.Get<ContentService>().Post(post.Id)!;
+        Assert.Equal(("", "", ""), (post.Banner, post.BannerSize, post.BannerFocus));
+    }
+
+    [Fact]
+    public async Task EventsAndNews_InTwoLanguages_EachSiteShowsItsOwn()
+    {
+        using var site = new SiteFactory();
+        long sup = site.Member("Sergey Supervisor", Ratings.SUP);
+        var s = site.Browser();
+        await s.LoginAsync(sup);
+        var ru = site.Browser();
+        await ru.GetAsync("/lang/ru");
+        var en = site.Browser(); // English is the default
+
+        // Both versions, each with its own banner.
+        var fields = new Dictionary<string, string>(Event("Вечер в Пулково"))
+        {
+            ["summary"] = "Прилёты и вылеты", ["titleEn"] = "Pulkovo Evening", ["summaryEn"] = "Arrivals and departures", ["bodyEn"] = "Fly with us",
+        };
+        Assert.Equal(HttpStatusCode.Redirect, (await PostMultipart(s, "/staff/events/new", fields, ("ru.png", Png), ("en.png", Png))).StatusCode);
+        var e = Assert.Single(site.Get<ContentService>().AllEvents());
+        Assert.NotEqual("", e.BannerEn);
+        Assert.NotEqual(e.Banner, e.BannerEn);
+        string ruPage = await ru.HtmlAsync($"/events/{e.Id}"), enPage = await en.HtmlAsync($"/events/{e.Id}");
+        Assert.Contains("Вечер в Пулково", ruPage);
+        Assert.Contains($"/uploads/{e.Banner}", ruPage);
+        Assert.DoesNotContain("Pulkovo Evening", ruPage);
+        Assert.Contains("Pulkovo Evening", enPage);
+        Assert.Contains("Fly with us", enPage);
+        Assert.Contains($"/uploads/{e.BannerEn}", enPage);
+        Assert.DoesNotContain("Вечер в Пулково", enPage);
+        Assert.Contains("Pulkovo Evening", await en.HtmlAsync("/events"));
+        Assert.Contains("Arrivals and departures", await en.HtmlAsync("/"));
+        Assert.Contains("Прилёты и вылеты", await ru.HtmlAsync("/"));
+        Assert.Contains("RU · EN", await s.HtmlAsync("/staff/events"));
+
+        // The API answers in either language.
+        static async Task<string> FirstTitle(HttpClient c, string url) =>
+            JsonDocument.Parse(await c.GetStringAsync(url)).RootElement[0].GetProperty("title").GetString()!;
+        Assert.Equal("Pulkovo Evening", await FirstTitle(en, "/api/v1/events?lang=en"));
+        Assert.Equal("Вечер в Пулково", await FirstTitle(en, "/api/v1/events"));
+
+        // Without its own banner the English site shows the Russian one; the removed file goes.
+        string enFile = e.BannerEn;
+        await PostMultipart(s, $"/staff/events/{e.Id}", new Dictionary<string, string>(fields) { ["removeBannerEn"] = "true" });
+        e = site.Get<ContentService>().Event(e.Id)!;
+        Assert.Equal("", e.BannerEn);
+        Assert.False(File.Exists(Path.Combine(site.Get<UploadStore>().Directory, enFile)));
+        Assert.Contains($"/uploads/{e.Banner}", await en.HtmlAsync($"/events/{e.Id}"));
+
+        // An English version needs its title (the English tab opens); without one the English site shows the Russian text.
+        var untitled = await PostMultipart(s, $"/staff/events/{e.Id}", new Dictionary<string, string>(fields) { ["titleEn"] = "" });
+        string form = await untitled.Content.ReadAsStringAsync();
+        Assert.Contains("Enter a title", form);
+        Assert.Contains("value=\"en\" checked=\"checked\"", form);
+        await PostMultipart(s, $"/staff/events/{e.Id}", new Dictionary<string, string>(fields) { ["titleEn"] = "", ["summaryEn"] = "", ["bodyEn"] = "" });
+        Assert.Contains("Вечер в Пулково", await en.HtmlAsync($"/events/{e.Id}"));
+
+        // News: the same.
+        long editor = site.Member("News Editor");
+        site.Get<MemberService>().SetRoles(0, editor, ["news"]);
+        var n = site.Browser();
+        await n.LoginAsync(editor);
+        await PostMultipart(n, "/staff/news/new", new Dictionary<string, string>
+        {
+            ["title"] = "Новый радар", ["body"] = "Рулетка и ATIS", ["titleEn"] = "New radar", ["bodyEn"] = "Ruler and ATIS", ["published"] = "true",
+        });
+        var post = Assert.Single(site.Get<ContentService>().News());
+        Assert.Contains("New radar", await en.HtmlAsync("/news"));
+        Assert.Contains("Ruler and ATIS", await en.HtmlAsync($"/news/{post.Id}"));
+        Assert.Contains("Новый радар", await ru.HtmlAsync($"/news/{post.Id}"));
+        Assert.DoesNotContain("New radar", await ru.HtmlAsync("/news"));
     }
 
     [Theory]

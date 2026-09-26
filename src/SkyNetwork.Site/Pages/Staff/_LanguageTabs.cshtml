@@ -1,0 +1,10 @@
+@model string
+@* Language tabs of the event and news editors: one form holds the Russian and the English version, a tab shows one of
+   them (js/staff-editor.js). The model is the open tab: "ru" or "en". *@
+<div class="lang-tabs">
+  <div class="segmented">
+    <label><input type="radio" name="EditLang" value="ru" checked="@(Model != "en")"><span>Русский</span></label>
+    <label><input type="radio" name="EditLang" value="en" checked="@(Model == "en")"><span>English</span></label>
+  </div>
+  <span class="hint">@L["The English version is optional: without it the English site shows the Russian text."]</span>
+</div>

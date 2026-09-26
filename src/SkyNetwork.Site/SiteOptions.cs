@@ -37,4 +37,8 @@ public sealed class SiteOptions
     public bool BehindProxy { get; set; }
     /// <summary>Login/registration attempts per minute from one address.</summary>
     public int AuthAttemptsPerMinute { get; set; } = 10;
+    /// <summary>Accounts that can be registered from one address per day (against junk registrations).</summary>
+    public int RegistrationsPerDayPerAddress { get; set; } = 3;
+    /// <summary>Seconds the registration form must be open before it is sent (bots send it at once); 0 turns the check off.</summary>
+    public int SignupMinSeconds { get; set; } = 3;
 }
