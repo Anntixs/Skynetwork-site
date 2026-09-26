@@ -48,6 +48,7 @@ builder.Services.AddHttpClient("overpass", c =>
 });
 builder.Services.AddSingleton<AirportLayout>();
 builder.Services.AddSingleton<UploadStore>();
+builder.Services.AddSingleton<SkyNetwork.Site.Security.SignupGuard>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<NetworkFeed>());
 
 // Cyrillic stays as text in the HTML instead of &#x...; entities.

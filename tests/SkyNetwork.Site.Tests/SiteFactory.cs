@@ -8,7 +8,7 @@ using SkyNetwork.Site.Data;
 namespace SkyNetwork.Site.Tests;
 
 /// <summary>The site on a fresh temporary database, without the FSD data feed.</summary>
-public sealed class SiteFactory : WebApplicationFactory<Program>
+public sealed class SiteFactory(Dictionary<string, string>? settings = null) : WebApplicationFactory<Program>
 {
     public string DatabasePath { get; } = Path.Combine(Path.GetTempPath(), $"skynet-site-{Guid.NewGuid():N}.db");
     public string UploadsPath { get; } = Path.Combine(Path.GetTempPath(), $"skynet-uploads-{Guid.NewGuid():N}");
@@ -19,6 +19,11 @@ public sealed class SiteFactory : WebApplicationFactory<Program>
         builder.UseSetting("Site:Uploads", UploadsPath);
         builder.UseSetting("Site:DataFeedUrl", "");
         builder.UseSetting("Site:AuthAttemptsPerMinute", "10000");
+        // Tests fill in the registration form at once and register many members; SignupProtectionTests switch these on.
+        builder.UseSetting("Site:SignupMinSeconds", "0");
+        builder.UseSetting("Site:RegistrationsPerDayPerAddress", "10000");
+        if (settings != null)
+            foreach (var (key, value) in settings) builder.UseSetting(key, value);
         builder.UseEnvironment(Environment.GetEnvironmentVariable("SITE_TEST_ENV") ?? "Production");
     }
 

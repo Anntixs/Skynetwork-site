@@ -7,6 +7,9 @@
     <p class="muted">@L["After registering you get a CID, your member number for the website and the network."]</p>
     @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
     <form method="post" class="form">
+      @* A field people never see (bots fill it in) and when the form was shown: a form sent within seconds is refused. *@
+      <div class="hp" aria-hidden="true"><label>Website<input name="Website" tabindex="-1" autocomplete="off"></label></div>
+      <input type="hidden" name="Started" value="@Model.Started">
       <label>@L["First and last name"]
         <input name="Name" value="@Model.Name" required maxlength="60" autocomplete="name">
         <span class="hint">@L["This is how other members will see you."]</span>

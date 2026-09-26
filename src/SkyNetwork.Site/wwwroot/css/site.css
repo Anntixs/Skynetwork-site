@@ -455,6 +455,10 @@ input[type=checkbox], input[type=radio] { width: auto; min-height: 0; accent-col
 input[type=file] { padding: 9px 12px; }
 .check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; font-size: 14px; }
 .check input { width: auto; margin-top: 4px; }
+/* Registration: a field only bots fill in (people never see it, the keyboard skips it). */
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+/* Staff member list: tick members and suspend them together. */
+.bulk-bar { align-items: end; margin: -8px 0 20px; }
 .alert { padding: 13px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); margin-bottom: 18px; }
 .alert.error { border-color: var(--danger-soft-line); background: var(--danger-soft); color: var(--danger-text); }
 .alert.ok { border-color: var(--ok-soft-line); background: var(--ok-soft); color: var(--ok-text); }
