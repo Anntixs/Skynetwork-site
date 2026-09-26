@@ -1,13 +1,20 @@
 @page "/staff/news/{id}"
 @model SkyNetwork.Site.Pages.Staff.NewsEditModel
-@{ var p = Model.Post; ViewData["Title"] = p.Id == 0 ? L["New post"] : p.Title; }
+@{ var p = Model.Post; string heading = p.Id == 0 ? L["New post"] : p.TitleIn(!L.IsRu); ViewData["Title"] = heading; }
 <div class="eyebrow"><a href="/staff/news">@L["News"]</a></div>
-<h1 style="font-size:28px">@(p.Id == 0 ? L["New post"] : p.Title)</h1>
+<h1 style="font-size:28px">@heading</h1>
 @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
-<form method="post" class="form wide" enctype="multipart/form-data">
-  <label>@L["Headline"]<input name="Title" value="@p.Title" required maxlength="160"></label>
-  <label>@L["Text"]<textarea name="Body" required maxlength="20000" style="min-height:280px">@p.Body</textarea></label>
-  <partial name="_BannerFields" model="new BannerFields(p.BannerUrl, p.BannerSize, p.BannerFocus, ForEvent: false)" />
+<form method="post" class="form wide" enctype="multipart/form-data" data-lang-editor>
+  <partial name="_LanguageTabs" model="Model.EditLang" />
+  <div class="lang-part" data-lang-part="ru" role="group" aria-label="@L["Russian version"]" hidden="@(Model.EditLang == "en")">
+    <label>@L["Headline"]<input name="Title" value="@p.Title" maxlength="160" lang="ru"></label>
+    <label>@L["Text"]<textarea name="Body" maxlength="20000" style="min-height:280px" lang="ru">@p.Body</textarea></label>
+  </div>
+  <div class="lang-part" data-lang-part="en" role="group" aria-label="@L["English version"]" hidden="@(Model.EditLang != "en")">
+    <label>@L["Headline"]<input name="TitleEn" value="@p.TitleEn" maxlength="160" lang="en"></label>
+    <label>@L["Text"]<textarea name="BodyEn" maxlength="20000" style="min-height:280px" lang="en">@p.BodyEn</textarea></label>
+  </div>
+  <partial name="_BannerFields" model="new BannerFields(p.BannerUrl, p.BannerEnUrl, p.BannerSize, p.BannerFocus, Model.EditLang, ForEvent: false)" />
   <label class="check"><input type="checkbox" name="Published" value="true" checked="@p.Published"> <span>@L["Publish"]</span></label>
   <div class="inline-form">
     <button class="btn btn-primary" type="submit">@L["Save"]</button>
@@ -22,5 +29,5 @@
 }
 
 @section Scripts {
-  <script src="~/js/banner-editor.js" asp-append-version="true"></script>
+  <script src="~/js/staff-editor.js" asp-append-version="true"></script>
 }

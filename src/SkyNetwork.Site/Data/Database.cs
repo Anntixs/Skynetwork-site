@@ -176,6 +176,14 @@ public sealed class Database
         AddColumn(c, "events", "banner_focus", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "news", "banner_size", "TEXT NOT NULL DEFAULT ''");
         AddColumn(c, "news", "banner_focus", "TEXT NOT NULL DEFAULT ''");
+        // English versions of events and news (optional: the English site falls back to the Russian ones).
+        AddColumn(c, "events", "title_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "events", "summary_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "events", "body_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "events", "banner_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "title_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "body_en", "TEXT NOT NULL DEFAULT ''");
+        AddColumn(c, "news", "banner_en", "TEXT NOT NULL DEFAULT ''");
 
     }
 

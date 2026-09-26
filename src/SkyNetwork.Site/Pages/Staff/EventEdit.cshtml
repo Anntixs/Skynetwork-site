@@ -1,12 +1,21 @@
 @page "/staff/events/{id}"
 @model SkyNetwork.Site.Pages.Staff.EventEditModel
-@{ var e = Model.Event; ViewData["Title"] = e.Id == 0 ? L["New event"] : e.Title; }
+@{ var e = Model.Event; string heading = e.Id == 0 ? L["New event"] : e.TitleIn(!L.IsRu); ViewData["Title"] = heading; }
 <div class="eyebrow"><a href="/staff/events">@L["Events"]</a></div>
-<h1 style="font-size:28px">@(e.Id == 0 ? L["New event"] : e.Title)</h1>
+<h1 style="font-size:28px">@heading</h1>
 @if (Model.Error != null) { <div class="alert error">@L[Model.Error]</div> }
-<form method="post" class="form wide" enctype="multipart/form-data">
-  <label>@L["Title"]<input name="Title" value="@e.Title" required maxlength="120"></label>
-  <label>@L["Summary"]<input name="Summary" value="@e.Summary" maxlength="240"><span class="hint">@L["One line for the card on the home page."]</span></label>
+<form method="post" class="form wide" enctype="multipart/form-data" data-lang-editor>
+  <partial name="_LanguageTabs" model="Model.EditLang" />
+  <div class="lang-part" data-lang-part="ru" role="group" aria-label="@L["Russian version"]" hidden="@(Model.EditLang == "en")">
+    <label>@L["Title"]<input name="Title" value="@e.Title" maxlength="120" lang="ru"></label>
+    <label>@L["Summary"]<input name="Summary" value="@e.Summary" maxlength="240" lang="ru"><span class="hint">@L["One line for the card on the home page."]</span></label>
+    <label>@L["Description"]<textarea name="Body" maxlength="10000" style="min-height:220px" lang="ru">@e.Body</textarea></label>
+  </div>
+  <div class="lang-part" data-lang-part="en" role="group" aria-label="@L["English version"]" hidden="@(Model.EditLang != "en")">
+    <label>@L["Title"]<input name="TitleEn" value="@e.TitleEn" maxlength="120" lang="en"></label>
+    <label>@L["Summary"]<input name="SummaryEn" value="@e.SummaryEn" maxlength="240" lang="en"><span class="hint">@L["One line for the card on the home page."]</span></label>
+    <label>@L["Description"]<textarea name="BodyEn" maxlength="10000" style="min-height:220px" lang="en">@e.BodyEn</textarea></label>
+  </div>
   <label>@L["Airports"]<input name="Airports" value="@e.Airports" class="mono" maxlength="120" placeholder="UUEE UUDD"></label>
   <div class="row">
     <label>@L["Start date, UTC"]<input name="StartDate" type="date" value="@Format.InputDate(e.Start)" required></label>
@@ -14,8 +23,7 @@
     <label>@L["End date"]<input name="EndDate" type="date" value="@Format.InputDate(e.End)" required></label>
     <label>@L["Time"]<input name="EndTime" type="time" value="@Format.InputTime(e.End)" required></label>
   </div>
-  <label>@L["Description"]<textarea name="Body" maxlength="10000" style="min-height:220px">@e.Body</textarea></label>
-  <partial name="_BannerFields" model="new BannerFields(e.BannerUrl, e.BannerSize, e.BannerFocus, ForEvent: true)" />
+  <partial name="_BannerFields" model="new BannerFields(e.BannerUrl, e.BannerEnUrl, e.BannerSize, e.BannerFocus, Model.EditLang, ForEvent: true)" />
   <label class="check"><input type="checkbox" name="Published" value="true" checked="@e.Published"> <span>@L["Publish"]</span></label>
   <div class="inline-form">
     <button class="btn btn-primary" type="submit">@L["Save"]</button>
@@ -30,5 +38,5 @@
 }
 
 @section Scripts {
-  <script src="~/js/banner-editor.js" asp-append-version="true"></script>
+  <script src="~/js/staff-editor.js" asp-append-version="true"></script>
 }

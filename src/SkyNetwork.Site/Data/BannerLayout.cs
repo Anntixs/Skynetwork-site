@@ -32,8 +32,14 @@ public static class BannerLayout
     }
 }
 
-/// <summary>The banner part of the staff editors of events and news (<c>Pages/Staff/_BannerFields.cshtml</c>).</summary>
-public sealed record BannerFields(string? Url, string Size, string Focus, bool ForEvent)
+/// <summary>
+/// The banner part of the staff editors of events and news (<c>Pages/Staff/_BannerFields.cshtml</c>): the Russian and the
+/// English picture, the layout they share, and the language tab that is open ("ru" or "en").
+/// </summary>
+public sealed record BannerFields(string? Url, string? UrlEn, string Size, string Focus, string Lang, bool ForEvent)
 {
     public string? Classes => BannerLayout.Classes(Size, Focus);
+
+    /// <summary>The picture of the open tab, or the other language's one (as each site shows it).</summary>
+    public string? Shown => Lang == "en" ? UrlEn ?? Url : Url ?? UrlEn;
 }

@@ -3,6 +3,7 @@
 @{
     var s = Model.Online;
     string N(long n) => n.ToString("N0", L.Culture);
+    bool en = !L.IsRu;
 }
 @section Head {
   <link rel="stylesheet" href="~/lib/leaflet/leaflet.css">
@@ -107,8 +108,8 @@
         @foreach (var e in Model.Events)
         {
           <a class="card" href="/events/@e.Id" data-reveal>
-            <span class="card-media @(e.BannerUrl == null ? "blank" : e.BannerClasses)">
-              @if (e.BannerUrl is { } banner)
+            <span class="card-media @(e.BannerUrlIn(en) == null ? "blank" : e.BannerClasses)">
+              @if (e.BannerUrlIn(en) is { } banner)
               {
                 if (e.BannerWhole) { <img class="banner-fill" src="@banner" alt="" loading="lazy" decoding="async"> }
                 <img src="@banner" alt="" loading="lazy" decoding="async">
@@ -120,8 +121,8 @@
             </span>
             <div class="card-body">
               <span class="date-chip">@Format.Span(e.Start, e.End)</span>
-              <h3>@e.Title</h3>
-              <p>@e.Summary</p>
+              <h3>@e.TitleIn(en)</h3>
+              <p>@e.SummaryIn(en)</p>
               @if (e.Airports.Length > 0) { <span class="mono airports">@e.Airports</span> }
             </div>
           </a>
@@ -194,14 +195,14 @@
         @foreach (var n in Model.News)
         {
           <a class="card" href="/news/@n.Id" data-reveal>
-            @if (n.BannerUrl is { } thumb)
+            @if (n.BannerUrlIn(en) is { } thumb)
             {
               <span class="card-media @n.BannerClasses">@if (n.BannerWhole) { <img class="banner-fill" src="@thumb" alt="" loading="lazy" decoding="async"> }<img src="@thumb" alt="" loading="lazy" decoding="async"></span>
             }
             <div class="card-body">
               <span class="card-date">@Format.Date(n.Created)</span>
-              <h3>@n.Title</h3>
-              <p>@(n.Body.Length > 160 ? n.Body[..160] + "…" : n.Body)</p>
+              <h3>@n.TitleIn(en)</h3>
+              <p>@n.ExcerptIn(en, 160)</p>
             </div>
           </a>
         }

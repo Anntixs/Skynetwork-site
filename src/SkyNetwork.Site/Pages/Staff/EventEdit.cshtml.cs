@@ -12,6 +12,9 @@ public sealed class EventEditModel(CurrentUser me, ContentService content, Uploa
     public NetworkEvent Event { get; private set; } = new();
     public string? Error { get; private set; }
 
+    /// <summary>The language tab that is open: "ru" or "en".</summary>
+    public string EditLang { get; private set; } = "ru";
+
     private bool Load(string id)
     {
         if (id == "new")
@@ -32,42 +35,57 @@ public sealed class EventEditModel(CurrentUser me, ContentService content, Uploa
 
     public IActionResult OnGet(string id) => Load(id) ? Page() : NotFound();
 
-    public async Task<IActionResult> OnPostAsync(string id, string title, string? summary, string? airports, string startDate, string startTime,
-        string endDate, string endTime, string? body, bool published, IFormFile? banner, bool removeBanner, string? bannerSize, string? bannerFocus)
+    public async Task<IActionResult> OnPostAsync(string id, string? title, string? summary, string? body, string? titleEn, string? summaryEn,
+        string? bodyEn, string? airports, string startDate, string startTime, string endDate, string endTime, bool published,
+        IFormFile? banner, bool removeBanner, IFormFile? bannerEn, bool removeBannerEn, string? bannerSize, string? bannerFocus, string? editLang)
     {
         if (!Load(id)) return NotFound();
+        EditLang = editLang == "en" ? "en" : "ru";
         long? start = Format.ParseUtc(startDate, startTime), end = Format.ParseUtc(endDate, endTime);
         Event.Title = (title ?? "").Trim();
         Event.Summary = (summary ?? "").Trim();
-        Event.Airports = string.Join(' ', (airports ?? "").ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));
         Event.Body = (body ?? "").Trim();
+        Event.TitleEn = (titleEn ?? "").Trim();
+        Event.SummaryEn = (summaryEn ?? "").Trim();
+        Event.BodyEn = (bodyEn ?? "").Trim();
+        Event.Airports = string.Join(' ', (airports ?? "").ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));
         Event.Published = published;
         Event.BannerSize = BannerLayout.Size(bannerSize);
         Event.BannerFocus = BannerLayout.Focus(bannerFocus);
-        if (Event.Title.Length < 3) Error = "Enter a title";
+        // Russian, English or both: a version that is begun needs its title, and the tab that lacks it opens.
+        bool ru = Event.Title.Length + Event.Summary.Length + Event.Body.Length > 0;
+        bool en = Event.TitleEn.Length + Event.SummaryEn.Length + Event.BodyEn.Length > 0;
+        string? untitled = ru && Event.Title.Length < 3 ? "ru" : en && Event.TitleEn.Length < 3 ? "en" : null;
+        if (untitled != null || !ru && !en)
+        {
+            Error = "Enter a title";
+            EditLang = untitled ?? EditLang;
+        }
         else if (start == null || end == null || end <= start) Error = "Check the start and end times";
         if (Error != null) return Page();
         Event.StartsAt = start!.Value;
         Event.EndsAt = end!.Value;
-        // The banner: a new upload replaces it, the checkbox removes it; the old file goes after saving.
-        string old = Event.Banner;
-        if (banner is { Length: > 0 })
+        // Banners: a new upload replaces one, its checkbox removes it; the replaced files go once the event is saved.
+        string oldRu = Event.Banner, oldEn = Event.BannerEn;
+        var (ruBanner, error) = await uploads.ReplaceAsync(banner, removeBanner, oldRu, HttpContext.RequestAborted);
+        string enBanner = oldEn;
+        if (error != null) EditLang = "ru";
+        else
         {
-            var (name, error) = await uploads.SaveImageAsync(banner, HttpContext.RequestAborted);
-            if (error != null)
-            {
-                Error = error;
-                return Page();
-            }
-            Event.Banner = name!;
+            (enBanner, error) = await uploads.ReplaceAsync(bannerEn, removeBannerEn, oldEn, HttpContext.RequestAborted);
+            if (error != null) EditLang = "en";
         }
-        else if (removeBanner)
+        if (error != null)
         {
-            Event.Banner = "";
-            Event.BannerSize = Event.BannerFocus = "";
+            uploads.Delete(ruBanner == oldRu ? null : ruBanner);
+            Error = error;
+            return Page();
         }
+        (Event.Banner, Event.BannerEn) = (ruBanner, enBanner);
+        if (ruBanner.Length == 0 && enBanner.Length == 0) Event.BannerSize = Event.BannerFocus = "";
         long saved = content.SaveEvent(Me.Cid, Event);
-        if (old.Length > 0 && old != Event.Banner) uploads.Delete(old);
+        foreach (string old in new[] { oldRu, oldEn })
+            if (old != ruBanner && old != enBanner) uploads.Delete(old);
         return Redirect($"/staff/events/{saved}");
     }
 
@@ -76,6 +94,7 @@ public sealed class EventEditModel(CurrentUser me, ContentService content, Uploa
         if (!Load(id) || Event.Id == 0) return NotFound();
         content.DeleteEvent(Me.Cid, Event.Id);
         uploads.Delete(Event.Banner);
+        uploads.Delete(Event.BannerEn);
         return Redirect("/staff/events");
     }
 }

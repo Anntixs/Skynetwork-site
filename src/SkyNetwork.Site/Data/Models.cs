@@ -64,6 +64,10 @@ public sealed class NetworkEvent
     public string Title { get; set; } = "";
     public string Summary { get; set; } = "";
     public string Body { get; set; } = "";
+    /// <summary>The English version (optional): the English site shows it when it has a title.</summary>
+    public string TitleEn { get; set; } = "";
+    public string SummaryEn { get; set; } = "";
+    public string BodyEn { get; set; } = "";
     public string Airports { get; set; } = "";
     public long StartsAt { get; set; }
     public long EndsAt { get; set; }
@@ -77,9 +81,20 @@ public sealed class NetworkEvent
     public string? BannerClasses => BannerLayout.Classes(BannerSize, BannerFocus);
     /// <summary>The whole picture is shown uncropped; on cards it sits over a blurred copy of itself.</summary>
     public bool BannerWhole => BannerLayout.Size(BannerSize) == "full";
+    /// <summary>Banner of the English site ("" for none: it shows the Russian one).</summary>
+    public string BannerEn { get; set; } = "";
+    public string? BannerEnUrl => BannerEn.Length > 0 ? "/uploads/" + BannerEn : null;
     public long CreatedBy { get; set; }
     public DateTime Start => Time.Utc(StartsAt);
     public DateTime End => Time.Utc(EndsAt);
+
+    /// <summary>Whether the English (<paramref name="en"/>) or the Russian site shows the English version: each shows its own when it has a title, else the other.</summary>
+    public bool ShowsEnglish(bool en) => en ? TitleEn.Length > 0 : Title.Length == 0 && TitleEn.Length > 0;
+    public string TitleIn(bool en) => ShowsEnglish(en) ? TitleEn : Title;
+    public string SummaryIn(bool en) => ShowsEnglish(en) ? SummaryEn : Summary;
+    public string BodyIn(bool en) => ShowsEnglish(en) ? BodyEn : Body;
+    /// <summary>The banner of that site, or the other site's one when it has none.</summary>
+    public string? BannerUrlIn(bool en) => en ? BannerEnUrl ?? BannerUrl : BannerUrl ?? BannerEnUrl;
 }
 
 public sealed class NewsPost
@@ -87,6 +102,9 @@ public sealed class NewsPost
     public long Id { get; set; }
     public string Title { get; set; } = "";
     public string Body { get; set; } = "";
+    /// <summary>The English version (optional): the English site shows it when it has a headline.</summary>
+    public string TitleEn { get; set; } = "";
+    public string BodyEn { get; set; } = "";
     public bool Published { get; set; }
     /// <summary>Uploaded banner file name ("" for none), served from /uploads/.</summary>
     public string Banner { get; set; } = "";
@@ -97,10 +115,27 @@ public sealed class NewsPost
     public string? BannerClasses => BannerLayout.Classes(BannerSize, BannerFocus);
     /// <summary>The whole picture is shown uncropped; on cards it sits over a blurred copy of itself.</summary>
     public bool BannerWhole => BannerLayout.Size(BannerSize) == "full";
+    /// <summary>Banner of the English site ("" for none: it shows the Russian one).</summary>
+    public string BannerEn { get; set; } = "";
+    public string? BannerEnUrl => BannerEn.Length > 0 ? "/uploads/" + BannerEn : null;
     public long AuthorCid { get; set; }
     public string AuthorName { get; set; } = "";
     public long CreatedAt { get; set; }
     public DateTime Created => Time.Utc(CreatedAt);
+
+    /// <summary>Whether the English (<paramref name="en"/>) or the Russian site shows the English version: each shows its own when it has a headline, else the other.</summary>
+    public bool ShowsEnglish(bool en) => en ? TitleEn.Length > 0 : Title.Length == 0 && TitleEn.Length > 0;
+    public string TitleIn(bool en) => ShowsEnglish(en) ? TitleEn : Title;
+    public string BodyIn(bool en) => ShowsEnglish(en) ? BodyEn : Body;
+    /// <summary>The banner of that site, or the other site's one when it has none.</summary>
+    public string? BannerUrlIn(bool en) => en ? BannerEnUrl ?? BannerUrl : BannerUrl ?? BannerEnUrl;
+
+    /// <summary>The start of the text for lists.</summary>
+    public string ExcerptIn(bool en, int length)
+    {
+        string text = BodyIn(en);
+        return text.Length > length ? text[..length] + "…" : text;
+    }
 }
 
 public sealed class Booking

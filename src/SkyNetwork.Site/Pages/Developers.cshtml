@@ -14,10 +14,10 @@
           <tr><td class="mono">GET /api/v1/stats</td><td>@L["Members, online, number of connections"]</td></tr>
           <tr><td class="mono">GET /api/v1/members/{cid}</td><td>@L["Member profile: name, controller, pilot and military ratings, pilot and controller hours"]</td></tr>
           <tr><td class="mono">GET /api/v1/members/{cid}/sessions</td><td>@L["Last 50 connections"]</td></tr>
-          <tr><td class="mono">GET /api/v1/events</td><td>@L["Upcoming events"]</td></tr>
-          <tr><td class="mono">GET /api/v1/events/{id}</td><td>@L["An event"]</td></tr>
+          <tr><td class="mono">GET /api/v1/events[?lang=en]</td><td>@L["Upcoming events"]</td></tr>
+          <tr><td class="mono">GET /api/v1/events/{id}[?lang=en]</td><td>@L["An event"]</td></tr>
           <tr><td class="mono">GET /api/v1/bookings</td><td>@L["Position bookings"]</td></tr>
-          <tr><td class="mono">GET /api/v1/news</td><td>@L["News"]</td></tr>
+          <tr><td class="mono">GET /api/v1/news[?lang=en]</td><td>@L["News"]</td></tr>
           <tr><td class="mono">GET /api/v1/pilots/{callsign}/route</td><td>@L["An online pilot's route as points (from SimBrief or worked out from the flight plan), the flown track and, for SimBrief plans, registration and step climbs"]</td></tr>
           <tr><td class="mono">GET /api/v1/routes/decode?departure=UUEE&amp;destination=EDDF&amp;route=…</td><td>@L["A route text as points: waypoints, airways expanded, coordinates; the tokens not found"]</td></tr>
           <tr><td class="mono">GET /api/v1/airports/{icao}/layout</td><td>@L["Airport diagram: runways, taxiways, aprons, stands (OpenStreetMap)"]</td></tr>
