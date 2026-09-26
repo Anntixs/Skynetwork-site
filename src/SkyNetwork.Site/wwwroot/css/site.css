@@ -28,7 +28,8 @@
   --chrome-bg: rgba(255,255,255,.72);
   --glass-bg: rgba(255,255,255,.8);
   --staff-bar-bg: #0e1726; --staff-bar-text: #c9d2de; --staff-bar-strong: #ffffff;
-  /* Map: the selected aircraft's route, airport diagrams when zoomed in. */
+  /* Map: sector borders, the selected aircraft's route, airport diagrams when zoomed in. */
+  --map-fir: rgba(91,104,120,.45);
   --map-route: #1f5fbf;
   --map-flown: #e07b2a;
   --apt-apron: #dfe4eb; --apt-building: #c9d1dc; --apt-runway: #7d8899; --apt-taxiway: #aab4c1; --apt-label: #5b6878; --apt-rwy: #c2410c;
@@ -84,7 +85,7 @@
   --glass-bg: rgba(22,29,39,.8);
   --staff-bar-bg: #06090d; --staff-bar-text: #9aa7b8; --staff-bar-strong: #e6ebf2;
   --f-del: #8a9ab0; --f-gnd: #4fb482; --f-twr: #e3ab4a; --f-app: #5b9bf0; --f-ctr: #9a83e6; --f-pilot: #5a687c;
-  --map-route: #79abf6; --map-flown: #f4a15d;
+  --map-fir: rgba(148,161,178,.35); --map-route: #79abf6; --map-flown: #f4a15d;
   --apt-apron: #1b222c; --apt-building: #29323f; --apt-runway: #66728a; --apt-taxiway: #465266; --apt-label: #9aa6b5; --apt-rwy: #f07a4a;
 }
 @media (prefers-color-scheme: dark) {
@@ -117,7 +118,7 @@
     --glass-bg: rgba(22,29,39,.8);
     --staff-bar-bg: #06090d; --staff-bar-text: #9aa7b8; --staff-bar-strong: #e6ebf2;
     --f-del: #8a9ab0; --f-gnd: #4fb482; --f-twr: #e3ab4a; --f-app: #5b9bf0; --f-ctr: #9a83e6; --f-pilot: #5a687c;
-  --map-route: #79abf6; --map-flown: #f4a15d;
+  --map-fir: rgba(148,161,178,.35); --map-route: #79abf6; --map-flown: #f4a15d;
   --apt-apron: #1b222c; --apt-building: #29323f; --apt-runway: #66728a; --apt-taxiway: #465266; --apt-label: #9aa6b5; --apt-rwy: #f07a4a;
 }
 }
@@ -454,6 +455,8 @@ details.mc-sec .mc-block + .mc-block { margin-top: 12px; }
 .apt-badge .TWR { background: var(--f-twr); }
 .apt-badge .APP { background: var(--f-app); }
 .apt-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--paper); border: 2px solid var(--map-route); }
+.fir-label { background: none; border: 0; box-shadow: none; font: 700 11px var(--mono); color: var(--f-ctr); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper); }
+.fir-label::before { display: none; }
 /* Airport codes as on radar screens: plain bold text, the bigger airports a little brighter. */
 .apt-code { display: inline-block; transform: translate(-50%, 9px); font: 700 11px var(--body); letter-spacing: .02em; color: var(--slate);
   opacity: .8; white-space: nowrap; cursor: pointer; text-shadow: 0 0 3px var(--paper), 0 0 2px var(--paper); }
