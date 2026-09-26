@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.RateLimiting;
 using SkyNetwork.Site.Data;
 using SkyNetwork.Site.Security;
+using SkyNetwork.Site.Services;
 
 namespace SkyNetwork.Site.Pages;
 
 [EnableRateLimiting("auth")]
-public sealed class RegisterModel(MemberService members, SignupGuard guard) : PageModel
+public sealed class RegisterModel(MemberService members, SignupGuard guard, AccountMail mail) : PageModel
 {
     [BindProperty] public string Name { get; set; } = "";
     [BindProperty] public string Email { get; set; } = "";
@@ -44,8 +45,11 @@ public sealed class RegisterModel(MemberService members, SignupGuard guard) : Pa
             Started = guard.Stamp();
             return Page();
         }
-        long cid = members.Register(Name, Email, Country, Password);
-        await HttpContext.SignInMemberAsync(members.Find(cid)!, remember: true);
+        // With mail set up the address is confirmed by a link before the member can connect to the network.
+        long cid = members.Register(Name, Email, Country, Password, verified: !mail.Enabled);
+        var member = members.Find(cid)!;
+        mail.SendConfirmation(Request, member, Email);
+        await HttpContext.SignInMemberAsync(member, remember: true);
         return Redirect("/account?welcome=1");
     }
 

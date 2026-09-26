@@ -16,6 +16,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<SiteOptions>(builder.Configuration.GetSection("Site"));
 builder.Services.AddSingleton<Database>();
+builder.Services.Configure<MailOptions>(builder.Configuration.GetSection("Mail"));
+builder.Services.AddSingleton<IMailSender, SmtpMailSender>();
+builder.Services.AddSingleton<Mailer>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Mailer>());
+builder.Services.AddSingleton<Notifications>();
+builder.Services.AddSingleton<EmailTokenService>();
+builder.Services.AddSingleton<AccountMail>();
 builder.Services.AddSingleton<AuditService>();
 builder.Services.AddSingleton<MemberService>();
 builder.Services.AddSingleton<ContentService>();

@@ -15,6 +15,19 @@
         <div>@L["Write it down: with it and your password you sign in to the website and connect to the network. Next,"] <a href="/docs/software">@L["install the software"]</a>.</div>
       </div>
     }
+    @if (!m.EmailVerified)
+    {
+      <div class="alert error">
+        <div><b>@L["Confirm your email"]</b></div>
+        <div>@L.F("We sent a link to {0}. Open it to confirm the address: until then you cannot connect to the network.", m.Email ?? "")</div>
+        @if (Model.Resent == true) { <div>@L["A new letter is on its way."]</div> }
+        @if (Model.Resent == false) { <div>@L["A letter was sent a moment ago: wait two minutes before asking for another one."]</div> }
+        <form method="post" asp-page-handler="Resend" class="inline-form" style="margin-top:8px">
+          <button class="btn btn-small" type="submit">@L["Send the letter again"]</button>
+          <a class="small" href="/account/settings">@L["Wrong address? Change it in the settings"]</a>
+        </form>
+      </div>
+    }
     <div class="profile-head">
       <div class="avatar">@Format.Initials(m.Name)</div>
       <div>
