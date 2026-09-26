@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SkyNetwork.Site.Data;
 using SkyNetwork.Site.Security;
+using SkyNetwork.Site.Services;
 
 namespace SkyNetwork.Site.Pages.Account;
 
-public sealed class SettingsModel(CurrentUser me, MemberService members, ConnectService connect) : PageModel
+public sealed class SettingsModel(CurrentUser me, MemberService members, ConnectService connect, AccountMail mail) : PageModel
 {
     [BindProperty] public string Email { get; set; } = "";
     [BindProperty] public string Country { get; set; } = "";
@@ -33,6 +34,15 @@ public sealed class SettingsModel(CurrentUser me, MemberService members, Connect
         // A country typed before the list existed can stay as it is.
         else if (Country.Length > 0 && Countries.Normalize(Country) == null && Country != me.Member!.Country) Error = "Choose a country from the list";
         else if (!Email.Equals(me.Member!.Email, StringComparison.OrdinalIgnoreCase) && members.EmailTaken(Email)) Error = "This email is already in use";
+        else if (mail.Enabled && !Email.Equals(me.Member!.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            // A new address takes effect once it is confirmed by the link sent to it.
+            members.UpdateCountry(me.Cid, Country);
+            Message = mail.SendConfirmation(Request, me.Member!, Email)
+                ? "We sent a link to the new address: the email changes once you open it"
+                : "A letter was sent a moment ago: wait two minutes before asking for another one";
+            Email = me.Member!.Email ?? "";
+        }
         else
         {
             members.UpdateProfile(me.Cid, Email, Country);

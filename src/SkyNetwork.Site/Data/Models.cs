@@ -23,6 +23,8 @@ public sealed class Member
     public long? SuspendedUntil { get; set; }
     public int PilotRating { get; set; }
     public int MilitaryRating { get; set; }
+    /// <summary>The email was confirmed by a link sent to it (members without a profile count as confirmed).</summary>
+    public bool EmailVerified { get; set; } = true;
 
     public string RatingShort => Ratings.Short(Rating);
     public string RatingLong => Ratings.Long(Rating);

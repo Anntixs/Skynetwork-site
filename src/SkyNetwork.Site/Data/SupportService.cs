@@ -1,9 +1,10 @@
 using Dapper;
+using SkyNetwork.Site.Services;
 
 namespace SkyNetwork.Site.Data;
 
 /// <summary>Support tickets.</summary>
-public sealed class SupportService(Database db, AuditService audit)
+public sealed class SupportService(Database db, AuditService audit, Notifications notify)
 {
     public static readonly IReadOnlyDictionary<string, string> TicketStatuses = new Dictionary<string, string>
     {
@@ -60,7 +61,10 @@ public sealed class SupportService(Database db, AuditService audit)
             new { ticketId, cid, staff = staff ? 1 : 0, body, now });
         c.Execute("UPDATE tickets SET status = @status, updated_at = @now WHERE id = @ticketId",
             new { ticketId, now, status = staff ? "answered" : "open" });
-        if (staff) audit.Log(cid, "ticket", ticketId.ToString(), "reply");
+        if (!staff) return;
+        audit.Log(cid, "ticket", ticketId.ToString(), "reply");
+        // The member (or guest) gets the answer by email too: guests have no other way to read it.
+        if (Ticket(ticketId) is { Email.Length: > 0 } t) notify.TicketAnswered(t.Email, t.Id, t.Subject, body, t.Cid != null);
     }
 
     public void SetTicketStatus(long actor, long ticketId, string status)
