@@ -172,9 +172,14 @@ public sealed class SignupGuard(IDataProtectionProvider protection, IOptions<Sit
         string host = address.Host.ToLowerInvariant();
         int dot = host.LastIndexOf('.');
         if (dot <= 0 || host.Length - dot - 1 < 2 || !host[(dot + 1)..].All(char.IsAsciiLetter) || host.Contains("..")) return BadEmail;
+        if (Placeholder.Any(d => host == d || host.EndsWith("." + d, StringComparison.Ordinal))) return BadEmail;
         if (TemporaryMail.Any(d => host == d || host.EndsWith("." + d, StringComparison.Ordinal))) return TemporaryEmail;
         return null;
     }
+
+    // Domains from address templates, not anyone's mailbox ("62bcc4f00c0b@yourdomain.com" was a bot wave).
+    private static readonly string[] Placeholder =
+        ["yourdomain.com", "yourdomain.net", "yourdomain.org", "yourdomain.ru", "mydomain.com", "domain.com", "domain.ru", "test.com", "test.ru", "sample.com"];
 
     // Throwaway mailbox services.
     private static readonly string[] TemporaryMail =

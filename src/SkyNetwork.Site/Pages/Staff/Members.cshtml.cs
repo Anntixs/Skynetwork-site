@@ -9,28 +9,39 @@ public sealed class MembersModel(CurrentUser me, MemberService members) : StaffP
 {
     protected override Perm Required => Perm.ViewMembers;
 
+    /// <summary>At most this many members are listed, the newest first; a search finds the others.</summary>
+    public const int Limit = 100;
+
     public string Query { get; private set; } = "";
-    public bool SuspendedOnly { get; private set; }
-    /// <summary>Only accounts whose name or email would not pass registration today (junk registrations).</summary>
-    public bool SuspiciousOnly { get; private set; }
+    /// <summary>"" for everyone, "suspicious" (name or email would not pass registration today) or "suspended".</summary>
+    public string Filter { get; private set; } = "";
     public IReadOnlyList<Member> Results { get; private set; } = [];
+    /// <summary>More members match than are listed.</summary>
+    public bool Truncated { get; private set; }
+    public long Total { get; private set; }
     public bool CanSuspend => Me.Has(Perm.Suspend);
     public string? Message { get; private set; }
     public string? Error { get; private set; }
 
-    public void OnGet(string? q, int? suspended, int? suspicious) => Find(q, suspended == 1, suspicious == 1);
+    // Older links (?suspended=1, ?suspicious=1) still work.
+    public void OnGet(string? q, string? show, int? suspended, int? suspicious) => Find(q, Show(show, suspended, suspicious));
 
-    private void Find(string? q, bool suspendedOnly, bool suspiciousOnly)
+    private static string Show(string? show, int? suspended, int? suspicious) =>
+        show is "suspicious" or "suspended" ? show : suspicious == 1 ? "suspicious" : suspended == 1 ? "suspended" : "";
+
+    private void Find(string? q, string filter)
     {
-        Query = q ?? "";
-        SuspendedOnly = suspendedOnly;
-        SuspiciousOnly = suspiciousOnly;
-        var found = members.Search(q, SuspendedOnly, suspiciousOnly ? 5000 : 100);
-        Results = suspiciousOnly ? found.Where(m => SignupGuard.Suspicion(m) != null).ToList() : found;
+        Query = (q ?? "").Trim();
+        Filter = filter;
+        Total = members.Count();
+        var found = members.Search(Query, filter == "suspended", filter == "suspicious" ? 5000 : Limit + 1);
+        if (filter == "suspicious") found = found.Where(m => SignupGuard.Suspicion(m) != null).ToList();
+        Truncated = found.Count > Limit;
+        Results = found.Take(Limit).ToList();
     }
 
     /// <summary>Suspends the ticked members for good, with the checks of a single suspension (junk registrations).</summary>
-    public IActionResult OnPostSuspend(long[] cids, string? reason, string? q, int? suspended, int? suspicious)
+    public IActionResult OnPostSuspend(long[] cids, string? reason, string? q, string? show, int? suspended, int? suspicious)
     {
         if (!CanSuspend) return NotFound();
         reason = (reason ?? "").Trim();
@@ -50,7 +61,7 @@ public sealed class MembersModel(CurrentUser me, MemberService members) : StaffP
             }
             Message = this.T("Suspended: {0}. Skipped: {1}", done, skipped);
         }
-        Find(q, suspended == 1, suspicious == 1);
+        Find(q, Show(show, suspended, suspicious));
         return Page();
     }
 }

@@ -421,6 +421,33 @@ a.card:hover { border-color: var(--line-strong); box-shadow: 0 14px 36px -14px v
 .step::before { counter-increment: step; content: counter(step); display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
   background: var(--grad-button); color: #fff; font: 700 14px var(--display); margin-bottom: 14px; box-shadow: var(--btn-shadow); }
 
+/* ---- staff: member list ---- */
+.members-title { display: flex; align-items: center; gap: 12px; font-size: 30px; }
+.count-chip { font: 600 13px var(--mono); color: var(--slate); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; letter-spacing: 0; }
+.members-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; margin-bottom: 16px; }
+.members-search { display: flex; gap: 8px; flex: 1 1 320px; max-width: 520px; }
+.members-search input { flex: 1; min-width: 0; }
+.seg-links a { display: block; padding: 8px 14px; border-radius: 9px; color: var(--slate); font-weight: 500; font-size: 13.5px; white-space: nowrap;
+  transition: background-color var(--t-hover) var(--ease), color var(--t-hover) var(--ease), box-shadow var(--t-hover) var(--ease); }
+.seg-links a:hover { color: var(--ink); text-decoration: none; }
+.seg-links a.on { background: var(--card-bg); color: var(--ink); box-shadow: 0 1px 3px var(--shadow-strong), 0 0 0 1px var(--line); }
+/* Tick members and suspend them together. */
+.bulk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 10px 12px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.bulk-bar input[name=reason] { flex: 1 1 220px; max-width: 360px; min-height: 38px; padding: 7px 12px; }
+.bulk-bar .btn[disabled] { opacity: .45; cursor: default; }
+.bulk-count { min-width: 110px; font-size: 13.5px; color: var(--slate); font-variant-numeric: tabular-nums; }
+.members-table td { vertical-align: middle; }
+.members-table .tick { width: 44px; padding-right: 0; }
+/* The member column takes the room that is left and cuts long names and emails short (the whole value is in the tooltip). */
+.members-table .who { width: 100%; max-width: 0; }
+.members-table .who a, .members-table .who span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.members-table .who a { font-weight: 600; color: var(--ink); }
+.members-table .who span { font-size: 12.5px; color: var(--slate); margin-top: 2px; }
+.members-table .state { white-space: nowrap; }
+.members-table .state .badge + .badge, .members-table .state .badge + .small { margin-left: 6px; }
+.members-table tr.suspicious td { background: color-mix(in srgb, var(--warn-soft) 55%, transparent); }
+.nowrap { white-space: nowrap; }
+
 /* ---- tables ---- */
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--card-bg); }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -458,7 +485,6 @@ input[type=file] { padding: 9px 12px; }
 /* Registration: a field only bots fill in (people never see it, the keyboard skips it). */
 .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 /* Staff member list: tick members and suspend them together. */
-.bulk-bar { align-items: end; margin: -8px 0 20px; }
 .alert { padding: 13px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); margin-bottom: 18px; }
 .alert.error { border-color: var(--danger-soft-line); background: var(--danger-soft); color: var(--danger-text); }
 .alert.ok { border-color: var(--ok-soft-line); background: var(--ok-soft); color: var(--ok-text); }
@@ -490,7 +516,7 @@ input[type=file] { padding: 9px 12px; }
 .rating-card b { font-weight: 600; font-size: 14px; }
 
 /* ---- side navigation (account, docs, staff) ---- */
-.with-side { display: grid; grid-template-columns: 232px 1fr; gap: 48px; }
+.with-side { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 48px; }
 .side { position: sticky; top: 88px; align-self: start; }
 .side a { display: block; padding: 8px 12px; border-radius: 10px; color: var(--slate); font-weight: 500; font-size: 14.5px; transition: color var(--t-hover) var(--ease), background-color var(--t-hover) var(--ease); }
 .side a:hover { background: var(--surface); color: var(--ink); text-decoration: none; }
@@ -811,7 +837,7 @@ html.motion [data-reveal].in { opacity: 1; transform: none; }
 
 /* ---- responsive ---- */
 @media (max-width: 960px) {
-  .with-side, .grid.three, .grid.two, .strips.two, .steps { grid-template-columns: 1fr; }
+  .with-side, .grid.three, .grid.two, .strips.two, .steps { grid-template-columns: minmax(0, 1fr); }
   .side { position: static; }
   .nums { grid-template-columns: repeat(2, 1fr); gap: 28px 20px; }
   .hero-screen .hero-map { height: clamp(320px, 75vw, 420px); }

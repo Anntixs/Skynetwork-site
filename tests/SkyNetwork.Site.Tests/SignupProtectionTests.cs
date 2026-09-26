@@ -69,6 +69,7 @@ public class SignupProtectionTests
     [InlineData("Pidor@ebanov", SignupGuard.BadEmail)]
     [InlineData("a@b.c", SignupGuard.BadEmail)]
     [InlineData("Ivan <ivan@mail.ru>", SignupGuard.BadEmail)]
+    [InlineData("62bcc4f00c0b@yourdomain.com", SignupGuard.BadEmail)]
     [InlineData("x@mailinator.com", SignupGuard.TemporaryEmail)]
     [InlineData("x@inbox.yopmail.com", SignupGuard.TemporaryEmail)]
     public void EmailAddresses(string email, string? error) => Assert.Equal(error, SignupGuard.CheckEmail(email));
@@ -130,12 +131,13 @@ public class SignupProtectionTests
         var s = site.Browser();
         await s.LoginAsync(sup);
 
-        string list = await s.HtmlAsync("/staff/members?suspicious=1");
+        string list = await s.HtmlAsync("/staff/members?show=suspicious");
         Assert.Contains($"/staff/members/{junk1}\"", list);
         Assert.Contains($"/staff/members/{junk2}\"", list);
         Assert.DoesNotContain($"/staff/members/{real}\"", list);
 
-        string html = await s.HtmlAsync("/staff/members?suspicious=1");
+        string html = await s.HtmlAsync("/staff/members?suspicious=1"); // the older link still works
+        Assert.Contains("class=\"on\">Suspicious</a>", html);
         string token = WebUtility.HtmlDecode(Regex.Match(html, "name=\"__RequestVerificationToken\" type=\"hidden\" value=\"([^\"]+)\"").Groups[1].Value);
         var form = new List<KeyValuePair<string, string>>
         {
