@@ -44,6 +44,8 @@ public static class Permissions
         ["events"] = "Events",
         ["news"] = "News",
         ["support"] = "Support",
+        // Supervisor commands in the controller client (.kill, .warn, .find...), below a supervisor.
+        ["fsup"] = "Facility supervisor",
     };
 
     private const Perm Supervisor = Perm.StaffArea | Perm.ViewMembers | Perm.Suspend | Perm.Notes | Perm.Tickets | Perm.Online |
@@ -66,6 +68,7 @@ public static class Permissions
                 "events" => Perm.StaffArea | Perm.Events,
                 "news" => Perm.StaffArea | Perm.News,
                 "support" => Perm.StaffArea | Perm.Tickets | Perm.ViewMembers | Perm.ResetPasswords,
+                "fsup" => Perm.StaffArea | Perm.Online,
                 _ => Perm.None,
             };
         return p;

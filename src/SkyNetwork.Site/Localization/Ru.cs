@@ -23,6 +23,7 @@ public static class Ru
         ["Join"] = "Присоединиться",
         ["Software"] = "Программы",
         ["Support"] = "Поддержка",
+        ["Facility supervisor"] = "Фасилити-супервайзер",
         ["Language"] = "Язык",
         ["Light or dark theme"] = "Светлая или тёмная тема",
         ["Network management"] = "Управление сетью",

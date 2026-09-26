@@ -241,6 +241,8 @@ public class PermissionTests
         Assert.Equal(Perm.All, Permissions.For(Ratings.OBS, Ratings.ADM, []));
         Assert.True(Permissions.For(Ratings.C1, Ratings.SUP, []).HasFlag(Perm.Suspend));
         Assert.False(Permissions.For(Ratings.C1, Ratings.SUP, []).HasFlag(Perm.ManageRoles));
+        // A facility supervisor sees the staff area and who is online, nothing more on the website.
+        Assert.Equal(Perm.StaffArea | Perm.Online, Permissions.For(Ratings.S3, 0, ["fsup"]));
         Assert.False(Permissions.For(Ratings.C1, Ratings.SUP, []).HasFlag(Perm.EditRatings));
         // A supervisor who is also an instructor gets both sets.
         var supInstructor = Permissions.For(Ratings.I1, Ratings.SUP, []);
